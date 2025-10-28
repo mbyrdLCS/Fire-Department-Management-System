@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inspect {{ vehicle.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Mobile-first inspection form */
+        body {
+            font-size: 16px;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .mobile-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .mobile-header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 80px; /* Space for submit button */
+        }
+
+        .inspector-section {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .inspector-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a237e;
+        }
+
+        .inspector-section input, .inspector-section select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .checklist-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .item-description {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .item-category {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .pass-fail-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .pass-fail-button {
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            min-height: 60px; /* Large touch target */
+            transition: all 0.2s;
+        }
+
+        .pass-fail-button.selected-pass {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .pass-fail-button.selected-fail {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .pass-fail-button:active {
+            transform: scale(0.98);
+        }
+
+        .notes-area {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .notes-area.show {
+            display: block;
+        }
+
+        .notes-area textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            min-height: 80px;
+            box-sizing: border-box;
+        }
+
+        .additional-notes {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .additional-notes label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a237e;
+        }
+
+        .additional-notes textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            min-height: 100px;
+            box-sizing: border-box;
+        }
+
+        .submit-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .submit-button {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            display: block;
+            padding: 18px;
+            font-size: 20px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            min-height: 60px;
+        }
+
+        .submit-button:active {
+            transform: scale(0.98);
+        }
+
+        @media (min-width: 768px) {
+            .submit-section {
+                position: static;
+                box-shadow: none;
+                background: transparent;
+                padding: 0;
+            }
+
+            .container {
+                padding-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <a href="{{ url_for('inspections_menu') }}" class="back-button">← Back</a>
+        <h1>Inspect {{ vehicle.name }}</h1>
+    </div>
+
+    <div class="container">
+        <form method="POST" action="{{ url_for('submit_inspection') }}" id="inspectionForm">
+            <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+
+            <!-- Inspector Selection -->
+            <div class="inspector-section">
+                <label for="inspector_number">Your Firefighter Number (Optional):</label>
+                <select name="inspector_number" id="inspector_number">
+                    <option value="">Select Inspector</option>
+                    {% for ff in firefighters %}
+                    <option value="{{ ff.fireman_number }}">{{ ff.full_name }} (#{{ ff.fireman_number }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Checklist Items -->
+            {% for item in checklist_items %}
+            <div class="checklist-item">
+                {% if item.category %}
+                <div class="item-category">{{ item.category }}</div>
+                {% endif %}
+
+                <div class="item-description">{{ item.description }}</div>
+
+                <div class="pass-fail-buttons">
+                    <button type="button"
+                            class="pass-fail-button pass-button"
+                            data-item-id="{{ item.id }}"
+                            data-status="pass"
+                            onclick="toggleStatus({{ item.id }}, 'pass')">
+                        ✓ PASS
+                    </button>
+                    <button type="button"
+                            class="pass-fail-button fail-button"
+                            data-item-id="{{ item.id }}"
+                            data-status="fail"
+                            onclick="toggleStatus({{ item.id }}, 'fail')">
+                        ✗ FAIL
+                    </button>
+                </div>
+
+                <input type="hidden" name="item_{{ item.id }}" id="status_{{ item.id }}" value="pass">
+
+                <div class="notes-area" id="notes_area_{{ item.id }}">
+                    <textarea name="notes_{{ item.id }}"
+                              placeholder="Notes about failure..."
+                              id="notes_{{ item.id }}"></textarea>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Additional Notes -->
+            <div class="additional-notes">
+                <label for="additional_notes">Additional Notes (Optional):</label>
+                <textarea name="additional_notes" id="additional_notes" placeholder="Any overall observations..."></textarea>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <button type="submit" class="submit-button">
+                    Submit Inspection
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Initialize all items as "pass"
+        document.addEventListener('DOMContentLoaded', function() {
+            const passButtons = document.querySelectorAll('.pass-button');
+            passButtons.forEach(btn => {
+                btn.classList.add('selected-pass');
+            });
+        });
+
+        function toggleStatus(itemId, status) {
+            const passBtn = document.querySelector(`.pass-button[data-item-id="${itemId}"]`);
+            const failBtn = document.querySelector(`.fail-button[data-item-id="${itemId}"]`);
+            const notesArea = document.getElementById(`notes_area_${itemId}`);
+            const hiddenInput = document.getElementById(`status_${itemId}`);
+
+            // Remove all selections
+            passBtn.classList.remove('selected-pass');
+            failBtn.classList.remove('selected-fail');
+
+            // Add selection to clicked button
+            if (status === 'pass') {
+                passBtn.classList.add('selected-pass');
+                notesArea.classList.remove('show');
+            } else {
+                failBtn.classList.add('selected-fail');
+                notesArea.classList.add('show');
+            }
+
+            // Update hidden input
+            hiddenInput.value = status;
+        }
+    </script>
+</body>
+</html>

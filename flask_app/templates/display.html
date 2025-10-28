@@ -214,6 +214,41 @@
             text-overflow: ellipsis;
             max-width: 100%;
         }
+
+        .inspection-banner {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            border-radius: 0.5rem;
+            padding: 1rem 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: banner-pulse 2s infinite;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .inspection-banner-content {
+            font-size: 1.8vw;
+            font-weight: bold;
+            color: white;
+        }
+
+        .inspection-banner.all-clear {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            animation: none;
+        }
+
+        @keyframes banner-pulse {
+            0% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+            50% { box-shadow: 0 4px 25px rgba(255,107,107,0.8); }
+            100% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+        }
+
+        @media (min-width: 1920px) {
+            .inspection-banner-content { font-size: 36px; }
+        }
     </style>
 </head>
 <body>
@@ -222,6 +257,21 @@
             <h1>Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
         </div>
+
+        <!-- Vehicle Inspection Banner -->
+        {% if vehicles_needing_inspection %}
+        <div class="inspection-banner" id="inspectionBanner">
+            <div class="inspection-banner-content" id="inspectionMessage">
+                🚒 {{ vehicles_needing_inspection[0].name }} ({{ vehicles_needing_inspection[0].code }}) - NEEDS INSPECTION
+            </div>
+        </div>
+        {% else %}
+        <div class="inspection-banner all-clear">
+            <div class="inspection-banner-content">
+                ✅ ALL VEHICLES INSPECTED - GOOD TO GO!
+            </div>
+        </div>
+        {% endif %}
 
         <div class="display-grid">
             <div class="active-section">
@@ -273,7 +323,7 @@
         function updateClock() {
             const now = new Date();
             const clockElement = document.getElementById('clock');
-            clockElement.textContent = now.toLocaleString('en-US', { 
+            clockElement.textContent = now.toLocaleString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -284,8 +334,29 @@
             });
         }
 
+        // Rotate through vehicles needing inspection
+        const vehiclesNeedingInspection = {{ vehicles_needing_inspection|tojson|safe }};
+        let currentVehicleIndex = 0;
+
+        function rotateInspectionMessage() {
+            if (vehiclesNeedingInspection && vehiclesNeedingInspection.length > 1) {
+                currentVehicleIndex = (currentVehicleIndex + 1) % vehiclesNeedingInspection.length;
+                const vehicle = vehiclesNeedingInspection[currentVehicleIndex];
+                const messageElement = document.getElementById('inspectionMessage');
+                if (messageElement) {
+                    messageElement.textContent = `🚒 ${vehicle.name} (${vehicle.code}) - NEEDS INSPECTION`;
+                }
+            }
+        }
+
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Rotate inspection message every 5 seconds if there are multiple vehicles
+        if (vehiclesNeedingInspection && vehiclesNeedingInspection.length > 1) {
+            setInterval(rotateInspectionMessage, 5000);
+        }
+
         setTimeout(function() {
             window.location.reload();
         }, 30000);

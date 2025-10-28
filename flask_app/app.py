@@ -366,7 +366,7 @@ def clear_all_logs():
 
 @app.route('/export_data')
 def export_data():
-    """Export data to CSV"""
+    """Export firefighter time logs to CSV (formatted for payroll)"""
     if not session.get('logged_in'):
         flash('Please log in first!')
         return redirect(url_for('admin'))
@@ -378,41 +378,150 @@ def export_data():
 
         output = StringIO()
         cw = csv.writer(output)
-        cw.writerow(['Firefighter Number', 'Name', 'Total Hours', 'Activity', 'Time In', 'Time Out', 'Hours Worked'])
+
+        # Header row
+        if month and year:
+            month_name = datetime(int(year), int(month), 1).strftime('%B %Y')
+            cw.writerow([f'PAYROLL REPORT - {month_name}'])
+        else:
+            cw.writerow(['PAYROLL REPORT - ALL TIME'])
+        cw.writerow([])  # Blank row
 
         firefighters = db_helpers.get_all_firefighters()
 
         for ff in firefighters:
             logs = db_helpers.get_firefighter_logs(ff['fireman_number'])
 
-            for log in logs:
-                # Filter by month and year if provided
-                if month and year:
-                    time_in = datetime.fromisoformat(log['time_in'])
-                    if time_in.month != int(month) or time_in.year != int(year):
-                        continue
+            # Filter logs by month/year if specified
+            filtered_logs = []
+            month_total = 0
 
-                cw.writerow([
-                    ff['fireman_number'],
-                    ff['full_name'],
-                    ff['total_hours'],
-                    log['type'],
-                    log['time_in'],
-                    log['time_out'],
-                    log.get('hours_worked', '')
-                ])
+            for log in logs:
+                if log['time_in']:
+                    time_in = datetime.fromisoformat(log['time_in'])
+
+                    # Filter by month and year if provided
+                    if month and year:
+                        if time_in.month != int(month) or time_in.year != int(year):
+                            continue
+
+                    filtered_logs.append(log)
+                    month_total += log.get('hours_worked', 0) or 0
+
+            # Only show firefighter if they have logs in this period
+            if filtered_logs:
+                # Firefighter header
+                cw.writerow([f"FIREFIGHTER #{ff['fireman_number']} - {ff['full_name']}"])
+                cw.writerow(['Date', 'Time In', 'Time Out', 'Activity', 'Hours Worked'])
+
+                # Individual log entries
+                for log in filtered_logs:
+                    time_in_dt = datetime.fromisoformat(log['time_in']) if log['time_in'] else None
+                    time_out_dt = datetime.fromisoformat(log['time_out']) if log['time_out'] else None
+
+                    date_str = time_in_dt.strftime('%Y-%m-%d') if time_in_dt else ''
+                    time_in_str = time_in_dt.strftime('%I:%M %p') if time_in_dt else ''
+                    time_out_str = time_out_dt.strftime('%I:%M %p') if time_out_dt else 'Still clocked in'
+                    hours = f"{log.get('hours_worked', 0):.2f}" if log.get('hours_worked') else '0.00'
+
+                    cw.writerow([
+                        date_str,
+                        time_in_str,
+                        time_out_str,
+                        log['type'],
+                        hours
+                    ])
+
+                # Subtotal for this firefighter
+                cw.writerow(['', '', '', 'TOTAL HOURS:', f"{month_total:.2f}"])
+                cw.writerow([])  # Blank row between firefighters
 
         output.seek(0)
+
+        # Generate filename
+        if month and year:
+            filename = f'payroll_{year}_{int(month):02d}.csv'
+        else:
+            filename = 'payroll_all_time.csv'
+
         return send_file(
             BytesIO(output.getvalue().encode()),
             mimetype='text/csv',
             as_attachment=True,
-            download_name='firefighters_export.csv'
+            download_name=filename
         )
 
     except Exception as e:
         logger.error(f"Export error: {str(e)}")
         flash('An error occurred during export.')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/export_inspections')
+def export_inspections():
+    """Export vehicle inspection logs to CSV"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        # Get month and year from query parameters
+        month = request.args.get('month')
+        year = request.args.get('year')
+
+        output = StringIO()
+        cw = csv.writer(output)
+
+        # Header row
+        if month and year:
+            month_name = datetime(int(year), int(month), 1).strftime('%B %Y')
+            cw.writerow([f'VEHICLE INSPECTION REPORT - {month_name}'])
+        else:
+            cw.writerow(['VEHICLE INSPECTION REPORT - ALL TIME'])
+        cw.writerow([])
+        cw.writerow(['Vehicle Code', 'Vehicle Name', 'Inspection Date', 'Inspector', 'Result', 'Notes'])
+
+        vehicles = db_helpers.get_all_vehicles()
+
+        for vehicle in vehicles:
+            history = db_helpers.get_vehicle_inspection_history(vehicle['id'], limit=1000)
+
+            for inspection in history:
+                # Filter by month and year if provided
+                if month and year:
+                    inspection_date = datetime.fromisoformat(inspection['date'])
+                    if inspection_date.month != int(month) or inspection_date.year != int(year):
+                        continue
+
+                date_str = datetime.fromisoformat(inspection['date']).strftime('%Y-%m-%d %I:%M %p')
+                result = 'PASSED' if inspection['passed'] else 'FAILED'
+
+                cw.writerow([
+                    vehicle['code'],
+                    vehicle['name'],
+                    date_str,
+                    inspection['inspector'],
+                    result,
+                    inspection.get('notes', '')
+                ])
+
+        output.seek(0)
+
+        # Generate filename
+        if month and year:
+            filename = f'inspections_{year}_{int(month):02d}.csv'
+        else:
+            filename = 'inspections_all_time.csv'
+
+        return send_file(
+            BytesIO(output.getvalue().encode()),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Inspection export error: {str(e)}")
+        flash('An error occurred during inspection export.')
         return redirect(url_for('admin_panel'))
 
 @app.route('/logout')
@@ -431,11 +540,13 @@ def display():
     try:
         active_firefighters = db_helpers.get_active_firefighters()
         leaderboard = db_helpers.get_leaderboard()
+        vehicles_needing_inspection = db_helpers.get_vehicles_needing_inspection()
 
         logger.info("Display page loaded successfully")
         return render_template('display.html',
                              active_firefighters=active_firefighters,
-                             leaderboard=leaderboard)
+                             leaderboard=leaderboard,
+                             vehicles_needing_inspection=vehicles_needing_inspection)
 
     except Exception as e:
         logger.error(f"Display page error: {str(e)}")
@@ -488,6 +599,98 @@ def get_firefighter_logs(fireman_number):
         'logs': formatted_logs,
         'name': firefighter['full_name']
     })
+
+# ========== VEHICLE INSPECTION ROUTES ==========
+
+@app.route('/inspections')
+def inspections_menu():
+    """Vehicle inspections menu - select a vehicle"""
+    vehicles = db_helpers.get_vehicles_needing_inspection()
+    return render_template('inspections_menu.html', vehicles=vehicles)
+
+@app.route('/inspect/<int:vehicle_id>')
+def inspect_vehicle(vehicle_id):
+    """Start inspection for a specific vehicle"""
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+    if not vehicle:
+        flash('Vehicle not found!')
+        return redirect(url_for('inspections_menu'))
+
+    checklist_items = db_helpers.get_inspection_checklist()
+    firefighters = db_helpers.get_all_firefighters()
+
+    return render_template('inspect_vehicle.html',
+                         vehicle=vehicle,
+                         checklist_items=checklist_items,
+                         firefighters=firefighters)
+
+@app.route('/submit_inspection', methods=['POST'])
+def submit_inspection():
+    """Submit a vehicle inspection"""
+    try:
+        vehicle_id = int(request.form['vehicle_id'])
+        inspector_number = request.form.get('inspector_number', '')
+        additional_notes = request.form.get('additional_notes', '')
+
+        # Get inspector ID
+        inspector = None
+        if inspector_number:
+            inspector = db_helpers.get_firefighter_by_number(inspector_number)
+
+        inspector_id = inspector['id'] if inspector else None
+
+        # Collect inspection results
+        inspection_results = []
+        checklist_items = db_helpers.get_inspection_checklist()
+
+        for item in checklist_items:
+            item_id = item['id']
+            status = request.form.get(f'item_{item_id}', 'pass')
+            notes = request.form.get(f'notes_{item_id}', '')
+
+            inspection_results.append({
+                'item_id': item_id,
+                'status': status,
+                'notes': notes
+            })
+
+        # Save inspection
+        success, result = db_helpers.create_vehicle_inspection(
+            vehicle_id,
+            inspector_id,
+            inspection_results,
+            additional_notes
+        )
+
+        if success:
+            vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+            flash(f'Inspection for {vehicle["name"]} completed successfully!')
+            logger.info(f"Vehicle inspection completed: {vehicle['name']}")
+            return redirect(url_for('inspections_menu'))
+        else:
+            flash(f'Error saving inspection: {result}')
+            return redirect(url_for('inspect_vehicle', vehicle_id=vehicle_id))
+
+    except Exception as e:
+        logger.error(f"Submit inspection error: {str(e)}")
+        flash('An error occurred while submitting the inspection.')
+        return redirect(url_for('inspections_menu'))
+
+@app.route('/inspection_history/<int:vehicle_id>')
+def inspection_history(vehicle_id):
+    """View inspection history for a vehicle"""
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+    if not vehicle:
+        flash('Vehicle not found!')
+        return redirect(url_for('inspections_menu'))
+
+    history = db_helpers.get_vehicle_inspection_history(vehicle_id)
+
+    return render_template('inspection_history.html',
+                         vehicle=vehicle,
+                         history=history)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

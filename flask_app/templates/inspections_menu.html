@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vehicle Inspections</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Mobile-first styles */
+        body {
+            font-size: 16px; /* Prevent iOS zoom */
+            margin: 0;
+            padding: 0;
+        }
+
+        .mobile-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .mobile-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .vehicle-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #2a5298;
+        }
+
+        .vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .vehicle-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1a237e;
+        }
+
+        .vehicle-code {
+            background: #2a5298;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .vehicle-type {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .inspect-button, .history-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            min-height: 50px; /* Touch-friendly */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .inspect-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .history-button {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+
+        .inspect-button:active, .history-button:active {
+            transform: scale(0.98);
+        }
+
+        .flash-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 5px solid #28a745;
+        }
+
+        .no-vehicles {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .no-vehicles h2 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .last-inspection {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @media (min-width: 768px) {
+            .vehicle-card {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <a href="{{ url_for('index') }}" class="back-button">← Back</a>
+        <h1>Vehicle Inspections</h1>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% if vehicles %}
+            {% for vehicle in vehicles %}
+            <div class="vehicle-card">
+                <div class="vehicle-header">
+                    <span class="vehicle-name">{{ vehicle.name }}</span>
+                    <span class="vehicle-code">{{ vehicle.code }}</span>
+                </div>
+
+                {% if vehicle.type %}
+                <div class="vehicle-type">{{ vehicle.type }}</div>
+                {% endif %}
+
+                {% if vehicle.last_inspection %}
+                <div class="last-inspection">
+                    Last inspected: {{ vehicle.last_inspection[:10] }}
+                </div>
+                {% endif %}
+
+                <div class="button-group">
+                    <a href="{{ url_for('inspect_vehicle', vehicle_id=vehicle.id) }}" class="inspect-button">
+                        Start Inspection
+                    </a>
+                    <a href="{{ url_for('inspection_history', vehicle_id=vehicle.id) }}" class="history-button">
+                        View History
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-vehicles">
+                <h2>✓ All Caught Up!</h2>
+                <p>All vehicles have been inspected within the last 6 days.</p>
+                <p>Vehicles will reappear here 7 days after their last inspection.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

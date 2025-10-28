@@ -438,3 +438,175 @@ def get_leaderboard():
 
     conn.close()
     return leaderboard
+
+# ========== VEHICLE FUNCTIONS ==========
+
+def get_all_vehicles():
+    """Get all vehicles"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, vehicle_code, name, vehicle_type, status
+        FROM vehicles
+        WHERE status = 'active'
+        ORDER BY vehicle_code
+    ''')
+
+    vehicles = []
+    for row in cursor.fetchall():
+        vehicles.append({
+            'id': row[0],
+            'code': row[1],
+            'name': row[2],
+            'type': row[3],
+            'status': row[4]
+        })
+
+    conn.close()
+    return vehicles
+
+def get_vehicles_needing_inspection():
+    """Get vehicles that need inspection (not inspected in last 6 days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Get current time minus 6 days
+    six_days_ago = datetime.now(CENTRAL) - timedelta(days=6)
+
+    cursor.execute('''
+        SELECT v.id, v.vehicle_code, v.name, v.vehicle_type, v.status,
+               MAX(vi.inspection_date) as last_inspection
+        FROM vehicles v
+        LEFT JOIN vehicle_inspections vi ON v.id = vi.vehicle_id
+        WHERE v.status = 'active'
+        GROUP BY v.id
+        HAVING last_inspection IS NULL OR last_inspection < ?
+        ORDER BY v.vehicle_code
+    ''', (six_days_ago.isoformat(),))
+
+    vehicles = []
+    for row in cursor.fetchall():
+        vehicles.append({
+            'id': row[0],
+            'code': row[1],
+            'name': row[2],
+            'type': row[3],
+            'status': row[4],
+            'last_inspection': row[5]
+        })
+
+    conn.close()
+    return vehicles
+
+def get_vehicle_by_id(vehicle_id):
+    """Get vehicle by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, vehicle_code, name, vehicle_type, status
+        FROM vehicles
+        WHERE id = ?
+    ''', (vehicle_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return {
+            'id': row[0],
+            'code': row[1],
+            'name': row[2],
+            'type': row[3],
+            'status': row[4]
+        }
+    return None
+
+# ========== INSPECTION FUNCTIONS ==========
+
+def get_inspection_checklist():
+    """Get all active inspection checklist items"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, description, category
+        FROM inspection_checklist_items
+        WHERE is_active = 1
+        ORDER BY display_order
+    ''')
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'description': row[1],
+            'category': row[2]
+        })
+
+    conn.close()
+    return items
+
+def create_vehicle_inspection(vehicle_id, inspector_id, inspection_results, additional_notes=''):
+    """Create a new vehicle inspection with results"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Determine if inspection passed (all items passed)
+        passed = all(result['status'] == 'pass' for result in inspection_results)
+
+        # Create inspection record
+        cursor.execute('''
+            INSERT INTO vehicle_inspections
+            (vehicle_id, inspector_id, inspection_date, passed, additional_notes)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (vehicle_id, inspector_id, datetime.now(CENTRAL).isoformat(), passed, additional_notes))
+
+        inspection_id = cursor.lastrowid
+
+        # Add inspection results
+        for result in inspection_results:
+            cursor.execute('''
+                INSERT INTO inspection_results
+                (inspection_id, checklist_item_id, status, notes)
+                VALUES (?, ?, ?, ?)
+            ''', (inspection_id, result['item_id'], result['status'], result.get('notes', '')))
+
+        conn.commit()
+        conn.close()
+
+        return True, inspection_id
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def get_vehicle_inspection_history(vehicle_id, limit=10):
+    """Get inspection history for a vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT vi.id, vi.inspection_date, vi.passed, f.full_name, vi.additional_notes
+        FROM vehicle_inspections vi
+        LEFT JOIN firefighters f ON vi.inspector_id = f.id
+        WHERE vi.vehicle_id = ?
+        ORDER BY vi.inspection_date DESC
+        LIMIT ?
+    ''', (vehicle_id, limit))
+
+    history = []
+    for row in cursor.fetchall():
+        history.append({
+            'id': row[0],
+            'date': row[1],
+            'passed': row[2],
+            'inspector': row[3] or 'Unknown',
+            'notes': row[4]
+        })
+
+    conn.close()
+    return history
