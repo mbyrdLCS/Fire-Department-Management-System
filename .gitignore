@@ -48,6 +48,12 @@ vehicles.json
 vehicle_inspections.json
 checklist_items.json
 
+# SQLite database files (contains sensitive data)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Backups
 backups/
 *.backup
