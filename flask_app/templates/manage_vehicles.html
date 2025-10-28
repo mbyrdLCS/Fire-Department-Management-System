@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Vehicles</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-submit {
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+
+        .vehicles-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .vehicles-table th,
+        .vehicles-table td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .vehicles-table th {
+            background: #f8f8f8;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .vehicles-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-inactive {
+            background: #999;
+            color: white;
+        }
+
+        .btn-edit {
+            padding: 6px 14px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-edit:hover {
+            background: #1976D2;
+        }
+
+        .flash-message {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .edit-form {
+            display: none;
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 2px solid #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vehicles-table {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('admin') }}" class="back-btn">← Back to Admin</a>
+
+        <div class="header">
+            <h1>🚒 Vehicle Management</h1>
+            <div class="subtitle">Add and manage department vehicles</div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    ✓ {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Add New Vehicle -->
+        <div class="section">
+            <div class="section-title">➕ Add New Vehicle</div>
+            <form method="POST" action="{{ url_for('create_vehicle') }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="vehicle_code">Vehicle Code: *</label>
+                        <input type="text" name="vehicle_code" id="vehicle_code" placeholder="e.g., E1, L1, T1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">Vehicle Name: *</label>
+                        <input type="text" name="name" id="name" placeholder="e.g., Engine 1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicle_type">Type:</label>
+                        <select name="vehicle_type" id="vehicle_type">
+                            <option value="">-- Select Type --</option>
+                            <option value="Engine">Engine</option>
+                            <option value="Ladder">Ladder</option>
+                            <option value="Tanker">Tanker</option>
+                            <option value="Rescue">Rescue</option>
+                            <option value="Brush">Brush</option>
+                            <option value="Utility">Utility</option>
+                            <option value="Command">Command</option>
+                            <option value="Ambulance">Ambulance</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="station_id">Station:</label>
+                        <select name="station_id" id="station_id">
+                            <option value="">-- Select Station --</option>
+                            {% for station in stations %}
+                            <option value="{{ station.id }}">{{ station.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="year">Year:</label>
+                        <input type="number" name="year" id="year" placeholder="e.g., 2020" min="1900" max="2030">
+                    </div>
+                    <div class="form-group">
+                        <label for="make">Make:</label>
+                        <input type="text" name="make" id="make" placeholder="e.g., Pierce, Seagrave">
+                    </div>
+                    <div class="form-group">
+                        <label for="model">Model:</label>
+                        <input type="text" name="model" id="model" placeholder="e.g., Dash CF">
+                    </div>
+                    <div class="form-group">
+                        <label for="vin">VIN:</label>
+                        <input type="text" name="vin" id="vin" placeholder="Vehicle Identification Number">
+                    </div>
+                    <div class="form-group">
+                        <label for="license_plate">License Plate:</label>
+                        <input type="text" name="license_plate" id="license_plate" placeholder="Plate Number">
+                    </div>
+                    <div class="form-group">
+                        <label for="purchase_cost">Purchase Cost:</label>
+                        <input type="number" name="purchase_cost" id="purchase_cost" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="current_value">Current Value:</label>
+                        <input type="number" name="current_value" id="current_value" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes:</label>
+                        <textarea name="notes" id="notes" rows="3" placeholder="Additional notes..."></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Add Vehicle</button>
+            </form>
+        </div>
+
+        <!-- Existing Vehicles -->
+        <div class="section">
+            <div class="section-title">🚒 Current Vehicles ({{ vehicles|length }})</div>
+
+            {% if vehicles %}
+            <div style="overflow-x: auto;">
+                <table class="vehicles-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Year/Make/Model</th>
+                            <th>VIN</th>
+                            <th>Station</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in vehicles %}
+                        <tr>
+                            <td><strong>{{ vehicle.vehicle_code }}</strong></td>
+                            <td>{{ vehicle.name }}</td>
+                            <td>{{ vehicle.vehicle_type or '--' }}</td>
+                            <td>{{ vehicle.year or '' }} {{ vehicle.make or '' }} {{ vehicle.model or '' }}</td>
+                            <td><small>{{ vehicle.vin or '--' }}</small></td>
+                            <td>
+                                {% for station in stations %}
+                                    {% if station.id == vehicle.station_id %}
+                                        {{ station.name }}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if not vehicle.station_id %}--{% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ vehicle.status }}">
+                                    {{ vehicle.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn-edit" onclick="toggleEdit('{{ vehicle.id }}')">Edit</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="8" style="padding: 0;">
+                                <div id="edit-{{ vehicle.id }}" class="edit-form">
+                                    <form method="POST" action="{{ url_for('update_vehicle', vehicle_id=vehicle.id) }}">
+                                        <div class="form-grid">
+                                            <div class="form-group">
+                                                <label>Vehicle Code: *</label>
+                                                <input type="text" name="vehicle_code" value="{{ vehicle.vehicle_code }}" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Vehicle Name: *</label>
+                                                <input type="text" name="name" value="{{ vehicle.name }}" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Type:</label>
+                                                <select name="vehicle_type">
+                                                    <option value="">-- Select Type --</option>
+                                                    <option value="Engine" {% if vehicle.vehicle_type == 'Engine' %}selected{% endif %}>Engine</option>
+                                                    <option value="Ladder" {% if vehicle.vehicle_type == 'Ladder' %}selected{% endif %}>Ladder</option>
+                                                    <option value="Tanker" {% if vehicle.vehicle_type == 'Tanker' %}selected{% endif %}>Tanker</option>
+                                                    <option value="Rescue" {% if vehicle.vehicle_type == 'Rescue' %}selected{% endif %}>Rescue</option>
+                                                    <option value="Brush" {% if vehicle.vehicle_type == 'Brush' %}selected{% endif %}>Brush</option>
+                                                    <option value="Utility" {% if vehicle.vehicle_type == 'Utility' %}selected{% endif %}>Utility</option>
+                                                    <option value="Command" {% if vehicle.vehicle_type == 'Command' %}selected{% endif %}>Command</option>
+                                                    <option value="Ambulance" {% if vehicle.vehicle_type == 'Ambulance' %}selected{% endif %}>Ambulance</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Station:</label>
+                                                <select name="station_id">
+                                                    <option value="">-- Select Station --</option>
+                                                    {% for station in stations %}
+                                                    <option value="{{ station.id }}" {% if station.id == vehicle.station_id %}selected{% endif %}>{{ station.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Year:</label>
+                                                <input type="number" name="year" value="{{ vehicle.year or '' }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Make:</label>
+                                                <input type="text" name="make" value="{{ vehicle.make or '' }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Model:</label>
+                                                <input type="text" name="model" value="{{ vehicle.model or '' }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>VIN:</label>
+                                                <input type="text" name="vin" value="{{ vehicle.vin or '' }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>License Plate:</label>
+                                                <input type="text" name="license_plate" value="{{ vehicle.license_plate or '' }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Purchase Cost:</label>
+                                                <input type="number" name="purchase_cost" value="{{ vehicle.purchase_cost or '' }}" step="0.01">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Current Value:</label>
+                                                <input type="number" name="current_value" value="{{ vehicle.current_value or '' }}" step="0.01">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Status:</label>
+                                                <select name="status">
+                                                    <option value="active" {% if vehicle.status == 'active' %}selected{% endif %}>Active</option>
+                                                    <option value="inactive" {% if vehicle.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                                    <option value="out_of_service" {% if vehicle.status == 'out_of_service' %}selected{% endif %}>Out of Service</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                            <button type="submit" class="btn-submit">Save Changes</button>
+                                            <button type="button" onclick="toggleEdit('{{ vehicle.id }}')" style="padding: 14px 30px; background: #666; color: white; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #999; padding: 40px;">No vehicles added yet. Add your first vehicle above!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleEdit(vehicleId) {
+            const editForm = document.getElementById('edit-' + vehicleId);
+            if (editForm.style.display === 'none' || editForm.style.display === '') {
+                editForm.style.display = 'block';
+            } else {
+                editForm.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -990,5 +990,164 @@ def create_inventory_item():
         flash('An error occurred while creating the item.')
         return redirect(url_for('inventory_menu'))
 
+# ========== VEHICLE MANAGEMENT ROUTES ==========
+
+@app.route('/admin/vehicles')
+def manage_vehicles():
+    """Manage vehicles - view, add, edit"""
+    vehicles = db_helpers.get_all_vehicles()
+    stations = db_helpers.get_all_stations()
+    return render_template('manage_vehicles.html', vehicles=vehicles, stations=stations)
+
+@app.route('/admin/vehicle/create', methods=['POST'])
+def create_vehicle():
+    """Create a new vehicle"""
+    try:
+        vehicle_code = request.form['vehicle_code']
+        name = request.form['name']
+        vehicle_type = request.form.get('vehicle_type', '')
+        station_id = request.form.get('station_id', '')
+        year = request.form.get('year', '')
+        make = request.form.get('make', '')
+        model = request.form.get('model', '')
+        vin = request.form.get('vin', '')
+        license_plate = request.form.get('license_plate', '')
+        purchase_cost = request.form.get('purchase_cost', '')
+        current_value = request.form.get('current_value', '')
+        notes = request.form.get('notes', '')
+
+        # Convert empty strings to None for optional fields
+        station_id = int(station_id) if station_id else None
+        year = int(year) if year else None
+        purchase_cost = float(purchase_cost) if purchase_cost else None
+        current_value = float(current_value) if current_value else None
+
+        success, result = db_helpers.create_vehicle(
+            vehicle_code=vehicle_code,
+            name=name,
+            vehicle_type=vehicle_type,
+            station_id=station_id,
+            year=year,
+            make=make,
+            model=model,
+            vin=vin,
+            license_plate=license_plate,
+            purchase_cost=purchase_cost,
+            current_value=current_value,
+            notes=notes
+        )
+
+        if success:
+            flash(f'Vehicle "{name}" created successfully!')
+            logger.info(f"Vehicle created: {name} ({vehicle_code})")
+        else:
+            flash(f'Error creating vehicle: {result}')
+
+        return redirect(url_for('manage_vehicles'))
+
+    except Exception as e:
+        logger.error(f"Create vehicle error: {str(e)}")
+        flash('An error occurred while creating the vehicle.')
+        return redirect(url_for('manage_vehicles'))
+
+@app.route('/admin/vehicle/update/<int:vehicle_id>', methods=['POST'])
+def update_vehicle(vehicle_id):
+    """Update an existing vehicle"""
+    try:
+        vehicle_code = request.form['vehicle_code']
+        name = request.form['name']
+        vehicle_type = request.form.get('vehicle_type', '')
+        station_id = request.form.get('station_id', '')
+        year = request.form.get('year', '')
+        make = request.form.get('make', '')
+        model = request.form.get('model', '')
+        vin = request.form.get('vin', '')
+        license_plate = request.form.get('license_plate', '')
+        purchase_cost = request.form.get('purchase_cost', '')
+        current_value = request.form.get('current_value', '')
+        notes = request.form.get('notes', '')
+        status = request.form.get('status', 'active')
+
+        # Convert empty strings to None for optional fields
+        station_id = int(station_id) if station_id else None
+        year = int(year) if year else None
+        purchase_cost = float(purchase_cost) if purchase_cost else None
+        current_value = float(current_value) if current_value else None
+
+        success, message = db_helpers.update_vehicle(
+            vehicle_id=vehicle_id,
+            vehicle_code=vehicle_code,
+            name=name,
+            vehicle_type=vehicle_type,
+            station_id=station_id,
+            year=year,
+            make=make,
+            model=model,
+            vin=vin,
+            license_plate=license_plate,
+            purchase_cost=purchase_cost,
+            current_value=current_value,
+            notes=notes,
+            status=status
+        )
+
+        if success:
+            flash(f'Vehicle "{name}" updated successfully!')
+            logger.info(f"Vehicle updated: {name} ({vehicle_code})")
+        else:
+            flash(f'Error updating vehicle: {message}')
+
+        return redirect(url_for('manage_vehicles'))
+
+    except Exception as e:
+        logger.error(f"Update vehicle error: {str(e)}")
+        flash('An error occurred while updating the vehicle.')
+        return redirect(url_for('manage_vehicles'))
+
+# ========== STATION MANAGEMENT ROUTES ==========
+
+@app.route('/admin/stations')
+def manage_stations():
+    """Manage stations - view and add"""
+    stations = db_helpers.get_all_stations()
+    return render_template('manage_stations.html', stations=stations)
+
+@app.route('/admin/station/create', methods=['POST'])
+def create_station():
+    """Create a new fire station"""
+    try:
+        name = request.form['name']
+        address = request.form.get('address', '')
+        is_primary = request.form.get('is_primary') == 'on'
+        notes = request.form.get('notes', '')
+
+        success, result = db_helpers.create_station(
+            name=name,
+            address=address,
+            is_primary=is_primary,
+            notes=notes
+        )
+
+        if success:
+            flash(f'Station "{name}" created successfully!')
+            logger.info(f"Station created: {name}")
+        else:
+            flash(f'Error creating station: {result}')
+
+        return redirect(url_for('manage_stations'))
+
+    except Exception as e:
+        logger.error(f"Create station error: {str(e)}")
+        flash('An error occurred while creating the station.')
+        return redirect(url_for('manage_stations'))
+
+# ========== ALERTS DASHBOARD ROUTE ==========
+
+@app.route('/alerts')
+def alerts_dashboard():
+    """Alerts dashboard showing all warnings and notifications"""
+    alerts = db_helpers.get_all_alerts()
+    return render_template('alerts_dashboard.html', alerts=alerts)
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

@@ -1106,3 +1106,117 @@ def get_vehicles_by_station(station_id):
 
     conn.close()
     return vehicles
+
+def create_vehicle(vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes=''):
+    """Create a new vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO vehicles
+            (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
+             purchase_date, purchase_cost, current_value, notes, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
+              purchase_date, purchase_cost, current_value, notes))
+
+        conn.commit()
+        vehicle_id = cursor.lastrowid
+        conn.close()
+        return True, vehicle_id
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def update_vehicle(vehicle_id, vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', status='active'):
+    """Update an existing vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE vehicles
+            SET vehicle_code = ?, name = ?, vehicle_type = ?, station_id = ?, year = ?,
+                make = ?, model = ?, vin = ?, license_plate = ?, purchase_date = ?,
+                purchase_cost = ?, current_value = ?, notes = ?, status = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
+              purchase_date, purchase_cost, current_value, notes, status, vehicle_id))
+
+        conn.commit()
+        conn.close()
+        return True, "Vehicle updated successfully"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+# ========== ALERTS AND NOTIFICATIONS FUNCTIONS ==========
+
+def get_all_alerts():
+    """Get all active alerts for the dashboard"""
+    alerts = {
+        'inspections_overdue': [],
+        'low_inventory_station': [],
+        'low_inventory_vehicle': [],
+        'total_count': 0
+    }
+
+    # Get overdue inspections
+    alerts['inspections_overdue'] = get_vehicles_needing_inspection()
+
+    # Get low inventory at stations
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT s.name as station_name, ii.name as item_name, si.quantity, ii.min_quantity, ii.category
+        FROM station_inventory si
+        JOIN inventory_items ii ON si.item_id = ii.id
+        JOIN stations s ON si.station_id = s.id
+        WHERE ii.min_quantity > 0 AND si.quantity < ii.min_quantity
+        ORDER BY s.name, ii.name
+    ''')
+
+    for row in cursor.fetchall():
+        alerts['low_inventory_station'].append({
+            'station_name': row[0],
+            'item_name': row[1],
+            'quantity': row[2],
+            'min_quantity': row[3],
+            'category': row[4]
+        })
+
+    # Get low inventory on vehicles
+    cursor.execute('''
+        SELECT v.name as vehicle_name, v.vehicle_code, ii.name as item_name, vi.quantity, ii.min_quantity, ii.category
+        FROM vehicle_inventory vi
+        JOIN inventory_items ii ON vi.item_id = ii.id
+        JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE ii.min_quantity > 0 AND vi.quantity < ii.min_quantity
+        ORDER BY v.name, ii.name
+    ''')
+
+    for row in cursor.fetchall():
+        alerts['low_inventory_vehicle'].append({
+            'vehicle_name': row[0],
+            'vehicle_code': row[1],
+            'item_name': row[2],
+            'quantity': row[3],
+            'min_quantity': row[4],
+            'category': row[5]
+        })
+
+    conn.close()
+
+    # Calculate total alerts
+    alerts['total_count'] = (
+        len(alerts['inspections_overdue']) +
+        len(alerts['low_inventory_station']) +
+        len(alerts['low_inventory_vehicle'])
+    )
+
+    return alerts
