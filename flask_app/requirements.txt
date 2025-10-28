@@ -4,3 +4,5 @@ Werkzeug==2.2.2
 click>=8.0
 itsdangerous>=2.0
 Jinja2>=3.0
+python-dotenv>=0.19.0
+dropbox>=11.0.0

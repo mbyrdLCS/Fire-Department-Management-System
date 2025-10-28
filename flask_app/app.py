@@ -18,6 +18,10 @@ import fcntl
 from logging.handlers import RotatingFileHandler
 from dropbox.exceptions import ApiError, HttpError
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (look in parent directory)
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # Optional import for psutil
 try:
@@ -29,9 +33,13 @@ except ImportError:
 
 # Initialize Flask application
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'sAeUmAQfqAwnmxyRnexjBNDPgp')
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'Firefighter')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'thisisthePassword$$5')
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+
+# Validate required environment variables
+if not all([app.secret_key, ADMIN_USERNAME, ADMIN_PASSWORD]):
+    raise ValueError("Missing required environment variables. Check your .env file.")
 
 # Enhanced logging configuration
 logging.basicConfig(
@@ -45,9 +53,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Dropbox Configuration
-DROPBOX_APP_KEY = '0hpcgffvcu5vuei'
-DROPBOX_APP_SECRET = '6kwngadn7oh3yrl'
-DROPBOX_REFRESH_TOKEN = 'K98vLaIfGvMAAAAAAAAAAWHechPq9eCkRrYkWoOSjzZ3m7-ixpWNgiXspj0Vopvh'
+DROPBOX_APP_KEY = os.getenv('DROPBOX_APP_KEY')
+DROPBOX_APP_SECRET = os.getenv('DROPBOX_APP_SECRET')
+DROPBOX_REFRESH_TOKEN = os.getenv('DROPBOX_REFRESH_TOKEN')
+
+# Validate Dropbox credentials (optional - app can run without backups)
+if not all([DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN]):
+    logger.warning("Dropbox credentials not configured. Automatic backups will be disabled.")
 
 # Initialize backup manager with retries
 backup_manager = BackupManager(
