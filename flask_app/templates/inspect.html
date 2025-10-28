@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Inspection - {{ vehicle.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Vehicle Inspection - {{ vehicle.name }}</h1>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="inspection-container">
+            <h2>Vehicle Inspection Checklist</h2>
+
+            <form method="post" action="{{ url_for('submit_inspection') }}">
+                <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+
+                {% for item in checklist_items %}
+                <div class="checklist-item">
+                    <div class="item-header">
+                        <div class="item-description">{{ item.description }}</div>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="item_{{ item.id }}" value="pass" {% if item.status == 'pass' %}checked{% endif %}>
+                                Pass
+                            </label>
+                            <label>
+                                <input type="radio" name="item_{{ item.id }}" value="fail" {% if item.status == 'fail' %}checked{% endif %}>
+                                Fail
+                            </label>
+                        </div>
+                    </div>
+                    <div id="notes_{{ item.id }}" class="failure-notes" {% if item.status != 'fail' %}style="display: none;"{% endif %}>
+                        Notes about failure:
+                        <textarea name="notes_{{ item.id }}" class="notes-input">{{ item.notes }}</textarea>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="additional-notes">
+                    Additional Notes:
+                    <textarea name="additional_notes" class="notes-input">{{ inspection.additional_notes }}</textarea>
+                </div>
+
+                <button type="submit" class="submit-button">Submit Inspection</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

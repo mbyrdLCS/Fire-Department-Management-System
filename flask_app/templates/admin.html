@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>SVVFD Admin Panel</title>
+</head>
+<body class="admin-body">
+    <nav class="admin-nav">
+        <div class="admin-nav-content">
+            <h1>SVVFD Admin Panel</h1>
+            <div class="admin-controls-top" style="display: flex; align-items: center; gap: 10px;">
+                <form method="get" action="{{ url_for('export_data') }}" style="display: flex; align-items: center; gap: 6px; margin: 0;">
+                    <label for="month" style="margin-right: 4px;">Month:</label>
+                    <select name="month" id="month" style="border-radius: 16px; padding: 2px 8px;">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <label for="year" style="margin-left: 8px; margin-right: 4px;">Year:</label>
+                    <select name="year" id="year" style="border-radius: 16px; padding: 2px 8px;">
+                        {% for y in range(2020, 2031) %}
+                            <option value="{{ y }}">{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="export-button" style="border-radius: 16px; padding: 4px 14px; margin-left: 8px;">Export by Month</button>
+                </form>
+                <form method="get" action="{{ url_for('export_data') }}" style="margin: 0;">
+                    <button type="submit" class="export-button" style="border-radius: 16px; padding: 4px 14px; margin-left: 4px; background: #f5f5f5; color: #1a237e; border: 1px solid #1a237e;">Export All</button>
+                </form>
+                <a href="{{ url_for('logout') }}" class="logout-button" style="margin-left: auto; border-radius: 16px;">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="admin-grid">
+            <!-- Left Column - Firefighter Overview -->
+            <div class="admin-card firefighter-overview">
+                <h2>Firefighter Overview</h2>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Number</th>
+                                <th>Name</th>
+                                <th>Hours</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fireman_number, details in user_data.items() %}
+                            <tr>
+                                <td>{{ fireman_number }}</td>
+                                <td>{{ details['full_name'] }}</td>
+                                <td>{{ details['hours'] | round(2) }}</td>
+                                <td>
+                                    <button class="action-button" onclick="showLogs('{{ fireman_number }}')">View Logs</button>
+                                    <button class="action-button" onclick="showEditForm('{{ fireman_number }}')">Edit</button>
+                                    <button class="delete-button action-button" onclick="showDeleteConfirmation('{{ fireman_number }}', '{{ details['full_name'] }}')">Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Column - Forms and Controls -->
+            <div class="admin-controls">
+                <!-- Update Hours Form -->
+                <div class="admin-card">
+                    <h3>Update Hours</h3>
+                    <form method="POST" action="{{ url_for('update_hours') }}" class="admin-form">
+                        <div class="form-group">
+                            <label for="fireman_number">Firefighter:</label>
+                            <select name="fireman_number" id="fireman_number" required>
+                                {% for fireman_number, details in user_data.items() %}
+                                    <option value="{{ fireman_number }}">{{ details['full_name'] }} ({{ fireman_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="activity">Activity:</label>
+                            <select name="activity" id="activity" required>
+                                {% for category in categories %}
+                                    <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="log_date">Date:</label>
+                            <input type="date" name="log_date" id="log_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time_in">Time In:</label>
+                            <input type="time" name="time_in" id="time_in" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time_out">Time Out:</label>
+                            <input type="time" name="time_out" id="time_out" required>
+                        </div>
+                        <button type="submit" class="submit-button">Update Hours</button>
+                    </form>
+                </div>
+
+                <!-- Category Management -->
+                <div class="admin-card">
+                    <h3>Category Management</h3>
+                    <div class="category-controls">
+                        <form method="POST" action="{{ url_for('add_category') }}" class="admin-form">
+                            <div class="form-group">
+                                <label for="new_category">Add Category:</label>
+                                <input type="text" name="new_category" id="new_category" required>
+                                <button type="submit" class="submit-button">Add Category</button>
+                            </div>
+                        </form>
+
+                        <form method="POST" action="{{ url_for('remove_category') }}" class="admin-form">
+                            <div class="form-group">
+                                <label for="category_to_remove">Remove Category:</label>
+                                <select name="category_to_remove" id="category_to_remove" required>
+                                    {% for category in categories %}
+                                        <option value="{{ category }}">{{ category }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="delete-button">Remove Category</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+<div class="button-group">
+    <button onclick="location.href='{{ url_for('test_backup') }}'" class="submit-button" style="background-color: #28a745; margin-bottom: 15px;">
+        <i class="fas fa-cloud-upload-alt"></i> Run Manual Backup
+    </button>
+    <div class="action-buttons" style="display: flex; gap: 10px;">
+        <button onclick="location.href='{{ url_for('debug_dropbox') }}'" class="action-button" style="flex: 1; margin: 0; padding: 12px;">
+            <i class="fas fa-cog"></i> Dropbox Settings
+        </button>
+    </div>
+</div>
+
+<div class="form-group" style="margin-top: 20px; background-color: #f5f5f5; padding: 15px; border-radius: 4px;">
+    <div style="margin-bottom: 10px;">
+        <strong style="color: #1a237e;">Backup System Status:</strong>
+    </div>
+    <ul style="list-style: none; padding: 0; margin: 0;">
+        <li style="margin-bottom: 8px;">
+            <span style="color: #28a745;">✓</span> Automatic backups run every hour
+        </li>
+        <li style="margin-bottom: 8px;">
+            <span style="color: #28a745;">✓</span> Last 10 backups kept in Dropbox
+        </li>
+        <li style="margin-bottom: 8px;">
+            <span style="color: #28a745;">✓</span> Backups include user data and categories
+        </li>
+    </ul>
+
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <strong style="color: #1a237e;">Debug Tools:</strong>
+        <p style="margin: 10px 0; color: #666;">
+            Use the Dropbox Settings to:
+        </p>
+        <ul style="list-style: none; padding-left: 15px; color: #666;">
+            <li style="margin-bottom: 5px;">• Check connection status</li>
+            <li style="margin-bottom: 5px;">• Update authorization tokens</li>
+            <li style="margin-bottom: 5px;">• Verify backup permissions</li>
+        </ul>
+    </div>
+</div>
+
+                <!-- System Management -->
+                <div class="admin-card">
+                    <h3>System Management</h3>
+                    <div class="warning-section">
+                        <button onclick="showClearLogsConfirmation()" class="danger-button">Clear All Logs</button>
+                        <p class="warning-text-small">Warning: This will clear all hours and activity logs for all firefighters.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<h3>Activity Logs</h3>
+<div class="table-responsive">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Firefighter</th>
+                <th>Activity</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Hours</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fireman_number, details in user_data.items() %}
+                {% for log_index in range(details['logs']|length) %}
+                    {% set log = details['logs'][log_index] %}
+                    <tr>
+                        <td>{{ details['full_name'] }}</td>
+                        <td>{{ log['type'] }}</td>
+                        <td>{{ log['time_in']|format_log_time }}</td>
+                        <td>
+                            {% if log['time_out'] %}
+                                {{ log['time_out']|format_log_time }}
+                            {% else %}
+                                <span style="color: #dc3545;">Still Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log['manual_added_hours'] %}
+                                {{ log['manual_added_hours']|round(2) }}
+                            {% elif log['time_out'] %}
+                                {% set time_in = log['time_in']|fromisoformat %}
+                                {% set time_out = log['time_out']|fromisoformat %}
+                                {{ ((time_out - time_in).total_seconds() / 3600)|round(2) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form action="{{ url_for('delete_log') }}" method="post" style="display: inline;"
+                                  onsubmit="return confirm('Are you sure you want to delete this log entry?');">
+                                <input type="hidden" name="fireman_number" value="{{ fireman_number }}">
+                                <input type="hidden" name="log_index" value="{{ log_index }}">
+                                <button type="submit" class="action-button delete-button">
+                                    Delete Log
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+        <!-- Modals -->
+        <!-- Edit Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Edit Firefighter</h2>
+                <form method="POST" action="{{ url_for('edit_firefighter') }}" class="admin-form">
+                    <input type="hidden" name="fireman_number" id="edit_fireman_number">
+                    <div class="form-group">
+                        <label for="full_name">Full Name:</label>
+                        <input type="text" name="full_name" id="edit_full_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_fireman_number">Firefighter Number:</label>
+                        <input type="text" name="new_fireman_number" id="edit_new_fireman_number" required>
+                    </div>
+                    <button type="submit" class="submit-button">Save Changes</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Logs Modal -->
+        <div id="logsModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Activity Logs</h2>
+                <div id="logsContent"></div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Delete Firefighter</h2>
+                <div id="deleteConfirmationMessage"></div>
+                <form method="POST" action="{{ url_for('delete_firefighter') }}" class="admin-form" id="deleteForm">
+                    <input type="hidden" name="fireman_number" id="delete_fireman_number">
+                    <div class="form-group">
+                        <p class="warning-text">This action cannot be undone. All logs and hours for this firefighter will be permanently deleted.</p>
+                        <div class="button-group">
+                            <button type="submit" class="delete-button">Confirm Delete</button>
+                            <button type="button" class="cancel-button" onclick="closeDeleteModal()">Cancel</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Clear Logs Modal -->
+        <div id="clearLogsModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Clear All Logs</h2>
+                <div class="warning-box">
+                    <p class="warning-text">⚠️ WARNING: This action cannot be undone!</p>
+                    <p>This will:</p>
+                    <ul>
+                        <li>Delete ALL activity logs for ALL firefighters</li>
+                        <li>Reset ALL hour counts to zero</li>
+                        <li>Keep firefighter registrations intact</li>
+                    </ul>
+                </div>
+                <form method="POST" action="{{ url_for('clear_all_logs') }}" class="admin-form">
+                    <div class="button-group">
+                        <button type="submit" class="danger-button">Yes, Clear All Logs</button>
+                        <button type="button" class="cancel-button" onclick="closeClearLogsModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Show logs modal
+        function showLogs(firemanNumber) {
+            const modal = document.getElementById('logsModal');
+            const content = document.getElementById('logsContent');
+            const userData = {{ user_data|tojson|safe }};
+            const logs = userData[firemanNumber].logs;
+
+            let logsHtml = `<h3>${userData[firemanNumber].full_name}'s Logs</h3>
+                           <table class="admin-table">
+                               <thead>
+                                   <tr>
+                                       <th>Activity</th>
+                                       <th>Time In</th>
+                                       <th>Time Out</th>
+                                       <th>Hours</th>
+                                   </tr>
+                               </thead>
+                               <tbody>`;
+
+            logs.forEach(log => {
+                logsHtml += `<tr>
+                    <td>${log.type}</td>
+                    <td>${formatDateTime(log.time_in)}</td>
+                    <td>${log.time_out ? formatDateTime(log.time_out) : 'Still Clocked In'}</td>
+                    <td>${log.manual_added_hours || 'N/A'}</td>
+                </tr>`;
+            });
+
+            logsHtml += '</tbody></table>';
+            content.innerHTML = logsHtml;
+            modal.style.display = 'block';
+        }
+
+        // Show edit modal
+        function showEditForm(firemanNumber) {
+            const modal = document.getElementById('editModal');
+            const userData = {{ user_data|tojson|safe }};
+
+            document.getElementById('edit_fireman_number').value = firemanNumber;
+            document.getElementById('edit_full_name').value = userData[firemanNumber].full_name;
+            document.getElementById('edit_new_fireman_number').value = firemanNumber;
+
+            modal.style.display = 'block';
+        }
+
+        // Show delete confirmation
+        function showDeleteConfirmation(firemanNumber, fullName) {
+            const modal = document.getElementById('deleteModal');
+            const message = document.getElementById('deleteConfirmationMessage');
+            const input = document.getElementById('delete_fireman_number');
+
+            message.innerHTML = `<p>Are you sure you want to delete firefighter ${fullName} (${firemanNumber})?</p>`;
+            input.value = firemanNumber;
+
+            modal.style.display = 'block';
+        }
+
+        // Close delete modal
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.style.display = 'none';
+        }
+
+        // Show clear logs confirmation
+        function showClearLogsConfirmation() {
+            const modal = document.getElementById('clearLogsModal');
+            modal.style.display = 'block';
+        }
+
+        // Close clear logs modal
+        function closeClearLogsModal() {
+            const modal = document.getElementById('clearLogsModal');
+            modal.style.display = 'none';
+        }
+
+        // Format datetime
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        // Close modals when clicking on X or outside
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.onclick = function() {
+                this.closest('.modal').style.display = 'none';
+            }
+        });
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+
+<script>
+function showLogs(fireman_number) {
+    fetch(`/get_firefighter_logs/${fireman_number}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            const logsContent = document.getElementById('logsContent');
+            let html = `<h3 style="color: #1a237e; margin-bottom: 1.5rem;">${data.name}'s Activity Logs</h3>
+                       <div class="table-responsive">
+                         <table class="admin-table">
+                             <thead>
+                                 <tr>
+                                     <th>Activity</th>
+                                     <th>Time In</th>
+                                     <th>Time Out</th>
+                                     <th>Hours</th>
+                                 </tr>
+                             </thead>
+                             <tbody>`;
+
+            data.logs.forEach(log => {
+                html += `<tr>
+                          <td>${log.type}</td>
+                          <td>${log.time_in}</td>
+                          <td>${log.time_out}</td>
+                          <td>${log.hours}</td>
+                        </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            logsContent.innerHTML = html;
+
+            const modal = document.getElementById('logsModal');
+            modal.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while loading the logs.');
+        });
+}
+
+// Close modal when clicking the × button
+document.querySelector('#logsModal .close').onclick = function() {
+    document.getElementById('logsModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('logsModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+</body>
+</html>
+<a href="{{ url_for('export_data') }}" class="export-button">Export All Data</a>

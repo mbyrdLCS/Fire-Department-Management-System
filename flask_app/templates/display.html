@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVVFD Activity Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a237e;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .display-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+        }
+
+        .header {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5vw;
+            margin-bottom: 0.5rem;
+        }
+
+        .clock {
+            font-size: 1.8vw;
+            color: #ffeb3b;
+            margin-bottom: 0.5rem;
+        }
+
+        .display-grid {
+            display: flex;
+            flex: 1;
+            gap: 1rem;
+            height: calc(100vh - 100px);
+        }
+
+        .active-section {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            color: #ffeb3b;
+            font-size: 2vw;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .active-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .active-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            animation: pulse 2s infinite;
+        }
+
+        .active-name {
+            font-size: 1.2vw;
+            font-weight: bold;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .active-activity {
+            font-size: 1vw;
+            color: #bbdefb;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .active-time {
+            font-size: 0.9vw;
+            color: #90caf9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .leaderboard-section {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .leaderboard-table-container {
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+        }
+
+        .leaderboard-table th {
+            position: sticky;
+            top: 0;
+            background-color: #1a237e;
+            padding: 0.5rem;
+            text-align: left;
+            color: #ffeb3b;
+            font-size: 1.5vw;
+            z-index: 1;
+        }
+
+        .leaderboard-table td {
+            padding: 0.75rem;
+            font-size: 1.3vw;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .leaderboard-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #ffeb3b;
+            width: 15%;
+        }
+
+        .hours {
+            font-weight: bold;
+            color: #4caf50;
+            width: 20%;
+        }
+
+        @keyframes pulse {
+            0% { background-color: rgba(255, 255, 255, 0.1); }
+            50% { background-color: rgba(255, 255, 255, 0.15); }
+            100% { background-color: rgba(255, 255, 255, 0.1); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        @media (min-width: 1920px) {
+            .header h1 { font-size: 48px; }
+            .clock { font-size: 36px; }
+            .section-title { font-size: 40px; }
+            .active-name { font-size: 24px; }
+            .active-activity { font-size: 20px; }
+            .active-time { font-size: 18px; }
+            .leaderboard-table th { font-size: 32px; }
+            .leaderboard-table td { font-size: 28px; }
+            
+            .active-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .active-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <div class="header">
+            <h1>Spring Valley Volunteer Fire Department</h1>
+            <div class="clock" id="clock"></div>
+        </div>
+
+        <div class="display-grid">
+            <div class="active-section">
+                <h2 class="section-title">Currently Active</h2>
+                <div class="active-grid">
+                    {% for firefighter in active_firefighters %}
+                        <div class="active-card">
+                            <div class="active-name truncate">{{ firefighter.name }}</div>
+                            <div class="active-activity truncate">{{ firefighter.activity }}</div>
+                            <div class="active-time truncate">
+                                Since: {{ firefighter.time_in|format_log_time }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="active-card">
+                            <div class="active-name">No Active Firefighters</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="leaderboard-section">
+                <h2 class="section-title">Hours Leaderboard</h2>
+                <div class="leaderboard-table-container">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th class="rank">Rank</th>
+                                <th>Name</th>
+                                <th class="hours">Hours</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for firefighter in leaderboard %}
+                                <tr>
+                                    <td class="rank">#{{ loop.index }}</td>
+                                    <td>{{ firefighter.name }}</td>
+                                    <td class="hours">{{ firefighter.hours|round(1) }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const clockElement = document.getElementById('clock');
+            clockElement.textContent = now.toLocaleString('en-US', { 
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric'
+            });
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+        setTimeout(function() {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

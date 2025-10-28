@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spring Valley Volunteer Fire Department - Activity Log</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>The Spring Valley Volunteer Fire Department - Activity Log</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-message">
+                {{ messages[0] }}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Register New Firefighter Form -->
+    <div id="new-user-form" class="form-container" style="display: {% if show_new_user_form %} block {% else %} none {% endif %};">
+        <h2>Register New Firefighter</h2>
+        <form method="POST" action="{{ url_for('register') }}">
+            <input type="text" name="full_name" placeholder="Full Name" required>
+            <input type="number" name="fireman_number" placeholder="Firefighter Number"
+                   pattern="[0-9]*" inputmode="numeric" required>
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+    <!-- Clock In Form -->
+    <div class="form-container">
+        <h2>Clock In</h2>
+        <form method="POST" action="{{ url_for('clock_in') }}">
+            <input type="number" name="username" placeholder="Firefighter Number"
+                   pattern="[0-9]*" inputmode="numeric" required>
+            <select name="activity" id="activity" onchange="toggleOtherActivityInput()">
+                {% for category in categories %}
+                    <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+                <option value="Other">Other</option>
+            </select>
+            <input type="text" name="other_activity" placeholder="Please specify" id="otherActivity" style="display:none;">
+            <button type="submit">Clock In</button>
+        </form>
+    </div>
+
+    <!-- Clock Out Form -->
+    <div class="form-container">
+        <h2>Clock Out</h2>
+        <form method="POST" action="{{ url_for('clock_out') }}">
+            <input type="number" name="username" placeholder="Firefighter Number"
+                   pattern="[0-9]*" inputmode="numeric" required>
+            <button type="submit">Clock Out</button>
+        </form>
+    </div>
+
+    <!-- Button Container -->
+    <div class="button-container">
+        <button class="new-user" onclick="toggleNewUserForm()">New User</button>
+        <button class="admin" onclick="window.location.href='{{ url_for('admin') }}'">Admin</button>
+    </div>
+
+    <script>
+        // Show or hide the "Other" activity input field
+        function toggleOtherActivityInput() {
+            const activitySelect = document.getElementById('activity');
+            const otherActivityInput = document.getElementById('otherActivity');
+            otherActivityInput.style.display = activitySelect.value === 'Other' ? 'block' : 'none';
+        }
+
+        // Toggle visibility of the New User form
+        function toggleNewUserForm() {
+            const form = document.getElementById('new-user-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

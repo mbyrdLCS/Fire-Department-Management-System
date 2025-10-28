@@ -1,0 +1,78 @@
+# Environment variables (IMPORTANT: Never commit credentials!)
+.env
+*.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Flask
+instance/
+.webassets-cache
+
+# Logs
+*.log
+backup.log
+firefighter.log*
+
+# JSON data files (contains sensitive user data)
+user_data.json
+categories.json
+vehicles.json
+vehicle_inspections.json
+checklist_items.json
+
+# Backups
+backups/
+*.backup
+*_backup_*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# PythonAnywhere specific
+.pythonanywhere/
+
+# Credentials and tokens
+get_token.py
+*_credentials.json
+*_token.json
+
+# Zip files
+*.zip
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
