@@ -692,5 +692,303 @@ def inspection_history(vehicle_id):
                          vehicle=vehicle,
                          history=history)
 
+# ========== MAINTENANCE ROUTES ==========
+
+@app.route('/maintenance')
+def maintenance_menu():
+    """Maintenance menu - select a vehicle"""
+    vehicles = db_helpers.get_all_vehicles()
+    return render_template('maintenance_menu.html', vehicles=vehicles)
+
+@app.route('/maintenance/<int:vehicle_id>')
+def maintenance_form(vehicle_id):
+    """Maintenance work order form for a specific vehicle"""
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+    if not vehicle:
+        flash('Vehicle not found!')
+        return redirect(url_for('maintenance_menu'))
+
+    firefighters = db_helpers.get_all_firefighters()
+
+    return render_template('maintenance_form.html',
+                         vehicle=vehicle,
+                         firefighters=firefighters)
+
+@app.route('/submit_maintenance', methods=['POST'])
+def submit_maintenance():
+    """Handle maintenance work order submission"""
+    try:
+        vehicle_id = int(request.form['vehicle_id'])
+        work_type = request.form['work_type']
+        performed_by = request.form['performed_by']
+        performed_date = request.form['performed_date']
+        cost = request.form.get('cost', '')
+        parts_used = request.form.get('parts_used', '')
+        notes = request.form.get('notes', '')
+        firefighter_number = request.form.get('firefighter_number', '')
+
+        # Convert cost to float if provided
+        cost_value = None
+        if cost and cost.strip():
+            try:
+                cost_value = float(cost)
+            except ValueError:
+                flash('Invalid cost value')
+                return redirect(url_for('maintenance_form', vehicle_id=vehicle_id))
+
+        # Get firefighter ID if provided
+        firefighter_id = None
+        if firefighter_number:
+            firefighter = db_helpers.get_firefighter_by_number(firefighter_number)
+            if firefighter:
+                firefighter_id = firefighter['id']
+
+        # Create maintenance record
+        success, result = db_helpers.create_maintenance_record(
+            vehicle_id=vehicle_id,
+            work_type=work_type,
+            performed_by=performed_by,
+            performed_date=performed_date,
+            cost=cost_value,
+            parts_used=parts_used,
+            notes=notes,
+            firefighter_id=firefighter_id
+        )
+
+        if success:
+            vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+            flash(f'Maintenance record for {vehicle["name"]} saved successfully!')
+            logger.info(f"Maintenance record created for {vehicle['name']}: {work_type}")
+            return redirect(url_for('maintenance_menu'))
+        else:
+            flash(f'Error saving maintenance record: {result}')
+            return redirect(url_for('maintenance_form', vehicle_id=vehicle_id))
+
+    except Exception as e:
+        logger.error(f"Submit maintenance error: {str(e)}")
+        flash('An error occurred while submitting the maintenance record.')
+        return redirect(url_for('maintenance_menu'))
+
+@app.route('/maintenance_history/<int:vehicle_id>')
+def maintenance_history(vehicle_id):
+    """View maintenance history for a vehicle"""
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+    if not vehicle:
+        flash('Vehicle not found!')
+        return redirect(url_for('maintenance_menu'))
+
+    history = db_helpers.get_maintenance_records_for_vehicle(vehicle_id)
+
+    return render_template('maintenance_history.html',
+                         vehicle=vehicle,
+                         history=history)
+
+# ========== INVENTORY ROUTES ==========
+
+@app.route('/inventory')
+def inventory_menu():
+    """Inventory management menu - select station or vehicle"""
+    stations = db_helpers.get_all_stations()
+    vehicles = db_helpers.get_all_vehicles()
+
+    return render_template('inventory_menu.html',
+                         stations=stations,
+                         vehicles=vehicles)
+
+@app.route('/inventory/station/<int:station_id>')
+def station_inventory(station_id):
+    """View and manage inventory for a specific station"""
+    station = db_helpers.get_station_by_id(station_id) if hasattr(db_helpers, 'get_station_by_id') else None
+
+    # If get_station_by_id doesn't exist, get station info from the list
+    if not station:
+        stations = db_helpers.get_all_stations()
+        station = next((s for s in stations if s['id'] == station_id), None)
+
+    if not station:
+        flash('Station not found!')
+        return redirect(url_for('inventory_menu'))
+
+    inventory = db_helpers.get_station_inventory(station_id)
+    vehicles = db_helpers.get_vehicles_by_station(station_id)
+    all_items = db_helpers.get_all_inventory_items()
+
+    return render_template('station_inventory.html',
+                         station=station,
+                         inventory=inventory,
+                         vehicles=vehicles,
+                         all_items=all_items)
+
+@app.route('/inventory/vehicle/<int:vehicle_id>')
+def vehicle_inventory(vehicle_id):
+    """View and manage inventory for a specific vehicle"""
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+    if not vehicle:
+        flash('Vehicle not found!')
+        return redirect(url_for('inventory_menu'))
+
+    inventory = db_helpers.get_vehicle_inventory(vehicle_id)
+    all_items = db_helpers.get_all_inventory_items()
+
+    return render_template('vehicle_inventory.html',
+                         vehicle=vehicle,
+                         inventory=inventory,
+                         all_items=all_items)
+
+@app.route('/inventory/add_to_station', methods=['POST'])
+def add_to_station_inventory():
+    """Add an item to station inventory"""
+    try:
+        station_id = int(request.form['station_id'])
+        item_id = int(request.form['item_id'])
+        quantity = int(request.form['quantity'])
+        notes = request.form.get('notes', '')
+
+        success, message = db_helpers.add_item_to_station(station_id, item_id, quantity, notes)
+
+        if success:
+            flash('Item added to station inventory successfully!')
+        else:
+            flash(f'Error adding item: {message}')
+
+        return redirect(url_for('station_inventory', station_id=station_id))
+
+    except Exception as e:
+        logger.error(f"Add to station inventory error: {str(e)}")
+        flash('An error occurred while adding the item.')
+        return redirect(url_for('inventory_menu'))
+
+@app.route('/inventory/add_to_vehicle', methods=['POST'])
+def add_to_vehicle_inventory():
+    """Add an item to vehicle inventory"""
+    try:
+        vehicle_id = int(request.form['vehicle_id'])
+        item_id = int(request.form['item_id'])
+        quantity = int(request.form['quantity'])
+        notes = request.form.get('notes', '')
+
+        success, message = db_helpers.add_item_to_vehicle(vehicle_id, item_id, quantity, notes)
+
+        if success:
+            flash('Item added to vehicle inventory successfully!')
+        else:
+            flash(f'Error adding item: {message}')
+
+        return redirect(url_for('vehicle_inventory', vehicle_id=vehicle_id))
+
+    except Exception as e:
+        logger.error(f"Add to vehicle inventory error: {str(e)}")
+        flash('An error occurred while adding the item.')
+        return redirect(url_for('inventory_menu'))
+
+@app.route('/inventory/update_station_quantity', methods=['POST'])
+def update_station_quantity():
+    """Update quantity of an item in station inventory"""
+    try:
+        station_inventory_id = int(request.form['station_inventory_id'])
+        new_quantity = int(request.form['new_quantity'])
+        station_id = int(request.form['station_id'])
+
+        success, message = db_helpers.update_station_inventory_quantity(station_inventory_id, new_quantity)
+
+        if success:
+            flash('Quantity updated successfully!')
+        else:
+            flash(f'Error updating quantity: {message}')
+
+        return redirect(url_for('station_inventory', station_id=station_id))
+
+    except Exception as e:
+        logger.error(f"Update station quantity error: {str(e)}")
+        flash('An error occurred while updating the quantity.')
+        return redirect(url_for('inventory_menu'))
+
+@app.route('/inventory/update_vehicle_quantity', methods=['POST'])
+def update_vehicle_quantity():
+    """Update quantity of an item in vehicle inventory"""
+    try:
+        vehicle_inventory_id = int(request.form['vehicle_inventory_id'])
+        new_quantity = int(request.form['new_quantity'])
+        vehicle_id = int(request.form['vehicle_id'])
+
+        success, message = db_helpers.update_vehicle_inventory_quantity(vehicle_inventory_id, new_quantity)
+
+        if success:
+            flash('Quantity updated successfully!')
+        else:
+            flash(f'Error updating quantity: {message}')
+
+        return redirect(url_for('vehicle_inventory', vehicle_id=vehicle_id))
+
+    except Exception as e:
+        logger.error(f"Update vehicle quantity error: {str(e)}")
+        flash('An error occurred while updating the quantity.')
+        return redirect(url_for('inventory_menu'))
+
+@app.route('/inventory/remove_from_station/<int:station_inventory_id>/<int:station_id>')
+def remove_from_station(station_inventory_id, station_id):
+    """Remove an item from station inventory"""
+    success, message = db_helpers.remove_item_from_station(station_inventory_id)
+
+    if success:
+        flash('Item removed from station inventory!')
+    else:
+        flash(f'Error removing item: {message}')
+
+    return redirect(url_for('station_inventory', station_id=station_id))
+
+@app.route('/inventory/remove_from_vehicle/<int:vehicle_inventory_id>/<int:vehicle_id>')
+def remove_from_vehicle(vehicle_inventory_id, vehicle_id):
+    """Remove an item from vehicle inventory"""
+    success, message = db_helpers.remove_item_from_vehicle(vehicle_inventory_id)
+
+    if success:
+        flash('Item removed from vehicle inventory!')
+    else:
+        flash(f'Error removing item: {message}')
+
+    return redirect(url_for('vehicle_inventory', vehicle_id=vehicle_id))
+
+@app.route('/inventory/create_item', methods=['POST'])
+def create_inventory_item():
+    """Create a new inventory item in the master catalog"""
+    try:
+        name = request.form['name']
+        category = request.form['category']
+        item_code = request.form.get('item_code', '')
+        unit_of_measure = request.form.get('unit_of_measure', 'each')
+        cost_per_unit = request.form.get('cost_per_unit', '')
+
+        cost_value = None
+        if cost_per_unit and cost_per_unit.strip():
+            try:
+                cost_value = float(cost_per_unit)
+            except ValueError:
+                flash('Invalid cost value')
+                return redirect(request.referrer or url_for('inventory_menu'))
+
+        success, result = db_helpers.create_inventory_item(
+            name=name,
+            category=category,
+            item_code=item_code,
+            unit_of_measure=unit_of_measure,
+            cost_per_unit=cost_value
+        )
+
+        if success:
+            flash(f'New item "{name}" created successfully!')
+        else:
+            flash(f'Error creating item: {result}')
+
+        return redirect(request.referrer or url_for('inventory_menu'))
+
+    except Exception as e:
+        logger.error(f"Create inventory item error: {str(e)}")
+        flash('An error occurred while creating the item.')
+        return redirect(url_for('inventory_menu'))
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

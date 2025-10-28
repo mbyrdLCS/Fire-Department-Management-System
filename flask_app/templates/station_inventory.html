@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ station.name }} - Inventory</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Mobile-first station inventory styles */
+        body {
+            font-size: 16px;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .mobile-header {
+            background: linear-gradient(135deg, #673AB7 0%, #9C27B0 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mobile-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .mobile-header .subtitle {
+            margin-top: 5px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 12px 24px;
+            background: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #673AB7;
+        }
+
+        .add-item-form {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #673AB7;
+        }
+
+        .add-button {
+            padding: 14px;
+            background: #673AB7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .add-button:hover {
+            background: #5E35B1;
+        }
+
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .inventory-table th,
+        .inventory-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .inventory-table th {
+            background: #f8f8f8;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+        }
+
+        .inventory-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .quantity-badge {
+            background: #673AB7;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .low-stock {
+            background: #f44336;
+        }
+
+        .category-badge {
+            background: #e0e0e0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-update {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-update:hover {
+            background: #45a049;
+        }
+
+        .btn-remove {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-remove:hover {
+            background: #da190b;
+        }
+
+        .qty-input {
+            width: 80px;
+            padding: 6px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .vehicles-section {
+            margin-top: 20px;
+        }
+
+        .vehicle-card {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #9C27B0;
+        }
+
+        .vehicle-card strong {
+            color: #333;
+            font-size: 16px;
+        }
+
+        .vehicle-card small {
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .inventory-table {
+                font-size: 14px;
+            }
+
+            .inventory-table th,
+            .inventory-table td {
+                padding: 8px 6px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .add-item-form {
+                grid-template-columns: 2fr 1fr 2fr auto;
+                align-items: end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <h1>🏢 {{ station.name }}</h1>
+        <div class="subtitle">Station Inventory Management</div>
+    </div>
+
+    <div class="container">
+        <a href="{{ url_for('inventory_menu') }}" class="back-button">← Back to Inventory</a>
+
+        <!-- Add Item Form -->
+        <div class="section">
+            <div class="section-title">➕ Add Item to Station</div>
+            <form method="POST" action="{{ url_for('add_to_station_inventory') }}" class="add-item-form">
+                <input type="hidden" name="station_id" value="{{ station.id }}">
+
+                <div class="form-group">
+                    <label for="item_id">Select Item:</label>
+                    <select name="item_id" id="item_id" required>
+                        <option value="">-- Choose an item --</option>
+                        {% for item in all_items %}
+                        <option value="{{ item.id }}">
+                            {{ item.name }} ({{ item.category }})
+                            {% if item.cost_per_unit %}- ${{ "%.2f"|format(item.cost_per_unit) }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" name="quantity" id="quantity" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes (optional):</label>
+                    <input type="text" name="notes" id="notes" placeholder="Location, condition, etc.">
+                </div>
+
+                <button type="submit" class="add-button">Add Item</button>
+            </form>
+        </div>
+
+        <!-- Create New Item in Catalog -->
+        <div class="section" style="background: #f8f8f8; border: 2px dashed #673AB7;">
+            <div class="section-title">✨ Create New Item in Catalog</div>
+            <p style="color: #666; margin-bottom: 15px;">Don't see the item you need? Create it here first, then add it to your inventory.</p>
+            <form method="POST" action="{{ url_for('create_inventory_item') }}">
+                <div style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label for="new_name">Item Name: *</label>
+                        <input type="text" name="name" id="new_name" placeholder="e.g. Fire Extinguisher" required style="padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_category">Category: *</label>
+                        <select name="category" id="new_category" required style="padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                            <option value="">-- Select --</option>
+                            <option value="PPE">PPE (Personal Protective Equipment)</option>
+                            <option value="Medical">Medical Supplies</option>
+                            <option value="Tools">Tools & Equipment</option>
+                            <option value="Hose">Hose & Nozzles</option>
+                            <option value="SCBA">SCBA & Breathing Equipment</option>
+                            <option value="Communication">Communication Equipment</option>
+                            <option value="Vehicle Parts">Vehicle Parts</option>
+                            <option value="Safety">Safety Equipment</option>
+                            <option value="Supplies">General Supplies</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_cost">Unit Cost/Price: * (Required for insurance)</label>
+                        <input type="number" name="cost_per_unit" id="new_cost" step="0.01" min="0" placeholder="0.00" required style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-weight: 600;">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_uom">Unit of Measure:</label>
+                        <select name="unit_of_measure" id="new_uom" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                            <option value="each">Each</option>
+                            <option value="pair">Pair</option>
+                            <option value="set">Set</option>
+                            <option value="box">Box</option>
+                            <option value="case">Case</option>
+                            <option value="roll">Roll</option>
+                            <option value="gallon">Gallon</option>
+                            <option value="foot">Foot</option>
+                            <option value="pound">Pound</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_code">Item Code (optional):</label>
+                        <input type="text" name="item_code" id="new_code" placeholder="e.g. EXT-ABC-10" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                </div>
+                <button type="submit" class="add-button" style="margin-top: 15px;">Create Item in Catalog</button>
+            </form>
+        </div>
+
+        <!-- Current Inventory -->
+        <div class="section">
+            <div class="section-title">📦 Current Inventory ({{ inventory|length }} items)</div>
+
+            {% if inventory %}
+            <div style="overflow-x: auto;">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Value</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.name }}</strong>
+                                {% if item.item_code %}
+                                <br><small style="color: #999;">{{ item.item_code }}</small>
+                                {% endif %}
+                            </td>
+                            <td><span class="category-badge">{{ item.category }}</span></td>
+                            <td>
+                                <span class="quantity-badge {% if item.min_quantity and item.quantity < item.min_quantity %}low-stock{% endif %}">
+                                    {{ item.quantity }}
+                                </span>
+                            </td>
+                            <td>{{ item.unit_of_measure }}</td>
+                            <td>
+                                {% if item.cost_per_unit %}
+                                    ${{ "%.2f"|format(item.cost_per_unit * item.quantity) }}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <form method="POST" action="{{ url_for('update_station_quantity') }}" style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="hidden" name="station_inventory_id" value="{{ item.id }}">
+                                        <input type="hidden" name="station_id" value="{{ station.id }}">
+                                        <input type="number" name="new_quantity" value="{{ item.quantity }}" min="0" class="qty-input">
+                                        <button type="submit" class="btn-small btn-update">Update</button>
+                                    </form>
+                                    <a href="{{ url_for('remove_from_station', station_inventory_id=item.id, station_id=station.id) }}"
+                                       onclick="return confirm('Remove {{ item.name }} from inventory?')"
+                                       class="btn-small btn-remove">Remove</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No inventory items yet. Add items using the form above.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Vehicles at this Station -->
+        <div class="section">
+            <div class="section-title">🚒 Vehicles at this Station</div>
+            {% if vehicles %}
+                <div class="vehicles-section">
+                    {% for vehicle in vehicles %}
+                    <div class="vehicle-card" onclick="window.location.href='{{ url_for('vehicle_inventory', vehicle_id=vehicle.id) }}'" style="cursor: pointer;">
+                        <strong>{{ vehicle.name }}</strong> ({{ vehicle.vehicle_code }})
+                        <small>
+                            {% if vehicle.vin %}VIN: {{ vehicle.vin }}{% endif %}
+                            Click to manage vehicle equipment →
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: #999;">No vehicles assigned to this station.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

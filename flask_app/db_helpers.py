@@ -610,3 +610,499 @@ def get_vehicle_inspection_history(vehicle_id, limit=10):
 
     conn.close()
     return history
+
+# ========== MAINTENANCE FUNCTIONS ==========
+
+def create_maintenance_record(vehicle_id, work_type, performed_by, performed_date, cost=None, parts_used='', notes='', firefighter_id=None):
+    """Create a new maintenance record"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO maintenance_records
+            (vehicle_id, work_type, performed_by, performed_date, cost, parts_used, notes, firefighter_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (vehicle_id, work_type, performed_by, performed_date, cost, parts_used, notes, firefighter_id))
+
+        conn.commit()
+        record_id = cursor.lastrowid
+        conn.close()
+        return True, record_id
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def get_maintenance_records_for_vehicle(vehicle_id, limit=50):
+    """Get all maintenance records for a specific vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT mr.id, mr.work_type, mr.performed_by, mr.performed_date, mr.cost, mr.parts_used, mr.notes,
+               f.full_name as firefighter_name
+        FROM maintenance_records mr
+        LEFT JOIN firefighters f ON mr.firefighter_id = f.id
+        WHERE mr.vehicle_id = ?
+        ORDER BY mr.performed_date DESC
+        LIMIT ?
+    ''', (vehicle_id, limit))
+
+    records = []
+    for row in cursor.fetchall():
+        records.append({
+            'id': row[0],
+            'work_type': row[1],
+            'performed_by': row[2],
+            'performed_date': row[3],
+            'cost': row[4],
+            'parts_used': row[5],
+            'notes': row[6],
+            'firefighter_name': row[7]
+        })
+
+    conn.close()
+    return records
+
+def get_all_maintenance_records(limit=100):
+    """Get all maintenance records across all vehicles"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT mr.id, v.name as vehicle_name, v.vehicle_code, mr.work_type, mr.performed_by,
+               mr.performed_date, mr.cost, mr.parts_used, mr.notes,
+               f.full_name as firefighter_name
+        FROM maintenance_records mr
+        LEFT JOIN vehicles v ON mr.vehicle_id = v.id
+        LEFT JOIN firefighters f ON mr.firefighter_id = f.id
+        ORDER BY mr.performed_date DESC
+        LIMIT ?
+    ''', (limit,))
+
+    records = []
+    for row in cursor.fetchall():
+        records.append({
+            'id': row[0],
+            'vehicle_name': row[1],
+            'vehicle_code': row[2],
+            'work_type': row[3],
+            'performed_by': row[4],
+            'performed_date': row[5],
+            'cost': row[6],
+            'parts_used': row[7],
+            'notes': row[8],
+            'firefighter_name': row[9]
+        })
+
+    conn.close()
+    return records
+
+def get_recent_maintenance(days=30):
+    """Get maintenance records from the last N days"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cutoff_date = datetime.now(CENTRAL) - timedelta(days=days)
+
+    cursor.execute('''
+        SELECT mr.id, v.name as vehicle_name, v.vehicle_code, mr.work_type, mr.performed_by,
+               mr.performed_date, mr.cost
+        FROM maintenance_records mr
+        LEFT JOIN vehicles v ON mr.vehicle_id = v.id
+        WHERE mr.performed_date >= ?
+        ORDER BY mr.performed_date DESC
+    ''', (cutoff_date.isoformat(),))
+
+    records = []
+    for row in cursor.fetchall():
+        records.append({
+            'id': row[0],
+            'vehicle_name': row[1],
+            'vehicle_code': row[2],
+            'work_type': row[3],
+            'performed_by': row[4],
+            'performed_date': row[5],
+            'cost': row[6]
+        })
+
+    conn.close()
+    return records
+
+# ========== INVENTORY MANAGEMENT FUNCTIONS ==========
+
+# Station Functions
+def get_all_stations():
+    """Get all fire stations"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, name, address, is_primary, notes
+        FROM stations
+        ORDER BY is_primary DESC, name ASC
+    ''')
+
+    stations = []
+    for row in cursor.fetchall():
+        stations.append({
+            'id': row[0],
+            'name': row[1],
+            'address': row[2],
+            'is_primary': row[3],
+            'notes': row[4]
+        })
+
+    conn.close()
+    return stations
+
+def create_station(name, address='', is_primary=False, notes=''):
+    """Create a new fire station"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO stations (name, address, is_primary, notes)
+            VALUES (?, ?, ?, ?)
+        ''', (name, address, is_primary, notes))
+
+        conn.commit()
+        station_id = cursor.lastrowid
+        conn.close()
+        return True, station_id
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+# Inventory Item Functions
+def get_all_inventory_items():
+    """Get all inventory items from master catalog"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, name, item_code, category, subcategory, description,
+               manufacturer, model_number, unit_of_measure, cost_per_unit,
+               current_value, min_quantity, is_consumable
+        FROM inventory_items
+        ORDER BY category, name
+    ''')
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'name': row[1],
+            'item_code': row[2],
+            'category': row[3],
+            'subcategory': row[4],
+            'description': row[5],
+            'manufacturer': row[6],
+            'model_number': row[7],
+            'unit_of_measure': row[8],
+            'cost_per_unit': row[9],
+            'current_value': row[10],
+            'min_quantity': row[11],
+            'is_consumable': row[12]
+        })
+
+    conn.close()
+    return items
+
+def create_inventory_item(name, category, item_code='', subcategory='', description='',
+                         manufacturer='', model_number='', unit_of_measure='each',
+                         cost_per_unit=None, current_value=None, min_quantity=0,
+                         is_consumable=False, serial_number='', notes=''):
+    """Create a new inventory item in master catalog"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO inventory_items
+            (name, item_code, serial_number, category, subcategory, description,
+             manufacturer, model_number, unit_of_measure, cost_per_unit, current_value,
+             min_quantity, is_consumable, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, item_code, serial_number, category, subcategory, description,
+              manufacturer, model_number, unit_of_measure, cost_per_unit, current_value,
+              min_quantity, is_consumable, notes))
+
+        conn.commit()
+        item_id = cursor.lastrowid
+        conn.close()
+        return True, item_id
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def search_inventory_items(search_term):
+    """Search inventory items by name, code, or category"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    search_pattern = f'%{search_term}%'
+    cursor.execute('''
+        SELECT id, name, item_code, category, unit_of_measure, cost_per_unit
+        FROM inventory_items
+        WHERE name LIKE ? OR item_code LIKE ? OR category LIKE ?
+        ORDER BY name
+        LIMIT 50
+    ''', (search_pattern, search_pattern, search_pattern))
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'name': row[1],
+            'item_code': row[2],
+            'category': row[3],
+            'unit_of_measure': row[4],
+            'cost_per_unit': row[5]
+        })
+
+    conn.close()
+    return items
+
+# Station Inventory Functions
+def get_station_inventory(station_id):
+    """Get all inventory items assigned to a specific station"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT si.id, si.item_id, ii.name, ii.item_code, ii.category, ii.unit_of_measure,
+               si.quantity, ii.cost_per_unit, ii.min_quantity, si.last_checked, si.notes
+        FROM station_inventory si
+        JOIN inventory_items ii ON si.item_id = ii.id
+        WHERE si.station_id = ?
+        ORDER BY ii.category, ii.name
+    ''', (station_id,))
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'item_id': row[1],
+            'name': row[2],
+            'item_code': row[3],
+            'category': row[4],
+            'unit_of_measure': row[5],
+            'quantity': row[6],
+            'cost_per_unit': row[7],
+            'min_quantity': row[8],
+            'last_checked': row[9],
+            'notes': row[10]
+        })
+
+    conn.close()
+    return items
+
+def add_item_to_station(station_id, item_id, quantity, notes=''):
+    """Add or update an item in station inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Check if item already exists at this station
+        cursor.execute('''
+            SELECT id, quantity FROM station_inventory
+            WHERE station_id = ? AND item_id = ?
+        ''', (station_id, item_id))
+
+        existing = cursor.fetchone()
+
+        if existing:
+            # Update existing quantity
+            new_quantity = existing[1] + quantity
+            cursor.execute('''
+                UPDATE station_inventory
+                SET quantity = ?, last_checked = CURRENT_TIMESTAMP, notes = ?
+                WHERE id = ?
+            ''', (new_quantity, notes, existing[0]))
+        else:
+            # Add new item
+            cursor.execute('''
+                INSERT INTO station_inventory (station_id, item_id, quantity, notes)
+                VALUES (?, ?, ?, ?)
+            ''', (station_id, item_id, quantity, notes))
+
+        conn.commit()
+        conn.close()
+        return True, "Item updated successfully"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def update_station_inventory_quantity(station_inventory_id, new_quantity):
+    """Update the quantity of an item in station inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE station_inventory
+            SET quantity = ?, last_checked = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (new_quantity, station_inventory_id))
+
+        conn.commit()
+        conn.close()
+        return True, "Quantity updated"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def remove_item_from_station(station_inventory_id):
+    """Remove an item from station inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM station_inventory WHERE id = ?', (station_inventory_id,))
+        conn.commit()
+        conn.close()
+        return True, "Item removed"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+# Vehicle Inventory Functions
+def get_vehicle_inventory(vehicle_id):
+    """Get all inventory items assigned to a specific vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT vi.id, vi.item_id, ii.name, ii.item_code, ii.category, ii.unit_of_measure,
+               vi.quantity, ii.cost_per_unit, vi.last_checked, vi.notes
+        FROM vehicle_inventory vi
+        JOIN inventory_items ii ON vi.item_id = ii.id
+        WHERE vi.vehicle_id = ?
+        ORDER BY ii.category, ii.name
+    ''', (vehicle_id,))
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'item_id': row[1],
+            'name': row[2],
+            'item_code': row[3],
+            'category': row[4],
+            'unit_of_measure': row[5],
+            'quantity': row[6],
+            'cost_per_unit': row[7],
+            'last_checked': row[8],
+            'notes': row[9]
+        })
+
+    conn.close()
+    return items
+
+def add_item_to_vehicle(vehicle_id, item_id, quantity, notes=''):
+    """Add or update an item in vehicle inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Check if item already exists on this vehicle
+        cursor.execute('''
+            SELECT id, quantity FROM vehicle_inventory
+            WHERE vehicle_id = ? AND item_id = ?
+        ''', (vehicle_id, item_id))
+
+        existing = cursor.fetchone()
+
+        if existing:
+            # Update existing quantity
+            new_quantity = existing[1] + quantity
+            cursor.execute('''
+                UPDATE vehicle_inventory
+                SET quantity = ?, last_checked = CURRENT_TIMESTAMP, notes = ?
+                WHERE id = ?
+            ''', (new_quantity, notes, existing[0]))
+        else:
+            # Add new item
+            cursor.execute('''
+                INSERT INTO vehicle_inventory (vehicle_id, item_id, quantity, notes)
+                VALUES (?, ?, ?, ?)
+            ''', (vehicle_id, item_id, quantity, notes))
+
+        conn.commit()
+        conn.close()
+        return True, "Item updated successfully"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def update_vehicle_inventory_quantity(vehicle_inventory_id, new_quantity):
+    """Update the quantity of an item in vehicle inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE vehicle_inventory
+            SET quantity = ?, last_checked = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (new_quantity, vehicle_inventory_id))
+
+        conn.commit()
+        conn.close()
+        return True, "Quantity updated"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def remove_item_from_vehicle(vehicle_inventory_id):
+    """Remove an item from vehicle inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM vehicle_inventory WHERE id = ?', (vehicle_inventory_id,))
+        conn.commit()
+        conn.close()
+        return True, "Item removed"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+# Helper function to get vehicles by station
+def get_vehicles_by_station(station_id):
+    """Get all vehicles assigned to a specific station"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, vehicle_code, name, vehicle_type, vin, license_plate
+        FROM vehicles
+        WHERE station_id = ?
+        ORDER BY vehicle_code
+    ''', (station_id,))
+
+    vehicles = []
+    for row in cursor.fetchall():
+        vehicles.append({
+            'id': row[0],
+            'vehicle_code': row[1],
+            'name': row[2],
+            'vehicle_type': row[3],
+            'vin': row[4],
+            'license_plate': row[5]
+        })
+
+    conn.close()
+    return vehicles

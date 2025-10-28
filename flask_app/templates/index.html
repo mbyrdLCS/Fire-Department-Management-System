@@ -3,76 +3,438 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Spring Valley Volunteer Fire Department - Activity Log</title>
+    <title>Spring Valley Volunteer Fire Department</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .main-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .main-header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .flash-message {
+            background: white;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 5px solid #4CAF50;
+            font-weight: 500;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .card h2 {
+            font-size: 22px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            background: #f9f9f9;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(56, 239, 125, 0.4);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(235, 51, 73, 0.4);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(235, 51, 73, 0.5);
+        }
+
+        .management-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .management-card {
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border: 3px solid transparent;
+        }
+
+        .management-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            border-color: white;
+        }
+
+        .management-card .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .management-card .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .management-card .description {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .new-user-toggle {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .new-user-toggle button {
+            background: white;
+            color: #667eea;
+            border: 2px solid white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+
+        .new-user-toggle button:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        #new-user-form {
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-header h1 {
+                font-size: 24px;
+            }
+
+            .management-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .management-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>The Spring Valley Volunteer Fire Department - Activity Log</h1>
+    <div class="container">
+        <!-- Main Header -->
+        <div class="main-header">
+            <h1>🚒 Spring Valley Volunteer Fire Department</h1>
+            <div class="subtitle">Activity Log & Management System</div>
+        </div>
 
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-message">
-                {{ messages[0] }}
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    ✓ {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- New User Toggle -->
+        <div class="new-user-toggle">
+            <button onclick="toggleNewUserForm()">➕ Register New Firefighter</button>
+        </div>
+
+        <!-- Register New Firefighter Form -->
+        <div id="new-user-form" style="display: {% if show_new_user_form %} block {% else %} none {% endif %};">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">👤</div>
+                    <h2>Register New Firefighter</h2>
+                </div>
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="form-group">
+                        <label for="full_name">Full Name</label>
+                        <input type="text" name="full_name" id="full_name" placeholder="Enter firefighter's full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fireman_number">Firefighter Number</label>
+                        <input type="number" name="fireman_number" id="fireman_number"
+                               placeholder="Enter unique firefighter number"
+                               pattern="[0-9]*" inputmode="numeric" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register Firefighter</button>
+                </form>
             </div>
-        {% endif %}
-    {% endwith %}
+        </div>
 
-    <!-- Register New Firefighter Form -->
-    <div id="new-user-form" class="form-container" style="display: {% if show_new_user_form %} block {% else %} none {% endif %};">
-        <h2>Register New Firefighter</h2>
-        <form method="POST" action="{{ url_for('register') }}">
-            <input type="text" name="full_name" placeholder="Full Name" required>
-            <input type="number" name="fireman_number" placeholder="Firefighter Number"
-                   pattern="[0-9]*" inputmode="numeric" required>
-            <button type="submit">Register</button>
-        </form>
-    </div>
+        <!-- Clock In/Out Grid -->
+        <div class="grid">
+            <!-- Clock In Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">⏱️</div>
+                    <h2>Clock In</h2>
+                </div>
+                <form method="POST" action="{{ url_for('clock_in') }}">
+                    <div class="form-group">
+                        <label for="clock_in_number">Firefighter Number</label>
+                        <input type="number" name="username" id="clock_in_number"
+                               placeholder="Enter your number"
+                               pattern="[0-9]*" inputmode="numeric" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="activity">Activity Type</label>
+                        <select name="activity" id="activity" onchange="toggleOtherActivityInput()">
+                            {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="otherActivityGroup" style="display:none;">
+                        <label for="otherActivity">Specify Activity</label>
+                        <input type="text" name="other_activity" placeholder="Please specify activity" id="otherActivity">
+                    </div>
+                    <button type="submit" class="btn btn-success">Clock In</button>
+                </form>
+            </div>
 
-    <!-- Clock In Form -->
-    <div class="form-container">
-        <h2>Clock In</h2>
-        <form method="POST" action="{{ url_for('clock_in') }}">
-            <input type="number" name="username" placeholder="Firefighter Number"
-                   pattern="[0-9]*" inputmode="numeric" required>
-            <select name="activity" id="activity" onchange="toggleOtherActivityInput()">
-                {% for category in categories %}
-                    <option value="{{ category }}">{{ category }}</option>
-                {% endfor %}
-                <option value="Other">Other</option>
-            </select>
-            <input type="text" name="other_activity" placeholder="Please specify" id="otherActivity" style="display:none;">
-            <button type="submit">Clock In</button>
-        </form>
-    </div>
+            <!-- Clock Out Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">✅</div>
+                    <h2>Clock Out</h2>
+                </div>
+                <form method="POST" action="{{ url_for('clock_out') }}">
+                    <div class="form-group">
+                        <label for="clock_out_number">Firefighter Number</label>
+                        <input type="number" name="username" id="clock_out_number"
+                               placeholder="Enter your number"
+                               pattern="[0-9]*" inputmode="numeric" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Clock Out</button>
+                </form>
+            </div>
+        </div>
 
-    <!-- Clock Out Form -->
-    <div class="form-container">
-        <h2>Clock Out</h2>
-        <form method="POST" action="{{ url_for('clock_out') }}">
-            <input type="number" name="username" placeholder="Firefighter Number"
-                   pattern="[0-9]*" inputmode="numeric" required>
-            <button type="submit">Clock Out</button>
-        </form>
-    </div>
+        <!-- Management Section -->
+        <div class="management-section">
+            <div class="section-title">📋 Management & Tools</div>
+            <div class="management-grid">
+                <div class="management-card" onclick="window.location.href='{{ url_for('inspections_menu') }}'">
+                    <div class="icon">🔍</div>
+                    <div class="title">Vehicle Inspections</div>
+                    <div class="description">6-day inspection tracking</div>
+                </div>
 
-    <!-- Button Container -->
-    <div class="button-container">
-        <button class="new-user" onclick="toggleNewUserForm()">New User</button>
-        <button class="admin" onclick="window.location.href='{{ url_for('admin') }}'">Admin</button>
+                <div class="management-card" onclick="window.location.href='{{ url_for('maintenance_menu') }}'">
+                    <div class="icon">🔧</div>
+                    <div class="title">Maintenance</div>
+                    <div class="description">Work orders & repairs</div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='{{ url_for('inventory_menu') }}'">
+                    <div class="icon">📦</div>
+                    <div class="title">Inventory</div>
+                    <div class="description">Equipment & supplies</div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='{{ url_for('admin') }}'">
+                    <div class="icon">⚙️</div>
+                    <div class="title">Admin Panel</div>
+                    <div class="description">Reports & settings</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         // Show or hide the "Other" activity input field
         function toggleOtherActivityInput() {
             const activitySelect = document.getElementById('activity');
-            const otherActivityInput = document.getElementById('otherActivity');
-            otherActivityInput.style.display = activitySelect.value === 'Other' ? 'block' : 'none';
+            const otherActivityGroup = document.getElementById('otherActivityGroup');
+            otherActivityGroup.style.display = activitySelect.value === 'Other' ? 'block' : 'none';
         }
 
         // Toggle visibility of the New User form
         function toggleNewUserForm() {
             const form = document.getElementById('new-user-form');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'none' || form.style.display === '') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
         }
     </script>
 </body>

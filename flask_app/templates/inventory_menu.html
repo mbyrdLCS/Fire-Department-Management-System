@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Management</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Mobile-first inventory styles */
+        body {
+            font-size: 16px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .mobile-header {
+            background: linear-gradient(135deg, #673AB7 0%, #9C27B0 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mobile-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #673AB7;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .inventory-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .inventory-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(103, 58, 183, 0.3);
+            border-color: #673AB7;
+        }
+
+        .station-card {
+            border-left: 4px solid #673AB7;
+        }
+
+        .vehicle-card {
+            border-left: 4px solid #9C27B0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            font-size: 28px;
+            margin-right: 12px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .card-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .meta-badge {
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 12px 24px;
+            background: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: #555;
+        }
+
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <h1>📦 Inventory Management</h1>
+    </div>
+
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-button">← Back to Home</a>
+
+        <!-- Stations Section -->
+        <div class="section">
+            <div class="section-title">🏢 Fire Stations</div>
+            <div class="card-grid">
+                {% if stations %}
+                    {% for station in stations %}
+                    <div class="inventory-card station-card" onclick="window.location.href='{{ url_for('station_inventory', station_id=station.id) }}'">
+                        <div class="card-header">
+                            <div class="card-icon">🏢</div>
+                            <div class="card-title">{{ station.name }}</div>
+                        </div>
+                        {% if station.address %}
+                        <div class="card-info">📍 {{ station.address }}</div>
+                        {% endif %}
+                        <div class="card-meta">
+                            {% if station.is_primary %}
+                            <span class="meta-badge" style="background: #673AB7; color: white;">⭐ Primary</span>
+                            {% endif %}
+                            <span class="meta-badge">View Inventory →</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #666;">No stations found. Create stations in the admin panel.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vehicles Section -->
+        <div class="section">
+            <div class="section-title">🚒 Vehicles</div>
+            <div class="card-grid">
+                {% if vehicles %}
+                    {% for vehicle in vehicles %}
+                    <div class="inventory-card vehicle-card" onclick="window.location.href='{{ url_for('vehicle_inventory', vehicle_id=vehicle.id) }}'">
+                        <div class="card-header">
+                            <div class="card-icon">🚒</div>
+                            <div class="card-title">{{ vehicle.name }}</div>
+                        </div>
+                        <div class="card-info">🔢 {{ vehicle.vehicle_code }}</div>
+                        {% if vehicle.vehicle_type %}
+                        <div class="card-info">📋 {{ vehicle.vehicle_type }}</div>
+                        {% endif %}
+                        <div class="card-meta">
+                            <span class="meta-badge">View Equipment →</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #666;">No vehicles found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

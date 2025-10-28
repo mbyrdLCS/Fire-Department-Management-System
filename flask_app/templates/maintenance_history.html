@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ vehicle.name }} - Maintenance History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Mobile-first maintenance history */
+        body {
+            font-size: 16px;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .mobile-header {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .mobile-header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .new-maintenance-button {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            text-decoration: none;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .new-maintenance-button:active {
+            transform: scale(0.98);
+        }
+
+        .maintenance-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 5px solid #ff6b00;
+        }
+
+        .maintenance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .work-type {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .cost-badge {
+            background: #4caf50;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .cost-badge.no-cost {
+            background: #9e9e9e;
+        }
+
+        .maintenance-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .maintenance-meta strong {
+            color: #333;
+        }
+
+        .parts-section, .notes-section {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .parts-section strong, .notes-section strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .parts-section p, .notes-section p {
+            margin: 0;
+            color: #555;
+            white-space: pre-wrap;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .no-history p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .mobile-header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <a href="{{ url_for('maintenance_menu') }}" class="back-button">← Back</a>
+        <h1>{{ vehicle.name }} - Maintenance History</h1>
+    </div>
+
+    <div class="container">
+        <a href="{{ url_for('maintenance_form', vehicle_id=vehicle.id) }}" class="new-maintenance-button">
+            🔧 Log New Maintenance
+        </a>
+
+        {% if history %}
+            {% for record in history %}
+            <div class="maintenance-card">
+                <div class="maintenance-header">
+                    <span class="work-type">{{ record.work_type }}</span>
+                    {% if record.cost %}
+                    <span class="cost-badge">${{ "%.2f"|format(record.cost) }}</span>
+                    {% else %}
+                    <span class="cost-badge no-cost">No Cost</span>
+                    {% endif %}
+                </div>
+
+                <div class="maintenance-meta">
+                    <strong>Date:</strong> {{ record.performed_date[:10] }}
+                </div>
+
+                <div class="maintenance-meta">
+                    <strong>Mechanic:</strong> {{ record.performed_by }}
+                    {% if record.firefighter_name %}
+                    (Assisted by: {{ record.firefighter_name }})
+                    {% endif %}
+                </div>
+
+                {% if record.parts_used %}
+                <div class="parts-section">
+                    <strong>Parts Used:</strong>
+                    <p>{{ record.parts_used }}</p>
+                </div>
+                {% endif %}
+
+                {% if record.notes %}
+                <div class="notes-section">
+                    <strong>Work Notes:</strong>
+                    <p>{{ record.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-history">
+                <p>No maintenance history for this vehicle yet.</p>
+                <p>Log your first maintenance record using the button above!</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

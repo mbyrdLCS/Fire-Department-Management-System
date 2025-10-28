@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Log Maintenance - {{ vehicle.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Mobile-first maintenance form */
+        body {
+            font-size: 16px;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .mobile-header {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .mobile-header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 100px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .form-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a237e;
+            font-size: 16px;
+        }
+
+        .form-section input,
+        .form-section select,
+        .form-section textarea {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        .form-section textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+
+        .helper-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .submit-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .submit-button {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            display: block;
+            padding: 18px;
+            font-size: 20px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            min-height: 60px;
+        }
+
+        .submit-button:active {
+            transform: scale(0.98);
+        }
+
+        @media (min-width: 768px) {
+            .submit-section {
+                position: static;
+                box-shadow: none;
+                background: transparent;
+                padding: 0;
+            }
+
+            .container {
+                padding-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-header">
+        <a href="{{ url_for('maintenance_menu') }}" class="back-button">← Back</a>
+        <h1>Log Maintenance - {{ vehicle.name }}</h1>
+    </div>
+
+    <div class="container">
+        <form method="POST" action="{{ url_for('submit_maintenance') }}" id="maintenanceForm">
+            <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+
+            <!-- Work Type -->
+            <div class="form-section">
+                <label for="work_type" class="required">Type of Work</label>
+                <select name="work_type" id="work_type" required>
+                    <option value="">Select Work Type</option>
+                    <option value="Oil Change">Oil Change</option>
+                    <option value="Tire Rotation">Tire Rotation</option>
+                    <option value="Brake Service">Brake Service</option>
+                    <option value="Engine Repair">Engine Repair</option>
+                    <option value="Transmission Service">Transmission Service</option>
+                    <option value="Pump Test">Pump Test</option>
+                    <option value="Ladder Inspection">Ladder Inspection</option>
+                    <option value="Hose Testing">Hose Testing</option>
+                    <option value="Battery Replacement">Battery Replacement</option>
+                    <option value="Light Repair">Light Repair</option>
+                    <option value="Radio Repair">Radio Repair</option>
+                    <option value="General Inspection">General Inspection</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <!-- Performed By -->
+            <div class="form-section">
+                <label for="performed_by" class="required">Performed By (Mechanic Name)</label>
+                <input type="text" name="performed_by" id="performed_by" placeholder="Enter mechanic name" required>
+            </div>
+
+            <!-- Firefighter (Optional) -->
+            <div class="form-section">
+                <label for="firefighter_number">Firefighter Number (Optional)</label>
+                <select name="firefighter_number" id="firefighter_number">
+                    <option value="">Select Firefighter</option>
+                    {% for ff in firefighters %}
+                    <option value="{{ ff.fireman_number }}">{{ ff.full_name }} (#{{ ff.fireman_number }})</option>
+                    {% endfor %}
+                </select>
+                <div class="helper-text">Select if a firefighter assisted with the work</div>
+            </div>
+
+            <!-- Date -->
+            <div class="form-section">
+                <label for="performed_date" class="required">Date Performed</label>
+                <input type="date" name="performed_date" id="performed_date" required>
+            </div>
+
+            <!-- Cost -->
+            <div class="form-section">
+                <label for="cost">Cost ($)</label>
+                <input type="number" name="cost" id="cost" step="0.01" min="0" placeholder="0.00">
+                <div class="helper-text">Enter total cost for parts and labor</div>
+            </div>
+
+            <!-- Parts Used -->
+            <div class="form-section">
+                <label for="parts_used">Parts Used</label>
+                <textarea name="parts_used" id="parts_used" placeholder="List all parts replaced or used..."></textarea>
+            </div>
+
+            <!-- Work Notes -->
+            <div class="form-section">
+                <label for="notes">Work Notes</label>
+                <textarea name="notes" id="notes" placeholder="Detailed description of work performed, issues found, and any recommendations..."></textarea>
+                <div class="helper-text">Be as detailed as possible for future reference</div>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <button type="submit" class="submit-button">
+                    🔧 Save Maintenance Record
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Set today's date as default
+        document.getElementById('performed_date').valueAsDate = new Date();
+    </script>
+</body>
+</html>
