@@ -338,6 +338,23 @@ def init_database():
 
     print("✅ Created all indexes")
 
+    # Insert default activity categories
+    print("\n📋 Adding default activity categories...")
+    default_categories = [
+        ('Work night', None),
+        ('Training', None),
+        ('Board Meeting', None),
+        ('EMR Meeting', None),
+        ('Other', None)
+    ]
+
+    for category_name, default_hours in default_categories:
+        cursor.execute('''
+            INSERT OR IGNORE INTO activity_categories (name, default_hours)
+            VALUES (?, ?)
+        ''', (category_name, default_hours))
+        print(f"✅ Added category: {category_name}")
+
     conn.commit()
     conn.close()
 
@@ -345,6 +362,7 @@ def init_database():
     print(f"📁 Database file: {DATABASE_NAME}")
     print(f"📊 Total tables: 15")
     print(f"📈 Total indexes: {len(indexes)}")
+    print(f"📂 Default categories: {len(default_categories)}")
 
 if __name__ == '__main__':
     init_database()
