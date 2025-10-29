@@ -240,6 +240,92 @@
             margin-bottom: 10px;
         }
 
+        .signpresenter-promo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 14px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .signpresenter-promo h2 {
+            font-size: 28px;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .signpresenter-promo p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            opacity: 0.95;
+        }
+
+        .signpresenter-promo .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .signpresenter-promo .feature {
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .signpresenter-promo .feature strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .signpresenter-promo .cta-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .signpresenter-promo .btn {
+            padding: 14px 28px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: inline-block;
+        }
+
+        .signpresenter-promo .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+        }
+
+        .signpresenter-promo .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .signpresenter-promo .price {
+            background: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 18px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
         @media (max-width: 768px) {
             .summary-cards {
                 grid-template-columns: 1fr;
@@ -279,6 +365,48 @@
                 <div class="count">{{ alerts.low_inventory_station|length + alerts.low_inventory_vehicle|length }}</div>
                 <div class="label">Low Inventory Items</div>
             </div>
+        </div>
+
+        <!-- SignPresenter Promotion -->
+        <div class="signpresenter-promo">
+            <h2>📺 Display Live Updates on Any TV</h2>
+            <p>
+                Want to show this dashboard on a TV in your station? Use <strong>SignPresenter</strong> to display
+                live updates on any Fire TV, Android device, or smart TV. Perfect for keeping your team informed at a glance!
+            </p>
+
+            <div class="features">
+                <div class="feature">
+                    <strong>🚒 Real-Time Dashboard</strong>
+                    Display live alerts, inspections, and activity
+                </div>
+                <div class="feature">
+                    <strong>📱 Works on Fire TV</strong>
+                    Use any Fire Stick or Android device
+                </div>
+                <div class="feature">
+                    <strong>⚡ Auto-Refresh</strong>
+                    Always shows current data automatically
+                </div>
+                <div class="feature">
+                    <strong>💰 Affordable</strong>
+                    Only $10/month per device
+                </div>
+            </div>
+
+            <div class="cta-buttons">
+                <a href="{{ url_for('display') }}" class="btn" target="_blank">
+                    🖥️ View Display Page
+                </a>
+                <a href="https://www.signpresenter.com/" class="btn btn-secondary" target="_blank" rel="noopener">
+                    Get SignPresenter →
+                </a>
+                <a href="https://support.signpresenter.com/topics/showwebsite.html" class="btn btn-secondary" target="_blank" rel="noopener">
+                    📖 Setup Instructions
+                </a>
+            </div>
+
+            <div class="price">Only $10/month</div>
         </div>
 
         {% if alerts.total_count == 0 %}

@@ -113,7 +113,29 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 Visit `/display` for a real-time dashboard showing:
 - Currently active firefighters
-- Leaderboard sorted by total hours
+- Active alerts and warnings
+- Vehicles needing inspection
+- Recent activity feed
+- Hours leaderboard
+
+#### 📺 Display on TV with SignPresenter
+
+Want to show the live dashboard on a TV in your fire station? Use **[SignPresenter](https://www.signpresenter.com/)** to display real-time updates on any Fire TV, Android device, or smart TV!
+
+**Benefits:**
+- 🚒 **Real-time updates**: Auto-refreshes every 30 seconds
+- 📱 **Easy setup**: Works on Fire Stick, Android TV, or any Android device
+- ⚡ **Always on**: Perfect for station wall-mounted displays
+- 💰 **Affordable**: Only $10/month per device
+
+**Setup Instructions:**
+1. Visit [SignPresenter.com](https://www.signpresenter.com/) and sign up
+2. Install SignPresenter on your Fire TV/Android device
+3. Follow the [setup guide](https://support.signpresenter.com/topics/showwebsite.html) to add a website
+4. Enter your display URL: `https://your-site.pythonanywhere.com/display`
+5. Your live dashboard will now show on the TV!
+
+This service helps keep our system running and supports continued development. Thank you!
 
 ## Project Structure
 
