@@ -357,9 +357,8 @@
                         <label for="activity">Activity Type</label>
                         <select name="activity" id="activity" onchange="toggleOtherActivityInput()">
                             {% for category in categories %}
-                                <option value="{{ category }}">{{ category }}</option>
+                                <option value="{{ category }}" {% if category == 'Work night' %}selected{% endif %}>{{ category }}</option>
                             {% endfor %}
-                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="form-group" id="otherActivityGroup" style="display:none;">
