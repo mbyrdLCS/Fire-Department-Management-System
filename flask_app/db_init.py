@@ -7,11 +7,16 @@ import sqlite3
 import os
 from datetime import datetime
 
-DATABASE_NAME = 'fdms.db'
+# Get the absolute path to the database
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.path.join(BASE_DIR, 'database', 'fire_dept.db')
+DATABASE_NAME = DATABASE_PATH  # For backward compatibility
 
 def get_db_connection():
     """Create and return a database connection"""
-    conn = sqlite3.connect(DATABASE_NAME)
+    # Ensure database directory exists
+    os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
+    conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     # Enable foreign keys
     conn.execute('PRAGMA foreign_keys = ON')
