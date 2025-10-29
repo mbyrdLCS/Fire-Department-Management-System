@@ -93,6 +93,29 @@
                 </div>
 
             </div>
+
+            <!-- SignPresenter Quick Promo -->
+            <div style="margin-top: 20px; background: rgba(255,255,255,0.15); padding: 20px; border-radius: 12px; border-left: 4px solid #4CAF50;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3 style="color: #fff; margin: 0 0 8px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                            📺 Display Dashboard on TV
+                        </h3>
+                        <p style="color: rgba(255,255,255,0.9); margin: 0 0 10px 0; font-size: 14px;">
+                            Show live updates on any Fire TV or Android device with SignPresenter ($10/month)
+                        </p>
+                        <code style="background: rgba(0,0,0,0.3); color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 12px; display: inline-block;">{{ request.url_root }}display</code>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="{{ url_for('alerts_dashboard') }}" style="padding: 10px 20px; background: #fff; color: #1a237e; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; white-space: nowrap;">
+                            Learn More
+                        </a>
+                        <a href="https://www.signpresenter.com/" target="_blank" rel="noopener" style="padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; white-space: nowrap;">
+                            Get SignPresenter →
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
 
