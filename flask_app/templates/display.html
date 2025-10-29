@@ -45,15 +45,90 @@
             margin-bottom: 0.5rem;
         }
 
-        .display-grid {
+        /* Alert Banner Styles */
+        .alert-banner {
+            border-radius: 0.5rem;
+            padding: 1rem 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            min-height: 60px;
             display: flex;
-            flex: 1;
-            gap: 1rem;
-            height: calc(100vh - 100px);
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s ease;
         }
 
-        .active-section {
+        .alert-banner-content {
+            font-size: 1.8vw;
+            font-weight: bold;
+            color: white;
+        }
+
+        .alert-banner.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            animation: critical-pulse 2s infinite;
+        }
+
+        .alert-banner.warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            animation: warning-pulse 2s infinite;
+        }
+
+        .alert-banner.all-clear {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            animation: none;
+        }
+
+        @keyframes critical-pulse {
+            0% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+            50% { box-shadow: 0 4px 25px rgba(255,107,107,0.8); }
+            100% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+        }
+
+        @keyframes warning-pulse {
+            0% { box-shadow: 0 4px 15px rgba(255,152,0,0.4); }
+            50% { box-shadow: 0 4px 25px rgba(255,152,0,0.8); }
+            100% { box-shadow: 0 4px 15px rgba(255,152,0,0.4); }
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
             flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 3vw;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        .stat-label {
+            font-size: 1.2vw;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 0.5rem;
+        }
+
+        /* Main Display Grid */
+        .display-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 1rem;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .section {
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             padding: 1rem;
@@ -64,37 +139,40 @@
 
         .section-title {
             color: #ffeb3b;
-            font-size: 2vw;
+            font-size: 1.8vw;
             margin-bottom: 1rem;
             text-align: center;
+            font-weight: bold;
         }
 
+        /* Active Firefighters Grid */
         .active-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 0.75rem;
             overflow-y: auto;
             padding-right: 0.5rem;
         }
 
         .active-card {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid #4caf50;
             border-radius: 0.5rem;
             padding: 0.75rem;
-            animation: pulse 2s infinite;
         }
 
         .active-name {
-            font-size: 1.2vw;
+            font-size: 1.1vw;
             font-weight: bold;
             color: #fff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-bottom: 0.25rem;
         }
 
         .active-activity {
-            font-size: 1vw;
+            font-size: 0.9vw;
             color: #bbdefb;
             white-space: nowrap;
             overflow: hidden;
@@ -102,24 +180,56 @@
         }
 
         .active-time {
-            font-size: 0.9vw;
+            font-size: 0.8vw;
             color: #90caf9;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-top: 0.25rem;
         }
 
-        .leaderboard-section {
-            flex: 1;
-            background-color: rgba(255, 255, 255, 0.1);
+        /* Recent Activity Feed */
+        .activity-feed {
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .activity-item {
+            background-color: rgba(255, 255, 255, 0.05);
             border-radius: 0.5rem;
-            padding: 1rem;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid transparent;
         }
 
-        .leaderboard-table-container {
+        .activity-item.clock-in {
+            border-left-color: #4caf50;
+        }
+
+        .activity-item.clock-out {
+            border-left-color: #ff9800;
+        }
+
+        .activity-name {
+            font-size: 1vw;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-details {
+            font-size: 0.85vw;
+            color: #bbdefb;
+        }
+
+        .activity-time {
+            font-size: 0.75vw;
+            color: #90caf9;
+            margin-top: 0.25rem;
+        }
+
+        /* Leaderboard */
+        .leaderboard-container {
             overflow-y: auto;
             padding-right: 0.5rem;
         }
@@ -137,13 +247,13 @@
             padding: 0.5rem;
             text-align: left;
             color: #ffeb3b;
-            font-size: 1.5vw;
+            font-size: 1.3vw;
             z-index: 1;
         }
 
         .leaderboard-table td {
             padding: 0.75rem;
-            font-size: 1.3vw;
+            font-size: 1.1vw;
             background-color: rgba(255, 255, 255, 0.05);
         }
 
@@ -154,21 +264,16 @@
         .rank {
             font-weight: bold;
             color: #ffeb3b;
-            width: 15%;
+            width: 20%;
         }
 
         .hours {
             font-weight: bold;
             color: #4caf50;
-            width: 20%;
+            width: 25%;
         }
 
-        @keyframes pulse {
-            0% { background-color: rgba(255, 255, 255, 0.1); }
-            50% { background-color: rgba(255, 255, 255, 0.15); }
-            100% { background-color: rgba(255, 255, 255, 0.1); }
-        }
-
+        /* Scrollbar Styles */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -187,25 +292,22 @@
             background: rgba(255, 255, 255, 0.4);
         }
 
+        /* Responsive adjustments for large screens */
         @media (min-width: 1920px) {
             .header h1 { font-size: 48px; }
             .clock { font-size: 36px; }
-            .section-title { font-size: 40px; }
-            .active-name { font-size: 24px; }
-            .active-activity { font-size: 20px; }
-            .active-time { font-size: 18px; }
-            .leaderboard-table th { font-size: 32px; }
-            .leaderboard-table td { font-size: 28px; }
-            
-            .active-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            }
-        }
-
-        @media (min-width: 2560px) {
-            .active-grid {
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            }
+            .alert-banner-content { font-size: 36px; }
+            .stat-value { font-size: 60px; }
+            .stat-label { font-size: 24px; }
+            .section-title { font-size: 36px; }
+            .active-name { font-size: 22px; }
+            .active-activity { font-size: 18px; }
+            .active-time { font-size: 16px; }
+            .activity-name { font-size: 20px; }
+            .activity-details { font-size: 17px; }
+            .activity-time { font-size: 15px; }
+            .leaderboard-table th { font-size: 26px; }
+            .leaderboard-table td { font-size: 22px; }
         }
 
         .truncate {
@@ -215,69 +317,61 @@
             max-width: 100%;
         }
 
-        .inspection-banner {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            border-radius: 0.5rem;
-            padding: 1rem 2rem;
-            margin-bottom: 1rem;
+        .no-data {
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: banner-pulse 2s infinite;
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .inspection-banner-content {
-            font-size: 1.8vw;
-            font-weight: bold;
-            color: white;
-        }
-
-        .inspection-banner.all-clear {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            animation: none;
-        }
-
-        @keyframes banner-pulse {
-            0% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
-            50% { box-shadow: 0 4px 25px rgba(255,107,107,0.8); }
-            100% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
-        }
-
-        @media (min-width: 1920px) {
-            .inspection-banner-content { font-size: 36px; }
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2vw;
+            padding: 2rem;
         }
     </style>
 </head>
 <body>
     <div class="display-container">
+        <!-- Header -->
         <div class="header">
             <h1>Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
         </div>
 
-        <!-- Vehicle Inspection Banner -->
-        {% if vehicles_needing_inspection %}
-        <div class="inspection-banner" id="inspectionBanner">
-            <div class="inspection-banner-content" id="inspectionMessage">
-                🚒 {{ vehicles_needing_inspection[0].name }} ({{ vehicles_needing_inspection[0].code }}) - NEEDS INSPECTION
+        <!-- Rotating Alert Banner -->
+        {% if alerts.total_count > 0 %}
+        <div class="alert-banner" id="alertBanner">
+            <div class="alert-banner-content" id="alertMessage">
+                Loading alerts...
             </div>
         </div>
         {% else %}
-        <div class="inspection-banner all-clear">
-            <div class="inspection-banner-content">
-                ✅ ALL VEHICLES INSPECTED - GOOD TO GO!
+        <div class="alert-banner all-clear">
+            <div class="alert-banner-content">
+                ✅ ALL SYSTEMS NORMAL - NO ACTIVE ALERTS
             </div>
         </div>
         {% endif %}
 
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">{{ active_firefighters|length }}</div>
+                <div class="stat-label">ON DUTY NOW</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ alerts.total_count }}</div>
+                <div class="stat-label">ACTIVE ALERTS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ alerts.inspections_overdue|length }}</div>
+                <div class="stat-label">INSPECTIONS DUE</div>
+            </div>
+        </div>
+
+        <!-- Main Display Grid -->
         <div class="display-grid">
-            <div class="active-section">
-                <h2 class="section-title">Currently Active</h2>
+            <!-- Currently Active Firefighters -->
+            <div class="section">
+                <h2 class="section-title">🔥 Currently On Duty</h2>
                 <div class="active-grid">
-                    {% for firefighter in active_firefighters %}
+                    {% if active_firefighters %}
+                        {% for firefighter in active_firefighters %}
                         <div class="active-card">
                             <div class="active-name truncate">{{ firefighter.name }}</div>
                             <div class="active-activity truncate">{{ firefighter.activity }}</div>
@@ -285,17 +379,50 @@
                                 Since: {{ firefighter.time_in|format_log_time }}
                             </div>
                         </div>
+                        {% endfor %}
                     {% else %}
-                        <div class="active-card">
-                            <div class="active-name">No Active Firefighters</div>
-                        </div>
-                    {% endfor %}
+                        <div class="no-data">No firefighters on duty</div>
+                    {% endif %}
                 </div>
             </div>
 
-            <div class="leaderboard-section">
-                <h2 class="section-title">Hours Leaderboard</h2>
-                <div class="leaderboard-table-container">
+            <!-- Recent Activity Feed -->
+            <div class="section">
+                <h2 class="section-title">📋 Recent Activity</h2>
+                <div class="activity-feed">
+                    {% if recent_activity %}
+                        {% for activity in recent_activity %}
+                        <div class="activity-item {{ 'clock-in' if activity.action_type == 'clocked_in' else 'clock-out' }}">
+                            <div class="activity-name">
+                                {% if activity.action_type == 'clocked_in' %}
+                                    ▶️ {{ activity.name }}
+                                {% else %}
+                                    ⏹️ {{ activity.name }}
+                                {% endif %}
+                            </div>
+                            <div class="activity-details">
+                                {{ activity.activity }}
+                            </div>
+                            <div class="activity-time">
+                                {% if activity.action_type == 'clocked_in' %}
+                                    In: {{ activity.time_in|format_log_time }}
+                                {% else %}
+                                    Out: {{ activity.time_out|format_log_time }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data">No recent activity</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hours Leaderboard -->
+            <div class="section">
+                <h2 class="section-title">🏆 Hours Leaders</h2>
+                <div class="leaderboard-container">
+                    {% if leaderboard %}
                     <table class="leaderboard-table">
                         <thead>
                             <tr>
@@ -305,21 +432,25 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for firefighter in leaderboard %}
+                            {% for firefighter in leaderboard[:15] %}
                                 <tr>
                                     <td class="rank">#{{ loop.index }}</td>
-                                    <td>{{ firefighter.name }}</td>
+                                    <td class="truncate">{{ firefighter.name }}</td>
                                     <td class="hours">{{ firefighter.hours|round(1) }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% else %}
+                        <div class="no-data">No data available</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Update clock
         function updateClock() {
             const now = new Date();
             const clockElement = document.getElementById('clock');
@@ -334,29 +465,68 @@
             });
         }
 
-        // Rotate through vehicles needing inspection
-        const vehiclesNeedingInspection = {{ vehicles_needing_inspection|tojson|safe }};
-        let currentVehicleIndex = 0;
+        // Build alerts array from all alert types
+        const allAlerts = [];
 
-        function rotateInspectionMessage() {
-            if (vehiclesNeedingInspection && vehiclesNeedingInspection.length > 1) {
-                currentVehicleIndex = (currentVehicleIndex + 1) % vehiclesNeedingInspection.length;
-                const vehicle = vehiclesNeedingInspection[currentVehicleIndex];
-                const messageElement = document.getElementById('inspectionMessage');
-                if (messageElement) {
-                    messageElement.textContent = `🚒 ${vehicle.name} (${vehicle.code}) - NEEDS INSPECTION`;
+        {% if alerts.total_count > 0 %}
+            // Add inspection alerts
+            {% for vehicle in alerts.inspections_overdue %}
+            allAlerts.push({
+                type: 'critical',
+                message: '🚒 INSPECTION OVERDUE: {{ vehicle.name }} ({{ vehicle.code }}) - {{ vehicle.days_since_inspection or "NEVER" }} days'
+            });
+            {% endfor %}
+
+            // Add low station inventory alerts
+            {% for item in alerts.low_inventory_station %}
+            allAlerts.push({
+                type: 'warning',
+                message: '📦 LOW STATION STOCK: {{ item.item_name }} at {{ item.station_name }} - Only {{ item.quantity }} left (min: {{ item.min_quantity }})'
+            });
+            {% endfor %}
+
+            // Add low vehicle inventory alerts
+            {% for item in alerts.low_inventory_vehicle %}
+            allAlerts.push({
+                type: 'warning',
+                message: '🚒 LOW VEHICLE EQUIPMENT: {{ item.item_name }} on {{ item.vehicle_name }} - Only {{ item.quantity }} left (min: {{ item.min_quantity }})'
+            });
+            {% endfor %}
+        {% endif %}
+
+        // Rotate through all alerts
+        let currentAlertIndex = 0;
+
+        function rotateAlerts() {
+            if (allAlerts.length > 0) {
+                const alert = allAlerts[currentAlertIndex];
+                const bannerElement = document.getElementById('alertBanner');
+                const messageElement = document.getElementById('alertMessage');
+
+                if (bannerElement && messageElement) {
+                    // Update message
+                    messageElement.textContent = alert.message;
+
+                    // Update banner class for styling
+                    bannerElement.className = 'alert-banner ' + alert.type;
                 }
+
+                // Move to next alert
+                currentAlertIndex = (currentAlertIndex + 1) % allAlerts.length;
             }
         }
 
+        // Initialize clock
         updateClock();
         setInterval(updateClock, 1000);
 
-        // Rotate inspection message every 5 seconds if there are multiple vehicles
-        if (vehiclesNeedingInspection && vehiclesNeedingInspection.length > 1) {
-            setInterval(rotateInspectionMessage, 5000);
+        // Initialize alert rotation
+        if (allAlerts.length > 0) {
+            rotateAlerts(); // Show first alert immediately
+            setInterval(rotateAlerts, 5000); // Rotate every 5 seconds
         }
 
+        // Auto-refresh page every 30 seconds to get fresh data
         setTimeout(function() {
             window.location.reload();
         }, 30000);

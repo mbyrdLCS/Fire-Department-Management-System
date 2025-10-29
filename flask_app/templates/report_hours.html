@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hours Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #667eea; padding-bottom: 20px; }
+        .filters { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: flex; gap: 15px; flex-wrap: wrap; align-items: end; }
+        .filter-group { flex: 1; min-width: 200px; }
+        .filter-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #333; }
+        .filter-group input, .filter-group select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        .actions { margin-bottom: 20px; display: flex; gap: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #1e3c72; color: white; padding: 12px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        tr:hover { background: #f5f5f5; }
+        .total-row { font-weight: bold; background: #e3f2fd; }
+        @media print { .filters, .actions, .btn { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏱️ Firefighter Hours Report</h1>
+            <p>Detailed time log{% if start_date %} from {{ start_date }}{% endif %}{% if end_date %} to {{ end_date }}{% endif %}</p>
+        </div>
+
+        <form method="POST" class="filters">
+            <div class="filter-group">
+                <label>Start Date:</label>
+                <input type="date" name="start_date" value="{{ start_date or '' }}">
+            </div>
+            <div class="filter-group">
+                <label>End Date:</label>
+                <input type="date" name="end_date" value="{{ end_date or '' }}">
+            </div>
+            <div class="filter-group">
+                <label>Firefighter:</label>
+                <select name="firefighter_id">
+                    <option value="">All Firefighters</option>
+                    {% for ff in firefighters %}
+                    <option value="{{ ff.id }}" {% if ff.id == selected_firefighter %}selected{% endif %}>{{ ff.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Generate Report</button>
+        </form>
+
+        <div class="actions">
+            <a href="{{ url_for('hours_report', start_date=start_date, end_date=end_date, firefighter_id=selected_firefighter, export='excel') }}" class="btn btn-success">📥 Export to Excel</a>
+            <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
+            <a href="{{ url_for('reports_menu') }}" class="btn">← Back</a>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>FF #</th>
+                    <th>Name</th>
+                    <th>Activity</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Hours</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in report.data %}
+                <tr>
+                    <td>{{ entry.date }}</td>
+                    <td>{{ entry.firefighter_number }}</td>
+                    <td>{{ entry.firefighter_name }}</td>
+                    <td>{{ entry.activity }}</td>
+                    <td>{{ entry.time_in|format_log_time }}</td>
+                    <td>{{ entry.time_out|format_log_time if entry.time_out else 'Active' }}</td>
+                    <td>{{ entry.hours }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="6" style="text-align: right;">TOTAL HOURS:</td>
+                    <td>{{ report.total_hours }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

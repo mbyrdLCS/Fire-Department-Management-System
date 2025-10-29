@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - SVVFD</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 14px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .report-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+        }
+
+        .report-card .icon {
+            font-size: 56px;
+            margin-bottom: 15px;
+        }
+
+        .report-card .title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .report-card .description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
+
+        <div class="header">
+            <h1>📊 Reports Center</h1>
+            <div class="subtitle">Generate and export detailed reports</div>
+        </div>
+
+        <div class="reports-grid">
+            <a href="{{ url_for('hours_report') }}" class="report-card">
+                <div class="icon">⏱️</div>
+                <div class="title">Firefighter Hours</div>
+                <div class="description">Detailed hours log with date range and firefighter filters. Export to Excel.</div>
+            </a>
+
+            <a href="{{ url_for('firefighter_summary_report') }}" class="report-card">
+                <div class="icon">👥</div>
+                <div class="title">Firefighter Summary</div>
+                <div class="description">Hours summary by firefighter with days worked and session counts.</div>
+            </a>
+
+            <a href="{{ url_for('activity_report') }}" class="report-card">
+                <div class="icon">📋</div>
+                <div class="title">Activity Breakdown</div>
+                <div class="description">Hours breakdown by activity type with unique firefighter counts.</div>
+            </a>
+
+            <a href="{{ url_for('maintenance_costs_report') }}" class="report-card">
+                <div class="icon">💰</div>
+                <div class="title">Maintenance Costs</div>
+                <div class="description">Work order costs by vehicle with labor and parts breakdown.</div>
+            </a>
+
+            <a href="{{ url_for('inventory_value_report') }}" class="report-card">
+                <div class="icon">📦</div>
+                <div class="title">Inventory Value</div>
+                <div class="description">Total inventory value by location with cost breakdowns.</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

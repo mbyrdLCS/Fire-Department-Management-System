@@ -3,7 +3,7 @@ Fire Department Management System - SQLite Version
 Clean rewrite using SQLite database instead of JSON files
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, make_response
 from datetime import datetime, timedelta
 import pytz
 from io import StringIO, BytesIO
@@ -13,6 +13,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 import db_helpers
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -536,17 +539,21 @@ def logout():
 
 @app.route('/display')
 def display():
-    """Display dashboard - active firefighters and leaderboard"""
+    """Display dashboard - active firefighters, alerts, and recent activity"""
     try:
         active_firefighters = db_helpers.get_active_firefighters()
         leaderboard = db_helpers.get_leaderboard()
         vehicles_needing_inspection = db_helpers.get_vehicles_needing_inspection()
+        alerts = db_helpers.get_all_alerts()
+        recent_activity = db_helpers.get_recent_activity(limit=15)
 
         logger.info("Display page loaded successfully")
         return render_template('display.html',
                              active_firefighters=active_firefighters,
                              leaderboard=leaderboard,
-                             vehicles_needing_inspection=vehicles_needing_inspection)
+                             vehicles_needing_inspection=vehicles_needing_inspection,
+                             alerts=alerts,
+                             recent_activity=recent_activity)
 
     except Exception as e:
         logger.error(f"Display page error: {str(e)}")
@@ -1141,6 +1148,34 @@ def create_station():
         flash('An error occurred while creating the station.')
         return redirect(url_for('manage_stations'))
 
+# ========== DASHBOARD ROUTE ==========
+
+@app.route('/dashboard')
+def dashboard():
+    """Main dashboard with statistics and charts"""
+    try:
+        stats = db_helpers.get_dashboard_stats()
+        hours_by_day = db_helpers.get_hours_by_day(30)
+        activity_breakdown = db_helpers.get_activity_breakdown()
+        vehicle_status = db_helpers.get_vehicle_status_summary()
+        top_performers = db_helpers.get_top_performers(10)
+        alerts = db_helpers.get_all_alerts()
+        recent_activity = db_helpers.get_recent_activity(10)
+
+        return render_template('dashboard.html',
+                             stats=stats,
+                             hours_by_day=hours_by_day,
+                             activity_breakdown=activity_breakdown,
+                             vehicle_status=vehicle_status,
+                             top_performers=top_performers,
+                             alerts=alerts,
+                             recent_activity=recent_activity)
+
+    except Exception as e:
+        logger.error(f"Dashboard error: {str(e)}")
+        flash('An error occurred while loading the dashboard.')
+        return redirect(url_for('index'))
+
 # ========== ALERTS DASHBOARD ROUTE ==========
 
 @app.route('/alerts')
@@ -1148,6 +1183,355 @@ def alerts_dashboard():
     """Alerts dashboard showing all warnings and notifications"""
     alerts = db_helpers.get_all_alerts()
     return render_template('alerts_dashboard.html', alerts=alerts)
+
+# ========== REPORTS ROUTES ==========
+
+@app.route('/reports')
+def reports_menu():
+    """Reports menu page"""
+    return render_template('reports_menu.html')
+
+@app.route('/reports/hours', methods=['GET', 'POST'])
+def hours_report():
+    """Firefighter hours report"""
+    try:
+        start_date = request.args.get('start_date') or request.form.get('start_date')
+        end_date = request.args.get('end_date') or request.form.get('end_date')
+        firefighter_id = request.args.get('firefighter_id') or request.form.get('firefighter_id')
+        export_format = request.args.get('export')
+
+        if firefighter_id:
+            firefighter_id = int(firefighter_id) if firefighter_id else None
+
+        report_data = db_helpers.get_hours_report(start_date, end_date, firefighter_id)
+
+        # Export to Excel
+        if export_format == 'excel':
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Hours Report"
+
+            # Header styling
+            header_fill = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+
+            # Headers
+            headers = ['Date', 'Firefighter #', 'Name', 'Activity', 'Time In', 'Time Out', 'Hours']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+            # Data rows
+            for row_num, entry in enumerate(report_data['data'], 2):
+                ws.cell(row=row_num, column=1, value=entry['date'])
+                ws.cell(row=row_num, column=2, value=entry['firefighter_number'])
+                ws.cell(row=row_num, column=3, value=entry['firefighter_name'])
+                ws.cell(row=row_num, column=4, value=entry['activity'])
+                ws.cell(row=row_num, column=5, value=entry['time_in'])
+                ws.cell(row=row_num, column=6, value=entry['time_out'] or 'Active')
+                ws.cell(row=row_num, column=7, value=entry['hours'])
+
+            # Total row
+            total_row = len(report_data['data']) + 2
+            ws.cell(row=total_row, column=6, value='TOTAL:').font = Font(bold=True)
+            ws.cell(row=total_row, column=7, value=report_data['total_hours']).font = Font(bold=True)
+
+            # Adjust column widths
+            for col_num in range(1, 8):
+                ws.column_dimensions[get_column_letter(col_num)].width = 18
+
+            # Save to BytesIO
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            filename = f"hours_report_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return send_file(output, download_name=filename, as_attachment=True,
+                           mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+        # Get all firefighters for filter dropdown
+        firefighters = db_helpers.get_all_firefighters()
+
+        return render_template('report_hours.html',
+                             report=report_data,
+                             firefighters=firefighters,
+                             start_date=start_date,
+                             end_date=end_date,
+                             selected_firefighter=firefighter_id)
+
+    except Exception as e:
+        logger.error(f"Hours report error: {str(e)}")
+        flash('An error occurred while generating the report.')
+        return redirect(url_for('reports_menu'))
+
+@app.route('/reports/firefighter-summary', methods=['GET', 'POST'])
+def firefighter_summary_report():
+    """Firefighter summary report"""
+    try:
+        start_date = request.args.get('start_date') or request.form.get('start_date')
+        end_date = request.args.get('end_date') or request.form.get('end_date')
+        export_format = request.args.get('export')
+
+        report_data = db_helpers.get_firefighter_summary_report(start_date, end_date)
+
+        # Export to Excel
+        if export_format == 'excel':
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Firefighter Summary"
+
+            header_fill = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+
+            headers = ['Firefighter #', 'Name', 'Days Worked', 'Sessions', 'Total Hours']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for row_num, entry in enumerate(report_data['data'], 2):
+                ws.cell(row=row_num, column=1, value=entry['firefighter_number'])
+                ws.cell(row=row_num, column=2, value=entry['firefighter_name'])
+                ws.cell(row=row_num, column=3, value=entry['days_worked'])
+                ws.cell(row=row_num, column=4, value=entry['sessions'])
+                ws.cell(row=row_num, column=5, value=entry['total_hours'])
+
+            total_row = len(report_data['data']) + 2
+            ws.cell(row=total_row, column=4, value='TOTAL:').font = Font(bold=True)
+            ws.cell(row=total_row, column=5, value=report_data['total_hours']).font = Font(bold=True)
+
+            for col_num in range(1, 6):
+                ws.column_dimensions[get_column_letter(col_num)].width = 18
+
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            filename = f"firefighter_summary_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return send_file(output, download_name=filename, as_attachment=True,
+                           mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+        return render_template('report_firefighter_summary.html',
+                             report=report_data,
+                             start_date=start_date,
+                             end_date=end_date)
+
+    except Exception as e:
+        logger.error(f"Firefighter summary report error: {str(e)}")
+        flash('An error occurred while generating the report.')
+        return redirect(url_for('reports_menu'))
+
+@app.route('/reports/activity', methods=['GET', 'POST'])
+def activity_report():
+    """Activity breakdown report"""
+    try:
+        start_date = request.args.get('start_date') or request.form.get('start_date')
+        end_date = request.args.get('end_date') or request.form.get('end_date')
+        export_format = request.args.get('export')
+
+        report_data = db_helpers.get_activity_report(start_date, end_date)
+
+        # Export to Excel
+        if export_format == 'excel':
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Activity Report"
+
+            header_fill = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+
+            headers = ['Activity Type', 'Sessions', 'Unique Firefighters', 'Total Hours']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for row_num, entry in enumerate(report_data['data'], 2):
+                ws.cell(row=row_num, column=1, value=entry['activity'])
+                ws.cell(row=row_num, column=2, value=entry['sessions'])
+                ws.cell(row=row_num, column=3, value=entry['unique_firefighters'])
+                ws.cell(row=row_num, column=4, value=entry['total_hours'])
+
+            total_row = len(report_data['data']) + 2
+            ws.cell(row=total_row, column=3, value='TOTAL:').font = Font(bold=True)
+            ws.cell(row=total_row, column=4, value=report_data['total_hours']).font = Font(bold=True)
+
+            for col_num in range(1, 5):
+                ws.column_dimensions[get_column_letter(col_num)].width = 22
+
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            filename = f"activity_report_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return send_file(output, download_name=filename, as_attachment=True,
+                           mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+        return render_template('report_activity.html',
+                             report=report_data,
+                             start_date=start_date,
+                             end_date=end_date)
+
+    except Exception as e:
+        logger.error(f"Activity report error: {str(e)}")
+        flash('An error occurred while generating the report.')
+        return redirect(url_for('reports_menu'))
+
+@app.route('/reports/maintenance-costs', methods=['GET', 'POST'])
+def maintenance_costs_report():
+    """Maintenance costs report"""
+    try:
+        start_date = request.args.get('start_date') or request.form.get('start_date')
+        end_date = request.args.get('end_date') or request.form.get('end_date')
+        vehicle_id = request.args.get('vehicle_id') or request.form.get('vehicle_id')
+        export_format = request.args.get('export')
+
+        if vehicle_id:
+            vehicle_id = int(vehicle_id) if vehicle_id else None
+
+        report_data = db_helpers.get_maintenance_cost_report(start_date, end_date, vehicle_id)
+
+        # Export to Excel
+        if export_format == 'excel':
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Maintenance Costs"
+
+            header_fill = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+
+            headers = ['Date', 'Vehicle', 'WO #', 'Title', 'Status', 'Priority', 'Labor Cost', 'Parts Cost', 'Total Cost']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for row_num, entry in enumerate(report_data['data'], 2):
+                ws.cell(row=row_num, column=1, value=entry['reported_date'])
+                ws.cell(row=row_num, column=2, value=f"{entry['vehicle_name']} ({entry['vehicle_code']})")
+                ws.cell(row=row_num, column=3, value=entry['work_order_id'])
+                ws.cell(row=row_num, column=4, value=entry['title'])
+                ws.cell(row=row_num, column=5, value=entry['status'])
+                ws.cell(row=row_num, column=6, value=entry['priority'])
+                ws.cell(row=row_num, column=7, value=f"${entry['labor_cost']:.2f}")
+                ws.cell(row=row_num, column=8, value=f"${entry['parts_cost']:.2f}")
+                ws.cell(row=row_num, column=9, value=f"${entry['total_cost']:.2f}")
+
+            total_row = len(report_data['data']) + 2
+            ws.cell(row=total_row, column=6, value='TOTALS:').font = Font(bold=True)
+            ws.cell(row=total_row, column=7, value=f"${report_data['total_labor_cost']:.2f}").font = Font(bold=True)
+            ws.cell(row=total_row, column=8, value=f"${report_data['total_parts_cost']:.2f}").font = Font(bold=True)
+            ws.cell(row=total_row, column=9, value=f"${report_data['total_cost']:.2f}").font = Font(bold=True)
+
+            for col_num in range(1, 10):
+                ws.column_dimensions[get_column_letter(col_num)].width = 16
+
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            filename = f"maintenance_costs_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return send_file(output, download_name=filename, as_attachment=True,
+                           mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+        vehicles = db_helpers.get_all_vehicles()
+
+        return render_template('report_maintenance_costs.html',
+                             report=report_data,
+                             vehicles=vehicles,
+                             start_date=start_date,
+                             end_date=end_date,
+                             selected_vehicle=vehicle_id)
+
+    except Exception as e:
+        logger.error(f"Maintenance costs report error: {str(e)}")
+        flash('An error occurred while generating the report.')
+        return redirect(url_for('reports_menu'))
+
+@app.route('/reports/inventory-value', methods=['GET'])
+def inventory_value_report():
+    """Inventory value report"""
+    try:
+        export_format = request.args.get('export')
+
+        report_data = db_helpers.get_inventory_value_report()
+
+        # Export to Excel
+        if export_format == 'excel':
+            wb = Workbook()
+
+            # Station Inventory Sheet
+            ws1 = wb.active
+            ws1.title = "Station Inventory"
+
+            header_fill = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+
+            headers = ['Location', 'Item Name', 'Category', 'Quantity', 'Cost/Unit', 'Total Value']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws1.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for row_num, entry in enumerate(report_data['station_inventory'], 2):
+                ws1.cell(row=row_num, column=1, value=entry['location'])
+                ws1.cell(row=row_num, column=2, value=entry['item_name'])
+                ws1.cell(row=row_num, column=3, value=entry['category'])
+                ws1.cell(row=row_num, column=4, value=entry['quantity'])
+                ws1.cell(row=row_num, column=5, value=f"${entry['cost_per_unit']:.2f}")
+                ws1.cell(row=row_num, column=6, value=f"${entry['total_value']:.2f}")
+
+            total_row = len(report_data['station_inventory']) + 2
+            ws1.cell(row=total_row, column=5, value='TOTAL:').font = Font(bold=True)
+            ws1.cell(row=total_row, column=6, value=f"${report_data['station_total']:.2f}").font = Font(bold=True)
+
+            for col_num in range(1, 7):
+                ws1.column_dimensions[get_column_letter(col_num)].width = 18
+
+            # Vehicle Inventory Sheet
+            ws2 = wb.create_sheet(title="Vehicle Inventory")
+
+            for col_num, header in enumerate(headers, 1):
+                cell = ws2.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for row_num, entry in enumerate(report_data['vehicle_inventory'], 2):
+                ws2.cell(row=row_num, column=1, value=entry['location'])
+                ws2.cell(row=row_num, column=2, value=entry['item_name'])
+                ws2.cell(row=row_num, column=3, value=entry['category'])
+                ws2.cell(row=row_num, column=4, value=entry['quantity'])
+                ws2.cell(row=row_num, column=5, value=f"${entry['cost_per_unit']:.2f}")
+                ws2.cell(row=row_num, column=6, value=f"${entry['total_value']:.2f}")
+
+            total_row = len(report_data['vehicle_inventory']) + 2
+            ws2.cell(row=total_row, column=5, value='TOTAL:').font = Font(bold=True)
+            ws2.cell(row=total_row, column=6, value=f"${report_data['vehicle_total']:.2f}").font = Font(bold=True)
+
+            for col_num in range(1, 7):
+                ws2.column_dimensions[get_column_letter(col_num)].width = 18
+
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            filename = f"inventory_value_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return send_file(output, download_name=filename, as_attachment=True,
+                           mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+        return render_template('report_inventory_value.html', report=report_data)
+
+    except Exception as e:
+        logger.error(f"Inventory value report error: {str(e)}")
+        flash('An error occurred while generating the report.')
+        return redirect(url_for('reports_menu'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

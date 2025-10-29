@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Maintenance Costs Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #667eea; padding-bottom: 20px; }
+        .filters { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: flex; gap: 15px; flex-wrap: wrap; align-items: end; }
+        .filter-group { flex: 1; min-width: 180px; }
+        .filter-group label { display: block; font-weight: 600; margin-bottom: 5px; }
+        .filter-group input, .filter-group select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        .actions { margin-bottom: 20px; display: flex; gap: 10px; }
+        .summary { display: flex; gap: 20px; margin-bottom: 25px; }
+        .summary-card { flex: 1; background: #e3f2fd; padding: 20px; border-radius: 8px; text-align: center; }
+        .summary-card .value { font-size: 28px; font-weight: bold; color: #1e3c72; }
+        .summary-card .label { font-size: 14px; color: #666; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #1e3c72; color: white; padding: 12px 8px; text-align: left; }
+        td { padding: 10px 8px; border-bottom: 1px solid #ddd; }
+        tr:hover { background: #f5f5f5; }
+        .total-row { font-weight: bold; background: #e3f2fd; }
+        @media print { .filters, .actions { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Maintenance Costs Report</h1>
+            <p>Work order costs{% if start_date %} from {{ start_date }}{% endif %}{% if end_date %} to {{ end_date }}{% endif %}</p>
+        </div>
+
+        <form method="POST" class="filters">
+            <div class="filter-group">
+                <label>Start Date:</label>
+                <input type="date" name="start_date" value="{{ start_date or '' }}">
+            </div>
+            <div class="filter-group">
+                <label>End Date:</label>
+                <input type="date" name="end_date" value="{{ end_date or '' }}">
+            </div>
+            <div class="filter-group">
+                <label>Vehicle:</label>
+                <select name="vehicle_id">
+                    <option value="">All Vehicles</option>
+                    {% for v in vehicles %}
+                    <option value="{{ v.id }}" {% if v.id == selected_vehicle %}selected{% endif %}>{{ v.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Generate Report</button>
+        </form>
+
+        <div class="summary">
+            <div class="summary-card">
+                <div class="value">${{ report.total_labor_cost }}</div>
+                <div class="label">Total Labor</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${{ report.total_parts_cost }}</div>
+                <div class="label">Total Parts</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${{ report.total_cost }}</div>
+                <div class="label">Total Cost</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('maintenance_costs_report', start_date=start_date, end_date=end_date, vehicle_id=selected_vehicle, export='excel') }}" class="btn btn-success">📥 Export to Excel</a>
+            <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
+            <a href="{{ url_for('reports_menu') }}" class="btn">← Back</a>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Vehicle</th>
+                    <th>WO #</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Labor</th>
+                    <th>Parts</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in report.data %}
+                <tr>
+                    <td>{{ entry.reported_date }}</td>
+                    <td>{{ entry.vehicle_name }}</td>
+                    <td>{{ entry.work_order_id }}</td>
+                    <td>{{ entry.title }}</td>
+                    <td>{{ entry.status }}</td>
+                    <td>{{ entry.priority }}</td>
+                    <td>${{ entry.labor_cost }}</td>
+                    <td>${{ entry.parts_cost }}</td>
+                    <td><strong>${{ entry.total_cost }}</strong></td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="6" style="text-align: right;">TOTALS:</td>
+                    <td>${{ report.total_labor_cost }}</td>
+                    <td>${{ report.total_parts_cost }}</td>
+                    <td><strong>${{ report.total_cost }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

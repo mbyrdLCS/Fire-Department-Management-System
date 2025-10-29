@@ -439,6 +439,47 @@ def get_leaderboard():
     conn.close()
     return leaderboard
 
+def get_recent_activity(limit=10):
+    """Get recent clock in/out activity for display board"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            f.fireman_number,
+            f.full_name,
+            ac.name as activity,
+            tl.time_in,
+            tl.time_out,
+            CASE
+                WHEN tl.time_out IS NULL THEN 'clocked_in'
+                ELSE 'clocked_out'
+            END as action_type
+        FROM time_logs tl
+        JOIN firefighters f ON tl.firefighter_id = f.id
+        JOIN activity_categories ac ON tl.category_id = ac.id
+        ORDER BY
+            CASE
+                WHEN tl.time_out IS NULL THEN tl.time_in
+                ELSE tl.time_out
+            END DESC
+        LIMIT ?
+    ''', (limit,))
+
+    recent = []
+    for row in cursor.fetchall():
+        recent.append({
+            'number': row[0],
+            'name': row[1],
+            'activity': row[2],
+            'time_in': row[3],
+            'time_out': row[4],
+            'action_type': row[5]
+        })
+
+    conn.close()
+    return recent
+
 # ========== VEHICLE FUNCTIONS ==========
 
 def get_all_vehicles():
@@ -1220,3 +1261,571 @@ def get_all_alerts():
     )
 
     return alerts
+
+# ========== DASHBOARD STATISTICS ==========
+
+def get_dashboard_stats():
+    """Get overall dashboard statistics"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    stats = {}
+
+    # Total firefighters
+    cursor.execute('SELECT COUNT(*) FROM firefighters')
+    stats['total_firefighters'] = cursor.fetchone()[0]
+
+    # Currently active
+    cursor.execute('SELECT COUNT(*) FROM time_logs WHERE time_out IS NULL')
+    stats['active_now'] = cursor.fetchone()[0]
+
+    # Total hours this month
+    cursor.execute('''
+        SELECT COALESCE(SUM(
+            CASE
+                WHEN time_out IS NULL THEN
+                    (julianday('now') - julianday(time_in)) * 24
+                ELSE
+                    (julianday(time_out) - julianday(time_in)) * 24
+            END
+        ), 0)
+        FROM time_logs
+        WHERE strftime('%Y-%m', time_in) = strftime('%Y-%m', 'now')
+    ''')
+    stats['hours_this_month'] = round(cursor.fetchone()[0], 1)
+
+    # Total hours all time
+    cursor.execute('SELECT COALESCE(SUM(total_hours), 0) FROM firefighters')
+    stats['total_hours_all_time'] = round(cursor.fetchone()[0], 1)
+
+    # Total vehicles
+    cursor.execute("SELECT COUNT(*) FROM vehicles WHERE status = 'active'")
+    stats['total_vehicles'] = cursor.fetchone()[0]
+
+    # Vehicles needing inspection
+    cursor.execute('''
+        SELECT COUNT(*) FROM vehicles
+        WHERE status = 'active' AND (
+            last_inspection_date IS NULL OR
+            julianday('now') - julianday(last_inspection_date) > 6
+        )
+    ''')
+    stats['vehicles_needing_inspection'] = cursor.fetchone()[0]
+
+    # Total inventory items
+    cursor.execute('SELECT COUNT(*) FROM inventory_items')
+    stats['total_inventory_items'] = cursor.fetchone()[0]
+
+    # Low inventory count
+    cursor.execute('''
+        SELECT COUNT(*) FROM (
+            SELECT 1 FROM station_inventory si
+            JOIN inventory_items ii ON si.item_id = ii.id
+            WHERE ii.min_quantity > 0 AND si.quantity < ii.min_quantity
+            UNION ALL
+            SELECT 1 FROM vehicle_inventory vi
+            JOIN inventory_items ii ON vi.item_id = ii.id
+            WHERE ii.min_quantity > 0 AND vi.quantity < ii.min_quantity
+        )
+    ''')
+    stats['low_inventory_count'] = cursor.fetchone()[0]
+
+    # Open maintenance work orders
+    cursor.execute("SELECT COUNT(*) FROM maintenance_work_orders WHERE status IN ('open', 'in_progress')")
+    stats['open_work_orders'] = cursor.fetchone()[0]
+
+    # Total alerts
+    stats['total_alerts'] = stats['vehicles_needing_inspection'] + stats['low_inventory_count']
+
+    conn.close()
+    return stats
+
+def get_hours_by_day(days=30):
+    """Get hours worked per day for the last N days"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            DATE(time_in) as day,
+            SUM(
+                CASE
+                    WHEN time_out IS NULL THEN
+                        (julianday('now') - julianday(time_in)) * 24
+                    ELSE
+                        (julianday(time_out) - julianday(time_in)) * 24
+                END
+            ) as total_hours
+        FROM time_logs
+        WHERE julianday('now') - julianday(time_in) <= ?
+        GROUP BY DATE(time_in)
+        ORDER BY day DESC
+    ''', (days,))
+
+    data = []
+    for row in cursor.fetchall():
+        data.append({
+            'date': row[0],
+            'hours': round(row[1], 1)
+        })
+
+    conn.close()
+    return list(reversed(data))  # Oldest to newest for chart display
+
+def get_activity_breakdown():
+    """Get breakdown of hours by activity type"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            ac.name,
+            COUNT(*) as session_count,
+            SUM(
+                CASE
+                    WHEN tl.time_out IS NULL THEN
+                        (julianday('now') - julianday(tl.time_in)) * 24
+                    ELSE
+                        (julianday(tl.time_out) - julianday(tl.time_in)) * 24
+                END
+            ) as total_hours
+        FROM time_logs tl
+        JOIN activity_categories ac ON tl.category_id = ac.id
+        GROUP BY ac.name
+        ORDER BY total_hours DESC
+    ''')
+
+    data = []
+    for row in cursor.fetchall():
+        data.append({
+            'activity': row[0],
+            'sessions': row[1],
+            'hours': round(row[2], 1)
+        })
+
+    conn.close()
+    return data
+
+def get_vehicle_status_summary():
+    """Get summary of vehicle inspection status"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    summary = {
+        'up_to_date': 0,
+        'due_soon': 0,
+        'overdue': 0
+    }
+
+    cursor.execute('''
+        SELECT
+            CASE
+                WHEN last_inspection_date IS NULL THEN 'overdue'
+                WHEN julianday('now') - julianday(last_inspection_date) > 6 THEN 'overdue'
+                WHEN julianday('now') - julianday(last_inspection_date) > 5 THEN 'due_soon'
+                ELSE 'up_to_date'
+            END as status,
+            COUNT(*) as count
+        FROM vehicles
+        WHERE status = 'active'
+        GROUP BY status
+    ''')
+
+    for row in cursor.fetchall():
+        status = row[0]
+        count = row[1]
+        if status in summary:
+            summary[status] = count
+
+    conn.close()
+    return summary
+
+def get_top_performers(limit=10):
+    """Get top firefighters by hours this month"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            f.fireman_number,
+            f.full_name,
+            COALESCE(SUM(
+                CASE
+                    WHEN tl.time_out IS NULL THEN
+                        (julianday('now') - julianday(tl.time_in)) * 24
+                    ELSE
+                        (julianday(tl.time_out) - julianday(tl.time_in)) * 24
+                END
+            ), 0) as monthly_hours,
+            f.total_hours
+        FROM firefighters f
+        LEFT JOIN time_logs tl ON f.id = tl.firefighter_id
+            AND strftime('%Y-%m', tl.time_in) = strftime('%Y-%m', 'now')
+        GROUP BY f.id, f.fireman_number, f.full_name, f.total_hours
+        ORDER BY monthly_hours DESC
+        LIMIT ?
+    ''', (limit,))
+
+    performers = []
+    for row in cursor.fetchall():
+        performers.append({
+            'number': row[0],
+            'name': row[1],
+            'monthly_hours': round(row[2], 1),
+            'total_hours': round(row[3], 1)
+        })
+
+    conn.close()
+    return performers
+
+# ========== REPORTING FUNCTIONS ==========
+
+def get_hours_report(start_date=None, end_date=None, firefighter_id=None):
+    """Get detailed hours report with optional filters"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = '''
+        SELECT
+            f.fireman_number,
+            f.full_name,
+            ac.name as activity,
+            DATE(tl.time_in) as date,
+            tl.time_in,
+            tl.time_out,
+            CASE
+                WHEN tl.time_out IS NULL THEN
+                    (julianday('now') - julianday(tl.time_in)) * 24
+                ELSE
+                    (julianday(tl.time_out) - julianday(tl.time_in)) * 24
+            END as hours
+        FROM time_logs tl
+        JOIN firefighters f ON tl.firefighter_id = f.id
+        JOIN activity_categories ac ON tl.category_id = ac.id
+        WHERE 1=1
+    '''
+
+    params = []
+
+    if start_date:
+        query += ' AND DATE(tl.time_in) >= ?'
+        params.append(start_date)
+
+    if end_date:
+        query += ' AND DATE(tl.time_in) <= ?'
+        params.append(end_date)
+
+    if firefighter_id:
+        query += ' AND f.id = ?'
+        params.append(firefighter_id)
+
+    query += ' ORDER BY tl.time_in DESC'
+
+    cursor.execute(query, params)
+
+    report_data = []
+    total_hours = 0
+
+    for row in cursor.fetchall():
+        hours = round(row[6], 2)
+        total_hours += hours
+        report_data.append({
+            'firefighter_number': row[0],
+            'firefighter_name': row[1],
+            'activity': row[2],
+            'date': row[3],
+            'time_in': row[4],
+            'time_out': row[5],
+            'hours': hours
+        })
+
+    conn.close()
+
+    return {
+        'data': report_data,
+        'total_hours': round(total_hours, 2),
+        'start_date': start_date,
+        'end_date': end_date
+    }
+
+def get_firefighter_summary_report(start_date=None, end_date=None):
+    """Get hours summary grouped by firefighter"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = '''
+        SELECT
+            f.fireman_number,
+            f.full_name,
+            COUNT(DISTINCT DATE(tl.time_in)) as days_worked,
+            COUNT(*) as sessions,
+            SUM(
+                CASE
+                    WHEN tl.time_out IS NULL THEN
+                        (julianday('now') - julianday(tl.time_in)) * 24
+                    ELSE
+                        (julianday(tl.time_out) - julianday(tl.time_in)) * 24
+                END
+            ) as total_hours
+        FROM firefighters f
+        LEFT JOIN time_logs tl ON f.id = tl.firefighter_id
+    '''
+
+    params = []
+
+    if start_date or end_date:
+        query += ' WHERE 1=1'
+        if start_date:
+            query += ' AND DATE(tl.time_in) >= ?'
+            params.append(start_date)
+        if end_date:
+            query += ' AND DATE(tl.time_in) <= ?'
+            params.append(end_date)
+
+    query += ' GROUP BY f.id, f.fireman_number, f.full_name ORDER BY total_hours DESC'
+
+    cursor.execute(query, params)
+
+    report_data = []
+    total_hours_all = 0
+
+    for row in cursor.fetchall():
+        hours = round(row[4] or 0, 2)
+        total_hours_all += hours
+        report_data.append({
+            'firefighter_number': row[0],
+            'firefighter_name': row[1],
+            'days_worked': row[2] or 0,
+            'sessions': row[3] or 0,
+            'total_hours': hours
+        })
+
+    conn.close()
+
+    return {
+        'data': report_data,
+        'total_hours': round(total_hours_all, 2),
+        'start_date': start_date,
+        'end_date': end_date
+    }
+
+def get_activity_report(start_date=None, end_date=None):
+    """Get hours breakdown by activity type"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = '''
+        SELECT
+            ac.name as activity,
+            COUNT(*) as sessions,
+            COUNT(DISTINCT tl.firefighter_id) as unique_firefighters,
+            SUM(
+                CASE
+                    WHEN tl.time_out IS NULL THEN
+                        (julianday('now') - julianday(tl.time_in)) * 24
+                    ELSE
+                        (julianday(tl.time_out) - julianday(tl.time_in)) * 24
+                END
+            ) as total_hours
+        FROM time_logs tl
+        JOIN activity_categories ac ON tl.category_id = ac.id
+        WHERE 1=1
+    '''
+
+    params = []
+
+    if start_date:
+        query += ' AND DATE(tl.time_in) >= ?'
+        params.append(start_date)
+
+    if end_date:
+        query += ' AND DATE(tl.time_in) <= ?'
+        params.append(end_date)
+
+    query += ' GROUP BY ac.name ORDER BY total_hours DESC'
+
+    cursor.execute(query, params)
+
+    report_data = []
+    total_hours_all = 0
+
+    for row in cursor.fetchall():
+        hours = round(row[3], 2)
+        total_hours_all += hours
+        report_data.append({
+            'activity': row[0],
+            'sessions': row[1],
+            'unique_firefighters': row[2],
+            'total_hours': hours
+        })
+
+    conn.close()
+
+    return {
+        'data': report_data,
+        'total_hours': round(total_hours_all, 2),
+        'start_date': start_date,
+        'end_date': end_date
+    }
+
+def get_maintenance_cost_report(start_date=None, end_date=None, vehicle_id=None):
+    """Get maintenance costs report"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = '''
+        SELECT
+            v.vehicle_code,
+            v.name as vehicle_name,
+            mwo.id as work_order_id,
+            mwo.title,
+            mwo.description,
+            mwo.status,
+            mwo.priority,
+            mwo.reported_date,
+            mwo.completed_date,
+            mwo.labor_cost,
+            mwo.parts_cost,
+            (COALESCE(mwo.labor_cost, 0) + COALESCE(mwo.parts_cost, 0)) as total_cost
+        FROM maintenance_work_orders mwo
+        JOIN vehicles v ON mwo.vehicle_id = v.id
+        WHERE 1=1
+    '''
+
+    params = []
+
+    if start_date:
+        query += ' AND DATE(mwo.reported_date) >= ?'
+        params.append(start_date)
+
+    if end_date:
+        query += ' AND DATE(mwo.reported_date) <= ?'
+        params.append(end_date)
+
+    if vehicle_id:
+        query += ' AND v.id = ?'
+        params.append(vehicle_id)
+
+    query += ' ORDER BY mwo.reported_date DESC'
+
+    cursor.execute(query, params)
+
+    report_data = []
+    total_labor = 0
+    total_parts = 0
+    total_cost = 0
+
+    for row in cursor.fetchall():
+        labor = row[9] or 0
+        parts = row[10] or 0
+        cost = row[11] or 0
+        total_labor += labor
+        total_parts += parts
+        total_cost += cost
+
+        report_data.append({
+            'vehicle_code': row[0],
+            'vehicle_name': row[1],
+            'work_order_id': row[2],
+            'title': row[3],
+            'description': row[4],
+            'status': row[5],
+            'priority': row[6],
+            'reported_date': row[7],
+            'completed_date': row[8],
+            'labor_cost': round(labor, 2),
+            'parts_cost': round(parts, 2),
+            'total_cost': round(cost, 2)
+        })
+
+    conn.close()
+
+    return {
+        'data': report_data,
+        'total_labor_cost': round(total_labor, 2),
+        'total_parts_cost': round(total_parts, 2),
+        'total_cost': round(total_cost, 2),
+        'start_date': start_date,
+        'end_date': end_date
+    }
+
+def get_inventory_value_report():
+    """Get inventory value report by location"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Station inventory
+    cursor.execute('''
+        SELECT
+            s.name as location,
+            'Station' as location_type,
+            ii.name as item_name,
+            ii.category,
+            si.quantity,
+            ii.cost_per_unit,
+            (si.quantity * COALESCE(ii.cost_per_unit, 0)) as total_value
+        FROM station_inventory si
+        JOIN stations s ON si.station_id = s.id
+        JOIN inventory_items ii ON si.item_id = ii.id
+        WHERE si.quantity > 0
+        ORDER BY s.name, ii.category, ii.name
+    ''')
+
+    station_data = []
+    station_total = 0
+
+    for row in cursor.fetchall():
+        value = round(row[6], 2)
+        station_total += value
+        station_data.append({
+            'location': row[0],
+            'location_type': row[1],
+            'item_name': row[2],
+            'category': row[3],
+            'quantity': row[4],
+            'cost_per_unit': round(row[5] or 0, 2),
+            'total_value': value
+        })
+
+    # Vehicle inventory
+    cursor.execute('''
+        SELECT
+            v.name as location,
+            'Vehicle' as location_type,
+            ii.name as item_name,
+            ii.category,
+            vi.quantity,
+            ii.cost_per_unit,
+            (vi.quantity * COALESCE(ii.cost_per_unit, 0)) as total_value
+        FROM vehicle_inventory vi
+        JOIN vehicles v ON vi.vehicle_id = v.id
+        JOIN inventory_items ii ON vi.item_id = ii.id
+        WHERE vi.quantity > 0
+        ORDER BY v.name, ii.category, ii.name
+    ''')
+
+    vehicle_data = []
+    vehicle_total = 0
+
+    for row in cursor.fetchall():
+        value = round(row[6], 2)
+        vehicle_total += value
+        vehicle_data.append({
+            'location': row[0],
+            'location_type': row[1],
+            'item_name': row[2],
+            'category': row[3],
+            'quantity': row[4],
+            'cost_per_unit': round(row[5] or 0, 2),
+            'total_value': value
+        })
+
+    conn.close()
+
+    return {
+        'station_inventory': station_data,
+        'vehicle_inventory': vehicle_data,
+        'station_total': round(station_total, 2),
+        'vehicle_total': round(vehicle_total, 2),
+        'grand_total': round(station_total + vehicle_total, 2)
+    }
