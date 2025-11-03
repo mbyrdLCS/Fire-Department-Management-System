@@ -1413,6 +1413,28 @@ def update_vehicle(vehicle_id, vehicle_code, name, vehicle_type='', station_id=N
         conn.close()
         return False, str(e)
 
+def delete_vehicle(vehicle_id):
+    """Delete a vehicle (CASCADE will handle related records)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Get vehicle name for confirmation message
+        cursor.execute('SELECT name FROM vehicles WHERE id = ?', (vehicle_id,))
+        result = cursor.fetchone()
+        vehicle_name = result[0] if result else "Unknown"
+
+        # Delete the vehicle (CASCADE will delete related records)
+        cursor.execute('DELETE FROM vehicles WHERE id = ?', (vehicle_id,))
+
+        conn.commit()
+        conn.close()
+        return True, f"Vehicle '{vehicle_name}' deleted successfully"
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
 # ========== ALERTS AND NOTIFICATIONS FUNCTIONS ==========
 
 def get_all_alerts():

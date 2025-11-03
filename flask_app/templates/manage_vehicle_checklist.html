@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage {{ vehicle.name }} Checklist</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .checklist-item {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .checklist-item:hover {
+            border-color: #667eea;
+            background: #f9f9f9;
+        }
+
+        .checklist-item label {
+            display: flex;
+            align-items: flex-start;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            margin-right: 12px;
+            margin-top: 3px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .category-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 8px;
+            font-weight: 600;
+        }
+
+        .save-btn {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+
+        .flash-message {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .select-all-container {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .select-all-container label {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .select-all-container input[type="checkbox"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .checklist-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('manage_vehicles') }}" class="back-btn">← Back to Vehicles</a>
+
+        <div class="header">
+            <h1>🚒 {{ vehicle.name }} - Inspection Checklist</h1>
+            <div class="subtitle">{{ vehicle.vehicle_code }} | {{ vehicle.vehicle_type or 'Unknown Type' }}</div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    ✓ {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number">{{ assigned_items|length }}</div>
+                <div class="stat-label">Assigned Items</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ all_items|length }}</div>
+                <div class="stat-label">Total Available Items</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📋 Select Checklist Items for {{ vehicle.name }}</div>
+
+            <form method="POST" action="{{ url_for('update_vehicle_checklist', vehicle_id=vehicle.id) }}">
+                <div class="select-all-container">
+                    <label>
+                        <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
+                        <span>Select / Deselect All</span>
+                    </label>
+                </div>
+
+                <div class="checklist-grid">
+                    {% for item in all_items %}
+                    <div class="checklist-item">
+                        <label>
+                            <input type="checkbox"
+                                   name="checklist_items"
+                                   value="{{ item.id }}"
+                                   class="item-checkbox"
+                                   {% if item.id in assigned_item_ids %}checked{% endif %}>
+                            <span>
+                                {{ item.description }}
+                                <span class="category-tag">{{ item.category or 'General' }}</span>
+                            </span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="save-btn">💾 Save Checklist Assignments</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleAll(checkbox) {
+            const allCheckboxes = document.querySelectorAll('.item-checkbox');
+            allCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+        }
+
+        // Update "Select All" checkbox state when individual checkboxes change
+        document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allCheckboxes = document.querySelectorAll('.item-checkbox');
+                const checkedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
+                const selectAllCheckbox = document.getElementById('selectAll');
+
+                if (checkedCheckboxes.length === allCheckboxes.length) {
+                    selectAllCheckbox.checked = true;
+                    selectAllCheckbox.indeterminate = false;
+                } else if (checkedCheckboxes.length === 0) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                } else {
+                    selectAllCheckbox.indeterminate = true;
+                }
+            });
+        });
+
+        // Set initial state of "Select All" checkbox
+        window.addEventListener('DOMContentLoaded', function() {
+            const allCheckboxes = document.querySelectorAll('.item-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
+            const selectAllCheckbox = document.getElementById('selectAll');
+
+            if (checkedCheckboxes.length === allCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+            } else if (checkedCheckboxes.length > 0) {
+                selectAllCheckbox.indeterminate = true;
+            }
+        });
+    </script>
+</body>
+</html>

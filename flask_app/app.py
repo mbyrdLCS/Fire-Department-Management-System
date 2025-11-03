@@ -1112,6 +1112,77 @@ def update_vehicle(vehicle_id):
         flash('An error occurred while updating the vehicle.')
         return redirect(url_for('manage_vehicles'))
 
+@app.route('/admin/vehicle/delete/<int:vehicle_id>', methods=['POST'])
+def delete_vehicle(vehicle_id):
+    """Delete a vehicle"""
+    try:
+        success, message = db_helpers.delete_vehicle(vehicle_id)
+
+        if success:
+            flash(message)
+            logger.info(f"Vehicle deleted: ID {vehicle_id}")
+        else:
+            flash(f'Error deleting vehicle: {message}')
+
+        return redirect(url_for('manage_vehicles'))
+
+    except Exception as e:
+        logger.error(f"Delete vehicle error: {str(e)}")
+        flash('An error occurred while deleting the vehicle.')
+        return redirect(url_for('manage_vehicles'))
+
+@app.route('/admin/vehicle/<int:vehicle_id>/checklist')
+def manage_vehicle_checklist(vehicle_id):
+    """Manage checklist items for a specific vehicle"""
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+    if not vehicle:
+        flash('Vehicle not found!')
+        return redirect(url_for('manage_vehicles'))
+
+    # Get all available checklist items
+    all_items = db_helpers.get_all_checklist_items()
+
+    # Get items currently assigned to this vehicle
+    assigned_items = db_helpers.get_vehicle_checklist(vehicle_id)
+    assigned_item_ids = [item['id'] for item in assigned_items]
+
+    return render_template('manage_vehicle_checklist.html',
+                         vehicle=vehicle,
+                         all_items=all_items,
+                         assigned_items=assigned_items,
+                         assigned_item_ids=assigned_item_ids)
+
+@app.route('/admin/vehicle/<int:vehicle_id>/checklist/update', methods=['POST'])
+def update_vehicle_checklist(vehicle_id):
+    """Update checklist assignments for a vehicle"""
+    try:
+        vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+
+        if not vehicle:
+            flash('Vehicle not found!')
+            return redirect(url_for('manage_vehicles'))
+
+        # Get selected checklist item IDs from the form
+        selected_item_ids = request.form.getlist('checklist_items')
+        selected_item_ids = [int(item_id) for item_id in selected_item_ids]
+
+        # Update the vehicle's checklist assignments
+        success = db_helpers.assign_checklist_to_vehicle(vehicle_id, selected_item_ids)
+
+        if success:
+            flash(f'Checklist updated for {vehicle["name"]}! {len(selected_item_ids)} items assigned.')
+            logger.info(f"Vehicle checklist updated: {vehicle['name']} - {len(selected_item_ids)} items")
+        else:
+            flash('Error updating checklist assignments.')
+
+        return redirect(url_for('manage_vehicle_checklist', vehicle_id=vehicle_id))
+
+    except Exception as e:
+        logger.error(f"Update vehicle checklist error: {str(e)}")
+        flash('An error occurred while updating the checklist.')
+        return redirect(url_for('manage_vehicle_checklist', vehicle_id=vehicle_id))
+
 # ========== STATION MANAGEMENT ROUTES ==========
 
 @app.route('/admin/stations')

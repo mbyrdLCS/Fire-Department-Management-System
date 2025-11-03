@@ -159,18 +159,40 @@
             color: white;
         }
 
-        .btn-edit {
+        .btn-edit, .btn-checklist, .btn-delete {
             padding: 6px 14px;
-            background: #2196F3;
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
+            margin-right: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-edit {
+            background: #2196F3;
         }
 
         .btn-edit:hover {
             background: #1976D2;
+        }
+
+        .btn-checklist {
+            background: #9C27B0;
+        }
+
+        .btn-checklist:hover {
+            background: #7B1FA2;
+        }
+
+        .btn-delete {
+            background: #f44336;
+        }
+
+        .btn-delete:hover {
+            background: #d32f2f;
         }
 
         .flash-message {
@@ -334,6 +356,10 @@
                             </td>
                             <td>
                                 <button class="btn-edit" onclick="toggleEdit('{{ vehicle.id }}')">Edit</button>
+                                <a href="{{ url_for('manage_vehicle_checklist', vehicle_id=vehicle.id) }}" class="btn-checklist">Checklist</a>
+                                <form method="POST" action="{{ url_for('delete_vehicle', vehicle_id=vehicle.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ vehicle.name }}? This will remove all associated inspections and checklist assignments.');">
+                                    <button type="submit" class="btn-delete">Delete</button>
+                                </form>
                             </td>
                         </tr>
                         <tr>
