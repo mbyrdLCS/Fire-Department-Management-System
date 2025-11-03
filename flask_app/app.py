@@ -238,13 +238,13 @@ def kiosk_register():
         fireman_number = request.form['fireman_number']
 
         # Register the firefighter
-        success, message = db_helpers.register_firefighter(full_name, fireman_number)
+        result = db_helpers.create_firefighter(fireman_number, full_name)
 
-        if success:
+        if result:
             logger.info(f"Kiosk registration: {full_name} (#{fireman_number})")
             return jsonify({'success': True, 'message': f'{full_name} registered successfully!'})
         else:
-            return jsonify({'success': False, 'message': message})
+            return jsonify({'success': False, 'message': f'{full_name} already exists!'})
 
     except Exception as e:
         logger.error(f"Kiosk registration error: {str(e)}", exc_info=True)
