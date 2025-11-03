@@ -75,6 +75,24 @@ def index():
     categories = [cat['name'] for cat in db_helpers.get_all_categories()]
     return render_template('index.html', show_new_user_form=show_new_user_form, categories=categories)
 
+@app.route('/kiosk')
+def kiosk():
+    """Kiosk mode - simplified check in/out interface for iPad"""
+    firefighters = db_helpers.get_all_firefighters()
+    categories = [cat['name'] for cat in db_helpers.get_all_categories()]
+
+    # Get current status for each firefighter
+    for ff in firefighters:
+        latest = db_helpers.get_latest_time_log(ff['firefighter_number'])
+        if latest and latest['clock_out'] is None:
+            ff['is_checked_in'] = True
+            ff['current_activity'] = latest.get('activity', 'On Duty')
+        else:
+            ff['is_checked_in'] = False
+            ff['current_activity'] = None
+
+    return render_template('kiosk.html', firefighters=firefighters, categories=categories)
+
 @app.route('/register', methods=['POST'])
 def register():
     """Register a new firefighter"""
@@ -157,6 +175,43 @@ def clock_out():
         flash('An error occurred while clocking out.')
 
     return redirect(url_for('index'))
+
+@app.route('/clock_in_out', methods=['POST'])
+def clock_in_out():
+    """Unified clock in/out for kiosk mode - returns JSON"""
+    try:
+        firefighter_number = request.form['firefighter_number']
+        action = request.form['action']
+        activity = request.form.get('activity', '')
+
+        # Check if firefighter exists
+        firefighter = db_helpers.get_firefighter_by_number(firefighter_number)
+
+        if not firefighter:
+            return jsonify({'success': False, 'message': 'Firefighter not found!'})
+
+        if action == 'checkin':
+            success, message = db_helpers.clock_in(firefighter_number, activity)
+            if success:
+                logger.info(f"Kiosk clock in: {firefighter['full_name']} - {activity}")
+                return jsonify({'success': True, 'message': f'Checked in for {activity}'})
+            else:
+                return jsonify({'success': False, 'message': message})
+
+        elif action == 'checkout':
+            success, message = db_helpers.clock_out(firefighter_number)
+            if success:
+                logger.info(f"Kiosk clock out: {firefighter['full_name']}")
+                return jsonify({'success': True, 'message': 'Checked out successfully'})
+            else:
+                return jsonify({'success': False, 'message': message})
+
+        else:
+            return jsonify({'success': False, 'message': 'Invalid action'})
+
+    except Exception as e:
+        logger.error(f"Kiosk clock in/out error: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'An error occurred'})
 
 # ========== ADMIN ROUTES ==========
 

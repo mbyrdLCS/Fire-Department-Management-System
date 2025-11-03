@@ -301,6 +301,13 @@
             <div class="subtitle">Activity Log & Management System</div>
         </div>
 
+        <!-- Kiosk Mode Link -->
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="{{ url_for('kiosk') }}" style="display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s;">
+                📱 Switch to Kiosk Mode (iPad Check-In/Out)
+            </a>
+        </div>
+
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}

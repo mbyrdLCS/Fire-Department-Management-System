@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SVVFD Kiosk - Check In/Out</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header .subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        .admin-link {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .admin-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .status-bar {
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .status-bar h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .status-count {
+            font-size: 32px;
+            font-weight: 700;
+            color: #4CAF50;
+        }
+
+        .firefighters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 100px;
+        }
+
+        .firefighter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 3px solid transparent;
+            position: relative;
+        }
+
+        .firefighter-card:active {
+            transform: scale(0.95);
+        }
+
+        .firefighter-card.checked-in {
+            border-color: #4CAF50;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .firefighter-card.checked-out {
+            border-color: #ddd;
+        }
+
+        .firefighter-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .firefighter-card .name {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .firefighter-card .status {
+            font-size: 13px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .firefighter-card.checked-in .status {
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+        }
+
+        .firefighter-card.checked-out .status {
+            background: #999;
+            color: white;
+        }
+
+        .firefighter-card .activity {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-header .ff-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .modal-header .ff-name {
+            font-size: 24px;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 18px;
+            background: white;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-checkin {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-checkin:hover {
+            background: #45a049;
+        }
+
+        .btn-checkout {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-checkout:hover {
+            background: #da190b;
+        }
+
+        .btn-cancel {
+            grid-column: 1 / -1;
+            background: #999;
+            color: white;
+            padding: 15px;
+            font-size: 16px;
+        }
+
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 40px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 2000;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .success-message.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .success-message .icon {
+            font-size: 72px;
+            margin-bottom: 15px;
+        }
+
+        .success-message .text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .firefighters-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('index') }}" class="admin-link">Admin</a>
+        <h1>🚒 SVVFD Kiosk</h1>
+        <div class="subtitle">Tap your name to check in or out</div>
+    </div>
+
+    <div class="status-bar">
+        <h2>Currently On Duty</h2>
+        <div class="status-count" id="onDutyCount">
+            {{ firefighters|selectattr('is_checked_in')|list|length }}
+        </div>
+    </div>
+
+    <div class="firefighters-grid">
+        {% for ff in firefighters|sort(attribute='firefighter_number') %}
+        <div class="firefighter-card {% if ff.is_checked_in %}checked-in{% else %}checked-out{% endif %}"
+             onclick="showModal('{{ ff.firefighter_number }}', '{{ ff.full_name }}', {{ ff.is_checked_in|lower }}, '{{ ff.current_activity or '' }}')">
+            <div class="number">#{{ ff.firefighter_number }}</div>
+            <div class="name">{{ ff.full_name }}</div>
+            <div class="status">
+                {% if ff.is_checked_in %}
+                    ✓ CHECKED IN
+                {% else %}
+                    CHECKED OUT
+                {% endif %}
+            </div>
+            {% if ff.current_activity %}
+            <div class="activity">{{ ff.current_activity }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlayClick(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="ff-number" id="modalNumber"></div>
+                <div class="ff-name" id="modalName"></div>
+            </div>
+            <div class="modal-body">
+                <form id="kioskForm" method="POST">
+                    <input type="hidden" name="firefighter_number" id="modalFirefighterNumber">
+                    <input type="hidden" name="action" id="modalAction">
+
+                    <div class="form-group">
+                        <label for="activity">Activity:</label>
+                        <select name="activity" id="activity" required>
+                            <option value="">-- Select Activity --</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-checkin" id="btnCheckIn" onclick="submitAction('checkin')">
+                            ✓ Check In
+                        </button>
+                        <button type="button" class="btn btn-checkout" id="btnCheckOut" onclick="submitAction('checkout')">
+                            ✗ Check Out
+                        </button>
+                        <button type="button" class="btn btn-cancel" onclick="closeModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div class="success-message" id="successMessage">
+        <div class="icon" id="successIcon"></div>
+        <div class="text" id="successText"></div>
+    </div>
+
+    <script>
+        let currentIsCheckedIn = false;
+
+        function showModal(number, name, isCheckedIn, currentActivity) {
+            currentIsCheckedIn = isCheckedIn;
+            document.getElementById('modalNumber').textContent = '#' + number;
+            document.getElementById('modalName').textContent = name;
+            document.getElementById('modalFirefighterNumber').value = number;
+
+            // Pre-select current activity if checking out
+            const activitySelect = document.getElementById('activity');
+            if (isCheckedIn && currentActivity) {
+                activitySelect.value = currentActivity;
+            } else {
+                activitySelect.value = '';
+            }
+
+            // Show/hide appropriate buttons
+            if (isCheckedIn) {
+                document.getElementById('btnCheckIn').style.display = 'none';
+                document.getElementById('btnCheckOut').style.display = 'block';
+            } else {
+                document.getElementById('btnCheckIn').style.display = 'block';
+                document.getElementById('btnCheckOut').style.display = 'none';
+            }
+
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('kioskForm').reset();
+        }
+
+        function closeModalOnOverlayClick(event) {
+            if (event.target === event.currentTarget) {
+                closeModal();
+            }
+        }
+
+        function submitAction(action) {
+            const activity = document.getElementById('activity').value;
+            if (!activity) {
+                alert('Please select an activity');
+                return;
+            }
+
+            const form = document.getElementById('kioskForm');
+            document.getElementById('modalAction').value = action;
+
+            // Submit via fetch
+            const formData = new FormData(form);
+
+            fetch('{{ url_for("clock_in_out") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeModal();
+                    showSuccess(action);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    alert(data.message || 'An error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function showSuccess(action) {
+            const icon = document.getElementById('successIcon');
+            const text = document.getElementById('successText');
+            const message = document.getElementById('successMessage');
+
+            if (action === 'checkin') {
+                icon.textContent = '✓';
+                text.textContent = 'Checked In Successfully!';
+            } else {
+                icon.textContent = '✓';
+                text.textContent = 'Checked Out Successfully!';
+            }
+
+            message.classList.add('show');
+            setTimeout(() => {
+                message.classList.remove('show');
+            }, 1500);
+        }
+
+        // Prevent accidental zoom on double-tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
