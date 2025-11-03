@@ -926,18 +926,30 @@ def export_station_inventory(station_id):
 
         cw.writerow([f'STATION INVENTORY - {station["name"]}'])
         cw.writerow([])
-        cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Location', 'Last Updated'])
+        cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Location', 'Last Checked'])
 
         inventory = db_helpers.get_station_inventory(station_id)
+        total_value = 0
         for item in inventory:
+            cost_per_unit = item.get('cost_per_unit', 0) or 0
+            quantity = item.get('quantity', 0) or 0
+            item_value = cost_per_unit * quantity
+            total_value += item_value
+
             cw.writerow([
-                item.get('item_name', ''),
+                item.get('name', ''),
                 item.get('category', ''),
-                item.get('quantity', 0),
-                item.get('unit', ''),
-                item.get('location', ''),
-                item.get('last_updated', '')
+                quantity,
+                item.get('unit_of_measure', ''),
+                f"${cost_per_unit:.2f}",
+                f"${item_value:.2f}",
+                station['name'],
+                item.get('last_checked', '')
             ])
+
+        # Add total row
+        cw.writerow([])
+        cw.writerow(['', '', '', '', 'TOTAL VALUE:', f"${total_value:.2f}", '', ''])
 
         output.seek(0)
         filename = f'station_{station_id}_inventory_{datetime.now().strftime("%Y%m%d")}.csv'
@@ -981,21 +993,32 @@ def export_station_inventory_pdf(station_id):
         elements.append(title)
         elements.append(Spacer(1, 0.25*inch))
 
-        data = [['Item Name', 'Category', 'Quantity', 'Unit', 'Location', 'Last Updated']]
+        data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value', 'Location']]
 
         inventory = db_helpers.get_station_inventory(station_id)
+        total_value = 0
         for item in inventory:
+            cost_per_unit = item.get('cost_per_unit', 0) or 0
+            quantity = item.get('quantity', 0) or 0
+            item_value = cost_per_unit * quantity
+            total_value += item_value
+
             data.append([
-                item.get('item_name', '')[:30],
-                item.get('category', ''),
-                str(item.get('quantity', 0)),
-                item.get('unit', ''),
-                item.get('location', '')[:20],
-                item.get('last_updated', '')[:19] if item.get('last_updated') else ''
+                item.get('name', '')[:25],
+                item.get('category', '')[:15],
+                str(quantity),
+                item.get('unit_of_measure', '')[:8],
+                f"${cost_per_unit:.2f}",
+                f"${item_value:.2f}",
+                station['name']
             ])
 
+        # Add total row
         if len(data) > 1:
-            table = Table(data, colWidths=[2*inch, 1.5*inch, 1*inch, 1*inch, 1.5*inch, 2*inch])
+            data.append(['', '', '', '', 'TOTAL:', f"${total_value:.2f}", ''])
+
+        if len(data) > 1:
+            table = Table(data, colWidths=[2*inch, 1.3*inch, 0.6*inch, 0.7*inch, 0.9*inch, 1*inch, 1.5*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1004,6 +1027,8 @@ def export_station_inventory_pdf(station_id):
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
                 ('FONTSIZE', (0, 1), (-1, -1), 9),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black)
             ]))
             elements.append(table)
@@ -1020,6 +1045,138 @@ def export_station_inventory_pdf(station_id):
         logger.error(f"Station inventory PDF export error: {str(e)}", exc_info=True)
         flash(f'An error occurred during PDF export: {str(e)}')
         return redirect(url_for('station_inventory', station_id=station_id))
+
+@app.route('/export_vehicle_inventory/<int:vehicle_id>')
+def export_vehicle_inventory(vehicle_id):
+    """Export vehicle inventory to CSV"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+        if not vehicle:
+            flash('Vehicle not found!')
+            return redirect(url_for('inventory_menu'))
+
+        output = StringIO()
+        cw = csv.writer(output)
+
+        cw.writerow([f'VEHICLE INVENTORY - {vehicle["name"]} ({vehicle["vehicle_code"]})'])
+        cw.writerow([])
+        cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Last Checked'])
+
+        inventory = db_helpers.get_vehicle_inventory(vehicle_id)
+        total_value = 0
+        for item in inventory:
+            cost_per_unit = item.get('cost_per_unit', 0) or 0
+            quantity = item.get('quantity', 0) or 0
+            item_value = cost_per_unit * quantity
+            total_value += item_value
+
+            cw.writerow([
+                item.get('name', ''),
+                item.get('category', ''),
+                quantity,
+                item.get('unit_of_measure', ''),
+                f"${cost_per_unit:.2f}",
+                f"${item_value:.2f}",
+                item.get('last_checked', '')
+            ])
+
+        # Add total row
+        cw.writerow([])
+        cw.writerow(['', '', '', '', 'TOTAL VALUE:', f"${total_value:.2f}", ''])
+
+        output.seek(0)
+        filename = f'vehicle_{vehicle_id}_inventory_{datetime.now().strftime("%Y%m%d")}.csv'
+
+        return send_file(
+            BytesIO(output.getvalue().encode()),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Vehicle inventory CSV export error: {str(e)}", exc_info=True)
+        flash(f'An error occurred during CSV export: {str(e)}')
+        return redirect(url_for('vehicle_inventory', vehicle_id=vehicle_id))
+
+@app.route('/export_vehicle_inventory_pdf/<int:vehicle_id>')
+def export_vehicle_inventory_pdf(vehicle_id):
+    """Export vehicle inventory to PDF"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+        if not vehicle:
+            flash('Vehicle not found!')
+            return redirect(url_for('inventory_menu'))
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
+        title = Paragraph(f"<b>VEHICLE INVENTORY - {vehicle['name']} ({vehicle['vehicle_code']})</b>", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.25*inch))
+
+        data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value']]
+
+        inventory = db_helpers.get_vehicle_inventory(vehicle_id)
+        total_value = 0
+        for item in inventory:
+            cost_per_unit = item.get('cost_per_unit', 0) or 0
+            quantity = item.get('quantity', 0) or 0
+            item_value = cost_per_unit * quantity
+            total_value += item_value
+
+            data.append([
+                item.get('name', '')[:30],
+                item.get('category', '')[:15],
+                str(quantity),
+                item.get('unit_of_measure', '')[:8],
+                f"${cost_per_unit:.2f}",
+                f"${item_value:.2f}"
+            ])
+
+        # Add total row
+        if len(data) > 1:
+            data.append(['', '', '', '', 'TOTAL:', f"${total_value:.2f}"])
+
+        if len(data) > 1:
+            table = Table(data, colWidths=[2.5*inch, 1.5*inch, 0.7*inch, 0.8*inch, 1*inch, 1.2*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(table)
+        else:
+            elements.append(Paragraph("No inventory items found for this vehicle.", styles['Normal']))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        filename = f'vehicle_{vehicle_id}_inventory_{datetime.now().strftime("%Y%m%d")}.pdf'
+        return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Vehicle inventory PDF export error: {str(e)}", exc_info=True)
+        flash(f'An error occurred during PDF export: {str(e)}')
+        return redirect(url_for('vehicle_inventory', vehicle_id=vehicle_id))
 
 @app.route('/logout')
 def logout():
