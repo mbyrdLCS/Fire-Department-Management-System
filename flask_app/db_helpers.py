@@ -30,7 +30,7 @@ def get_all_firefighters():
             'id': row[0],
             'fireman_number': row[1],
             'full_name': row[2],
-            'total_hours': row[3]
+            'total_hours': row[3] if row[3] is not None else 0.0
         })
 
     conn.close()
@@ -433,7 +433,7 @@ def get_leaderboard():
         leaderboard.append({
             'number': row[0],
             'name': row[1],
-            'hours': row[2]
+            'hours': row[2] if row[2] is not None else 0.0
         })
 
     conn.close()

@@ -193,7 +193,7 @@ def admin_panel():
         logs = db_helpers.get_firefighter_logs(ff['fireman_number'])
         user_data[ff['fireman_number']] = {
             'full_name': ff['full_name'],
-            'hours': ff['total_hours'],
+            'hours': ff['total_hours'] if ff['total_hours'] is not None else 0.0,
             'logs': logs
         }
 
