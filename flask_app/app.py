@@ -83,7 +83,7 @@ def kiosk():
 
     # Get current status for each firefighter
     for ff in firefighters:
-        latest = db_helpers.get_latest_time_log(ff['firefighter_number'])
+        latest = db_helpers.get_latest_time_log(ff['fireman_number'])
         if latest and latest['clock_out'] is None:
             ff['is_checked_in'] = True
             ff['current_activity'] = latest.get('activity', 'On Duty')

@@ -324,10 +324,10 @@
     </div>
 
     <div class="firefighters-grid">
-        {% for ff in firefighters|sort(attribute='firefighter_number') %}
+        {% for ff in firefighters|sort(attribute='fireman_number') %}
         <div class="firefighter-card {% if ff.is_checked_in %}checked-in{% else %}checked-out{% endif %}"
-             onclick="showModal('{{ ff.firefighter_number }}', '{{ ff.full_name }}', {{ ff.is_checked_in|lower }}, '{{ ff.current_activity or '' }}')">
-            <div class="number">#{{ ff.firefighter_number }}</div>
+             onclick="showModal('{{ ff.fireman_number }}', '{{ ff.full_name }}', {{ ff.is_checked_in|lower }}, '{{ ff.current_activity or '' }}')">
+            <div class="number">#{{ ff.fireman_number }}</div>
             <div class="name">{{ ff.full_name }}</div>
             <div class="status">
                 {% if ff.is_checked_in %}
