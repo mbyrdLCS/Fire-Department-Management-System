@@ -27,7 +27,7 @@ def fix_hours_discrepancy():
             f.id,
             f.fireman_number,
             f.full_name,
-            f.total_hours as stored_hours,
+            COALESCE(f.total_hours, 0) as stored_hours,
             COUNT(tl.id) as log_count,
             COALESCE(SUM(tl.hours_worked), 0) + COALESCE(SUM(tl.manual_added_hours), 0) as calculated_hours
         FROM firefighters f
@@ -41,6 +41,9 @@ def fix_hours_discrepancy():
 
     for row in firefighters:
         ff_id, number, name, stored, log_count, calculated = row
+        # Handle None values
+        stored = stored or 0
+        calculated = calculated or 0
         difference = abs(stored - calculated)
 
         if difference > 0.01:  # More than 1 cent difference
@@ -81,11 +84,11 @@ def fix_hours_discrepancy():
     # Update each firefighter's total_hours based on actual logs
     cursor.execute('''
         UPDATE firefighters
-        SET total_hours = (
+        SET total_hours = COALESCE((
             SELECT COALESCE(SUM(hours_worked), 0) + COALESCE(SUM(manual_added_hours), 0)
             FROM time_logs
             WHERE time_logs.firefighter_id = firefighters.id
-        ),
+        ), 0),
         updated_at = CURRENT_TIMESTAMP
     ''')
 
@@ -96,7 +99,7 @@ def fix_hours_discrepancy():
         SELECT
             f.fireman_number,
             f.full_name,
-            f.total_hours as new_hours,
+            COALESCE(f.total_hours, 0) as new_hours,
             COUNT(tl.id) as log_count
         FROM firefighters f
         LEFT JOIN time_logs tl ON f.id = tl.firefighter_id
