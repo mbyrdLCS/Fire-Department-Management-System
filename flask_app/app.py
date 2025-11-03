@@ -1157,7 +1157,7 @@ def export_vehicle_inventory(vehicle_id):
         output = StringIO()
         cw = csv.writer(output)
 
-        cw.writerow([f'VEHICLE INVENTORY - {vehicle["name"]} ({vehicle["vehicle_code"]})'])
+        cw.writerow([f'VEHICLE INVENTORY - {vehicle["name"]} ({vehicle["code"]})'])
         cw.writerow([])
         cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Last Checked'])
 
@@ -1217,7 +1217,7 @@ def export_vehicle_inventory_pdf(vehicle_id):
         styles = getSampleStyleSheet()
 
         title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
-        title = Paragraph(f"<b>VEHICLE INVENTORY - {vehicle['name']} ({vehicle['vehicle_code']})</b>", title_style)
+        title = Paragraph(f"<b>VEHICLE INVENTORY - {vehicle['name']} ({vehicle['code']})</b>", title_style)
         elements.append(title)
         elements.append(Spacer(1, 0.25*inch))
 
