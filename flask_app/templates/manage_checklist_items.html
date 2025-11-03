@@ -243,6 +243,16 @@
             {% endif %}
         {% endwith %}
 
+        <!-- Export Buttons -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: flex-end;">
+            <a href="{{ url_for('export_checklist_items') }}" style="padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                📄 Export CSV
+            </a>
+            <a href="{{ url_for('export_checklist_items_pdf') }}" style="padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                📕 Export PDF
+            </a>
+        </div>
+
         <!-- Add New Checklist Item -->
         <div class="section">
             <div class="section-title">➕ Add New Checklist Item</div>

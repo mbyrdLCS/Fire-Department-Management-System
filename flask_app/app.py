@@ -705,6 +705,205 @@ def export_inspections_pdf():
         flash('An error occurred during PDF export.')
         return redirect(url_for('admin_panel'))
 
+@app.route('/export_checklist_items')
+def export_checklist_items():
+    """Export checklist items to CSV"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        output = StringIO()
+        cw = csv.writer(output)
+
+        cw.writerow(['INSPECTION CHECKLIST ITEMS'])
+        cw.writerow([])
+        cw.writerow(['ID', 'Description', 'Category', 'Display Order', 'Active'])
+
+        items = db_helpers.get_all_checklist_items()
+        for item in items:
+            cw.writerow([
+                item['id'],
+                item['description'],
+                item['category'] or 'General',
+                item['display_order'],
+                'Yes' if item['is_active'] else 'No'
+            ])
+
+        output.seek(0)
+        filename = f'checklist_items_{datetime.now().strftime("%Y%m%d")}.csv'
+
+        return send_file(
+            BytesIO(output.getvalue().encode()),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Checklist export error: {str(e)}")
+        flash('An error occurred during export.')
+        return redirect(url_for('manage_checklist_items'))
+
+@app.route('/export_checklist_items_pdf')
+def export_checklist_items_pdf():
+    """Export checklist items to PDF"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
+        title = Paragraph("<b>INSPECTION CHECKLIST ITEMS</b>", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.25*inch))
+
+        data = [['ID', 'Description', 'Category', 'Order', 'Active']]
+
+        items = db_helpers.get_all_checklist_items()
+        for item in items:
+            data.append([
+                str(item['id']),
+                item['description'][:60],
+                item['category'] or 'General',
+                str(item['display_order']),
+                'Yes' if item['is_active'] else 'No'
+            ])
+
+        table = Table(data, colWidths=[0.5*inch, 4*inch, 1.2*inch, 0.7*inch, 0.7*inch])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        elements.append(table)
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        filename = f'checklist_items_{datetime.now().strftime("%Y%m%d")}.pdf'
+        return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Checklist PDF export error: {str(e)}")
+        flash('An error occurred during PDF export.')
+        return redirect(url_for('manage_checklist_items'))
+
+@app.route('/export_vehicles')
+def export_vehicles():
+    """Export vehicles to CSV"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        output = StringIO()
+        cw = csv.writer(output)
+
+        cw.writerow(['VEHICLE FLEET INVENTORY'])
+        cw.writerow([])
+        cw.writerow(['Code', 'Name', 'Type', 'Year', 'Make', 'Model', 'VIN', 'License Plate', 'Status', 'Notes'])
+
+        vehicles = db_helpers.get_all_vehicles()
+        for vehicle in vehicles:
+            cw.writerow([
+                vehicle['vehicle_code'],
+                vehicle['name'],
+                vehicle['vehicle_type'] or '',
+                vehicle.get('year', ''),
+                vehicle.get('make', ''),
+                vehicle.get('model', ''),
+                vehicle.get('vin', ''),
+                vehicle.get('license_plate', ''),
+                vehicle['status'],
+                vehicle.get('notes', '')
+            ])
+
+        output.seek(0)
+        filename = f'vehicles_{datetime.now().strftime("%Y%m%d")}.csv'
+
+        return send_file(
+            BytesIO(output.getvalue().encode()),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Vehicle export error: {str(e)}")
+        flash('An error occurred during export.')
+        return redirect(url_for('manage_vehicles'))
+
+@app.route('/export_vehicles_pdf')
+def export_vehicles_pdf():
+    """Export vehicles to PDF"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
+        title = Paragraph("<b>VEHICLE FLEET INVENTORY</b>", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.25*inch))
+
+        data = [['Code', 'Name', 'Type', 'Year', 'Make', 'Model', 'VIN', 'Plate', 'Status']]
+
+        vehicles = db_helpers.get_all_vehicles()
+        for vehicle in vehicles:
+            data.append([
+                vehicle['vehicle_code'],
+                vehicle['name'],
+                vehicle['vehicle_type'] or '',
+                str(vehicle.get('year', '')),
+                vehicle.get('make', ''),
+                vehicle.get('model', ''),
+                vehicle.get('vin', '')[:10] + '...' if vehicle.get('vin') else '',
+                vehicle.get('license_plate', ''),
+                vehicle['status']
+            ])
+
+        table = Table(data, colWidths=[0.7*inch, 1.2*inch, 1*inch, 0.7*inch, 1*inch, 1*inch, 1.3*inch, 1*inch, 0.8*inch])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        elements.append(table)
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        filename = f'vehicles_{datetime.now().strftime("%Y%m%d")}.pdf'
+        return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Vehicle PDF export error: {str(e)}")
+        flash('An error occurred during PDF export.')
+        return redirect(url_for('manage_vehicles'))
+
 @app.route('/logout')
 def logout():
     """Logout admin"""

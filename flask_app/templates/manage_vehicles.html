@@ -241,6 +241,16 @@
             {% endif %}
         {% endwith %}
 
+        <!-- Export Buttons -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: flex-end;">
+            <a href="{{ url_for('export_vehicles') }}" style="padding: 10px 20px; background: #20c997; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                📄 Export CSV
+            </a>
+            <a href="{{ url_for('export_vehicles_pdf') }}" style="padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                📕 Export PDF
+            </a>
+        </div>
+
         <!-- Add New Vehicle -->
         <div class="section">
             <div class="section-title">➕ Add New Vehicle</div>
