@@ -842,8 +842,8 @@ def export_vehicles():
         )
 
     except Exception as e:
-        logger.error(f"Vehicle export error: {str(e)}")
-        flash('An error occurred during export.')
+        logger.error(f"Vehicle CSV export error: {str(e)}", exc_info=True)
+        flash(f'An error occurred during CSV export: {str(e)}')
         return redirect(url_for('manage_vehicles'))
 
 @app.route('/export_vehicles_pdf')
@@ -900,9 +900,126 @@ def export_vehicles_pdf():
         return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
     except Exception as e:
-        logger.error(f"Vehicle PDF export error: {str(e)}")
-        flash('An error occurred during PDF export.')
+        logger.error(f"Vehicle PDF export error: {str(e)}", exc_info=True)
+        flash(f'An error occurred during PDF export: {str(e)}')
         return redirect(url_for('manage_vehicles'))
+
+@app.route('/export_station_inventory/<int:station_id>')
+def export_station_inventory(station_id):
+    """Export station inventory to CSV"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        station = db_helpers.get_station_by_id(station_id) if hasattr(db_helpers, 'get_station_by_id') else None
+        if not station:
+            stations = db_helpers.get_all_stations()
+            station = next((s for s in stations if s['id'] == station_id), None)
+
+        if not station:
+            flash('Station not found!')
+            return redirect(url_for('inventory_menu'))
+
+        output = StringIO()
+        cw = csv.writer(output)
+
+        cw.writerow([f'STATION INVENTORY - {station["name"]}'])
+        cw.writerow([])
+        cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Location', 'Last Updated'])
+
+        inventory = db_helpers.get_station_inventory(station_id)
+        for item in inventory:
+            cw.writerow([
+                item.get('item_name', ''),
+                item.get('category', ''),
+                item.get('quantity', 0),
+                item.get('unit', ''),
+                item.get('location', ''),
+                item.get('last_updated', '')
+            ])
+
+        output.seek(0)
+        filename = f'station_{station_id}_inventory_{datetime.now().strftime("%Y%m%d")}.csv'
+
+        return send_file(
+            BytesIO(output.getvalue().encode()),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Station inventory CSV export error: {str(e)}", exc_info=True)
+        flash(f'An error occurred during CSV export: {str(e)}')
+        return redirect(url_for('station_inventory', station_id=station_id))
+
+@app.route('/export_station_inventory_pdf/<int:station_id>')
+def export_station_inventory_pdf(station_id):
+    """Export station inventory to PDF"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        station = db_helpers.get_station_by_id(station_id) if hasattr(db_helpers, 'get_station_by_id') else None
+        if not station:
+            stations = db_helpers.get_all_stations()
+            station = next((s for s in stations if s['id'] == station_id), None)
+
+        if not station:
+            flash('Station not found!')
+            return redirect(url_for('inventory_menu'))
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
+        title = Paragraph(f"<b>STATION INVENTORY - {station['name']}</b>", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.25*inch))
+
+        data = [['Item Name', 'Category', 'Quantity', 'Unit', 'Location', 'Last Updated']]
+
+        inventory = db_helpers.get_station_inventory(station_id)
+        for item in inventory:
+            data.append([
+                item.get('item_name', '')[:30],
+                item.get('category', ''),
+                str(item.get('quantity', 0)),
+                item.get('unit', ''),
+                item.get('location', '')[:20],
+                item.get('last_updated', '')[:19] if item.get('last_updated') else ''
+            ])
+
+        if len(data) > 1:
+            table = Table(data, colWidths=[2*inch, 1.5*inch, 1*inch, 1*inch, 1.5*inch, 2*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(table)
+        else:
+            elements.append(Paragraph("No inventory items found for this station.", styles['Normal']))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        filename = f'station_{station_id}_inventory_{datetime.now().strftime("%Y%m%d")}.pdf'
+        return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Station inventory PDF export error: {str(e)}", exc_info=True)
+        flash(f'An error occurred during PDF export: {str(e)}')
+        return redirect(url_for('station_inventory', station_id=station_id))
 
 @app.route('/logout')
 def logout():

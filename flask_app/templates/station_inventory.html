@@ -262,6 +262,16 @@
     <div class="container">
         <a href="{{ url_for('inventory_menu') }}" class="back-button">← Back to Inventory</a>
 
+        <!-- Export Buttons -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: flex-end; flex-wrap: wrap;">
+            <a href="{{ url_for('export_station_inventory', station_id=station.id) }}" style="padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                📄 Export CSV
+            </a>
+            <a href="{{ url_for('export_station_inventory_pdf', station_id=station.id) }}" style="padding: 12px 24px; background: #dc3545; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                📕 Export PDF
+            </a>
+        </div>
+
         <!-- Add Item Form -->
         <div class="section">
             <div class="section-title">➕ Add Item to Station</div>
