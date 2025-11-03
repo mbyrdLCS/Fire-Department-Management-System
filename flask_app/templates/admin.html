@@ -250,9 +250,10 @@
                 </tr>
             </thead>
             <tbody>
-                {% for entry in all_logs %}
-                    {% set log = entry['log'] %}
-                    <tr>
+                {% if all_logs %}
+                    {% for entry in all_logs %}
+                        {% set log = entry['log'] %}
+                        <tr>
                         <td>
                             {% if log['time_in'] %}
                                 {% set time_in_obj = log['time_in']|fromisoformat %}
@@ -284,7 +285,7 @@
                         </td>
                         <td>
                             <form action="{{ url_for('delete_log') }}" method="post" style="display: inline;"
-                                  onsubmit="return confirm('Are you sure you want to delete this log entry for {{ entry[\'full_name\'] }}?');">
+                                  onsubmit="return confirm('Are you sure you want to delete this log entry?');">
                                 <input type="hidden" name="log_id" value="{{ log['id'] }}">
                                 <button type="submit" class="action-button delete-button">
                                     Delete Log
@@ -292,7 +293,14 @@
                             </form>
                         </td>
                     </tr>
-                {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #999;">
+                            No activity logs found.
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>

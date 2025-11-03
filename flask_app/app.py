@@ -306,7 +306,12 @@ def admin_panel():
             })
 
     # Sort all logs by time_in descending (most recent first)
-    all_logs.sort(key=lambda x: x['log']['time_in'] if x['log']['time_in'] else '', reverse=True)
+    # Use empty string for None values so they sort to the end
+    try:
+        all_logs.sort(key=lambda x: x['log'].get('time_in', '') or '', reverse=True)
+    except Exception as e:
+        logger.error(f"Error sorting logs: {str(e)}", exc_info=True)
+        # If sorting fails, just use unsorted list
 
     return render_template('admin.html', user_data=user_data, categories=categories_list, all_logs=all_logs)
 
