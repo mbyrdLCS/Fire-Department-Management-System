@@ -16,6 +16,12 @@ import db_helpers
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -525,6 +531,178 @@ def export_inspections():
     except Exception as e:
         logger.error(f"Inspection export error: {str(e)}")
         flash('An error occurred during inspection export.')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/export_data_pdf')
+def export_data_pdf():
+    """Export firefighter time logs to PDF (formatted for payroll)"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # Title
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
+        if month and year:
+            month_name = datetime(int(year), int(month), 1).strftime('%B %Y')
+            title = Paragraph(f"<b>PAYROLL REPORT - {month_name}</b>", title_style)
+        else:
+            title = Paragraph("<b>PAYROLL REPORT - ALL TIME</b>", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.25*inch))
+
+        firefighters = db_helpers.get_all_firefighters()
+
+        for ff in firefighters:
+            logs = db_helpers.get_firefighter_logs(ff['fireman_number'])
+            filtered_logs = []
+            month_total = 0
+
+            for log in logs:
+                if log['time_in']:
+                    time_in = datetime.fromisoformat(log['time_in'])
+                    if month and year:
+                        if time_in.month != int(month) or time_in.year != int(year):
+                            continue
+                    filtered_logs.append(log)
+                    month_total += log.get('hours_worked', 0) or 0
+
+            if filtered_logs:
+                # Firefighter header
+                ff_header = Paragraph(f"<b>FIREFIGHTER #{ff['fireman_number']} - {ff['full_name']}</b>", styles['Heading2'])
+                elements.append(ff_header)
+                elements.append(Spacer(1, 0.1*inch))
+
+                # Table data
+                data = [['Date', 'Time In', 'Time Out', 'Activity', 'Hours Worked']]
+                for log in filtered_logs:
+                    time_in_dt = datetime.fromisoformat(log['time_in']) if log['time_in'] else None
+                    time_out_dt = datetime.fromisoformat(log['time_out']) if log['time_out'] else None
+                    date_str = time_in_dt.strftime('%Y-%m-%d') if time_in_dt else ''
+                    time_in_str = time_in_dt.strftime('%I:%M %p') if time_in_dt else ''
+                    time_out_str = time_out_dt.strftime('%I:%M %p') if time_out_dt else 'Still clocked in'
+                    hours = f"{log.get('hours_worked', 0):.2f}" if log.get('hours_worked') else '0.00'
+                    data.append([date_str, time_in_str, time_out_str, log['type'], hours])
+
+                # Total row
+                data.append(['', '', '', 'TOTAL HOURS:', f"{month_total:.2f}"])
+
+                table = Table(data, colWidths=[1.5*inch, 1.2*inch, 1.2*inch, 1.5*inch, 1.2*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                elements.append(table)
+                elements.append(Spacer(1, 0.3*inch))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        if month and year:
+            filename = f'payroll_{year}_{int(month):02d}.pdf'
+        else:
+            filename = 'payroll_all_time.pdf'
+
+        return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"PDF Export error: {str(e)}")
+        flash('An error occurred during PDF export.')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/export_inspections_pdf')
+def export_inspections_pdf():
+    """Export vehicle inspection logs to PDF"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        month = request.args.get('month')
+        year = request.args.get('year')
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # Title
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
+        if month and year:
+            month_name = datetime(int(year), int(month), 1).strftime('%B %Y')
+            title = Paragraph(f"<b>VEHICLE INSPECTION REPORT - {month_name}</b>", title_style)
+        else:
+            title = Paragraph("<b>VEHICLE INSPECTION REPORT - ALL TIME</b>", title_style)
+        elements.append(title)
+        elements.append(Spacer(1, 0.25*inch))
+
+        data = [['Vehicle Code', 'Vehicle Name', 'Inspection Date', 'Inspector', 'Result', 'Notes']]
+
+        vehicles = db_helpers.get_all_vehicles()
+        for vehicle in vehicles:
+            history = db_helpers.get_vehicle_inspection_history(vehicle['id'], limit=1000)
+            for insp in history:
+                insp_date = datetime.fromisoformat(insp['inspection_date'])
+                if month and year:
+                    if insp_date.month != int(month) or insp_date.year != int(year):
+                        continue
+
+                date_str = insp_date.strftime('%Y-%m-%d %I:%M %p')
+                result = 'Pass' if insp['result'] == 'pass' else 'Fail'
+                notes = insp.get('notes', '')[:40] + '...' if len(insp.get('notes', '')) > 40 else insp.get('notes', '')
+                data.append([
+                    vehicle['vehicle_code'],
+                    vehicle['name'],
+                    date_str,
+                    insp.get('inspector_name', 'N/A'),
+                    result,
+                    notes
+                ])
+
+        if len(data) > 1:
+            table = Table(data, colWidths=[1.2*inch, 1.5*inch, 2*inch, 1.5*inch, 0.8*inch, 2.5*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(table)
+        else:
+            elements.append(Paragraph("No inspections found for this period.", styles['Normal']))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        if month and year:
+            filename = f'inspections_{year}_{int(month):02d}.pdf'
+        else:
+            filename = 'inspections_all_time.pdf'
+
+        return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Inspection PDF export error: {str(e)}")
+        flash('An error occurred during PDF export.')
         return redirect(url_for('admin_panel'))
 
 @app.route('/logout')

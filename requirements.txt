@@ -12,6 +12,7 @@ MarkupSafe==3.0.3
 openpyxl==3.1.5
 ply==3.11
 python-dotenv==1.2.1
+reportlab==4.0.7
 pytz==2023.3
 requests==2.32.5
 six==1.17.0

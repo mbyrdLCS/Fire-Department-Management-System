@@ -21,37 +21,41 @@
                     <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 20px;">📊</span> PAYROLL EXPORT
                     </h3>
-                    <form method="get" action="{{ url_for('export_data') }}" style="margin-bottom: 12px;">
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <select name="month" id="month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                            <select name="year" id="year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
-                                {% for y in range(2020, 2031) %}
-                                    <option value="{{ y }}" {% if y == 2025 %}selected{% endif %}>{{ y }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" style="padding: 8px 20px; background: #1976d2; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
-                                📥 Export Month
-                            </button>
-                        </div>
-                    </form>
-                    <form method="get" action="{{ url_for('export_data') }}">
-                        <button type="submit" style="width: 100%; padding: 10px; background: #f5f5f5; color: #1a237e; border: 2px solid #1a237e; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
-                            📥 Export All Payroll Data
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+                        <select id="payroll_month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <select id="payroll_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
+                            {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if y == 2025 %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                        <button onclick="exportPayroll('csv', true)" style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
+                            📄 CSV
                         </button>
-                    </form>
+                        <button onclick="exportPayroll('pdf', true)" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
+                            📕 PDF
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button onclick="exportPayroll('csv', false)" style="padding: 10px; background: #f5f5f5; color: #1a237e; border: 2px solid #1a237e; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            📄 Export All (CSV)
+                        </button>
+                        <button onclick="exportPayroll('pdf', false)" style="padding: 10px; background: #f5f5f5; color: #dc3545; border: 2px solid #dc3545; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            📕 Export All (PDF)
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Vehicle Inspection Export Section -->
@@ -59,37 +63,41 @@
                     <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 20px;">🚒</span> VEHICLE INSPECTION EXPORT
                     </h3>
-                    <form method="get" action="{{ url_for('export_inspections') }}" style="margin-bottom: 12px;">
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <select name="month" id="insp_month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                            <select name="year" id="insp_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
-                                {% for y in range(2020, 2031) %}
-                                    <option value="{{ y }}" {% if y == 2025 %}selected{% endif %}>{{ y }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" style="padding: 8px 20px; background: #20c997; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
-                                📥 Export Month
-                            </button>
-                        </div>
-                    </form>
-                    <form method="get" action="{{ url_for('export_inspections') }}">
-                        <button type="submit" style="width: 100%; padding: 10px; background: #f5f5f5; color: #1a237e; border: 2px solid #1a237e; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
-                            📥 Export All Inspection Data
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+                        <select id="insp_month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <select id="insp_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
+                            {% for y in range(2020, 2031) %}
+                                <option value="{{ y }}" {% if y == 2025 %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                        <button onclick="exportInspections('csv', true)" style="padding: 8px 16px; background: #20c997; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
+                            📄 CSV
                         </button>
-                    </form>
+                        <button onclick="exportInspections('pdf', true)" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
+                            📕 PDF
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button onclick="exportInspections('csv', false)" style="padding: 10px; background: #f5f5f5; color: #20c997; border: 2px solid #20c997; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            📄 Export All (CSV)
+                        </button>
+                        <button onclick="exportInspections('pdf', false)" style="padding: 10px; background: #f5f5f5; color: #dc3545; border: 2px solid #dc3545; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            📕 Export All (PDF)
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -555,6 +563,28 @@ function toggleActivityLogs() {
 function confirmCategoryRemoval() {
     const category = document.getElementById('category_to_remove').value;
     return confirm(`⚠️ Are you sure you want to remove the "${category}" category?\n\nNote: This may affect existing time logs that use this category.`);
+}
+
+// Export payroll data
+function exportPayroll(format, useMonthYear) {
+    let url = format === 'pdf' ? '/export_data_pdf' : '/export_data';
+    if (useMonthYear) {
+        const month = document.getElementById('payroll_month').value;
+        const year = document.getElementById('payroll_year').value;
+        url += `?month=${month}&year=${year}`;
+    }
+    window.location.href = url;
+}
+
+// Export inspection data
+function exportInspections(format, useMonthYear) {
+    let url = format === 'pdf' ? '/export_inspections_pdf' : '/export_inspections';
+    if (useMonthYear) {
+        const month = document.getElementById('insp_month').value;
+        const year = document.getElementById('insp_year').value;
+        url += `?month=${month}&year=${year}`;
+    }
+    window.location.href = url;
 }
 </script>
 
