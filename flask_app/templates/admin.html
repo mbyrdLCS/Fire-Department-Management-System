@@ -250,51 +250,48 @@
                 </tr>
             </thead>
             <tbody>
-                {% for fireman_number, details in user_data.items() %}
-                    {% for log_index in range(details['logs']|length) %}
-                        {% set log = details['logs'][log_index] %}
-                        <tr>
-                            <td>
-                                {% if log['time_in'] %}
-                                    {% set time_in_obj = log['time_in']|fromisoformat %}
-                                    {{ time_in_obj.strftime('%m/%d/%Y') }}
-                                {% else %}
-                                    --
-                                {% endif %}
-                            </td>
-                            <td>{{ details['full_name'] }}</td>
-                            <td>{{ log['type'] }}</td>
-                            <td>{{ log['time_in']|format_log_time }}</td>
-                            <td>
-                                {% if log['time_out'] %}
-                                    {{ log['time_out']|format_log_time }}
-                                {% else %}
-                                    <span style="color: #dc3545;">Still Active</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if log['manual_added_hours'] %}
-                                    {{ log['manual_added_hours']|round(2) }}
-                                {% elif log['time_out'] %}
-                                    {% set time_in = log['time_in']|fromisoformat %}
-                                    {% set time_out = log['time_out']|fromisoformat %}
-                                    {{ ((time_out - time_in).total_seconds() / 3600)|round(2) }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>
-                                <form action="{{ url_for('delete_log') }}" method="post" style="display: inline;"
-                                      onsubmit="return confirm('Are you sure you want to delete this log entry?');">
-                                    <input type="hidden" name="fireman_number" value="{{ fireman_number }}">
-                                    <input type="hidden" name="log_index" value="{{ log_index }}">
-                                    <button type="submit" class="action-button delete-button">
-                                        Delete Log
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                {% for entry in all_logs %}
+                    {% set log = entry['log'] %}
+                    <tr>
+                        <td>
+                            {% if log['time_in'] %}
+                                {% set time_in_obj = log['time_in']|fromisoformat %}
+                                {{ time_in_obj.strftime('%m/%d/%Y') }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td>{{ entry['full_name'] }}</td>
+                        <td>{{ log['type'] }}</td>
+                        <td>{{ log['time_in']|format_log_time }}</td>
+                        <td>
+                            {% if log['time_out'] %}
+                                {{ log['time_out']|format_log_time }}
+                            {% else %}
+                                <span style="color: #dc3545;">Still Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log['manual_added_hours'] %}
+                                {{ log['manual_added_hours']|round(2) }}
+                            {% elif log['time_out'] %}
+                                {% set time_in = log['time_in']|fromisoformat %}
+                                {% set time_out = log['time_out']|fromisoformat %}
+                                {{ ((time_out - time_in).total_seconds() / 3600)|round(2) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form action="{{ url_for('delete_log') }}" method="post" style="display: inline;"
+                                  onsubmit="return confirm('Are you sure you want to delete this log entry for {{ entry[\'full_name\'] }}?');">
+                                <input type="hidden" name="log_id" value="{{ log['id'] }}">
+                                <button type="submit" class="action-button delete-button">
+                                    Delete Log
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
                 {% endfor %}
             </tbody>
         </table>

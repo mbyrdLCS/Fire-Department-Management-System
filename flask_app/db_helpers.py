@@ -429,6 +429,40 @@ def delete_log(fireman_number, log_index):
     conn.commit()
     conn.close()
 
+def delete_log_by_id(log_id):
+    """Delete a specific log entry by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Get the log details before deleting
+    cursor.execute('''
+        SELECT tl.hours_worked, tl.manual_added_hours, f.fireman_number
+        FROM time_logs tl
+        JOIN firefighters f ON tl.firefighter_id = f.id
+        WHERE tl.id = ?
+    ''', (log_id,))
+
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False, "Log not found"
+
+    hours_to_subtract = row[0] or row[1] or 0
+    fireman_number = row[2]
+
+    # Delete the log
+    cursor.execute('DELETE FROM time_logs WHERE id = ?', (log_id,))
+
+    # Update firefighter total hours
+    cursor.execute('''
+        UPDATE firefighters
+        SET total_hours = total_hours - ?, updated_at = CURRENT_TIMESTAMP
+        WHERE fireman_number = ?
+    ''', (hours_to_subtract, fireman_number))
+
+    conn.commit()
+    conn.close()
+
     return True, "Log deleted successfully"
 
 def clear_all_logs():

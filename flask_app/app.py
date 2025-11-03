@@ -287,6 +287,8 @@ def admin_panel():
 
     # Convert to format expected by template
     user_data = {}
+    all_logs = []  # Flat list of all logs for sorting
+
     for ff in firefighters_list:
         logs = db_helpers.get_firefighter_logs(ff['fireman_number'])
         user_data[ff['fireman_number']] = {
@@ -295,7 +297,18 @@ def admin_panel():
             'logs': logs
         }
 
-    return render_template('admin.html', user_data=user_data, categories=categories_list)
+        # Add logs to flat list with firefighter info attached
+        for log in logs:
+            all_logs.append({
+                'fireman_number': ff['fireman_number'],
+                'full_name': ff['full_name'],
+                'log': log
+            })
+
+    # Sort all logs by time_in descending (most recent first)
+    all_logs.sort(key=lambda x: x['log']['time_in'] if x['log']['time_in'] else '', reverse=True)
+
+    return render_template('admin.html', user_data=user_data, categories=categories_list, all_logs=all_logs)
 
 @app.route('/update_hours', methods=['POST'])
 def update_hours():
@@ -429,20 +442,18 @@ def delete_log():
         return redirect(url_for('admin'))
 
     try:
-        fireman_number = request.form['fireman_number']
-        log_index = int(request.form['log_index'])
+        log_id = int(request.form['log_id'])
 
-        success, message = db_helpers.delete_log(fireman_number, log_index)
+        success, message = db_helpers.delete_log_by_id(log_id)
 
         if success:
             flash('Log entry deleted successfully!')
-            firefighter = db_helpers.get_firefighter_by_number(fireman_number)
-            logger.info(f"Log deleted for firefighter: {firefighter['full_name']}")
+            logger.info(f"Log ID {log_id} deleted")
         else:
             flash(f'Error: {message}')
 
     except Exception as e:
-        logger.error(f"Delete log error: {str(e)}")
+        logger.error(f"Delete log error: {str(e)}", exc_info=True)
         flash('An error occurred while deleting the log.')
 
     return redirect(url_for('admin_panel'))
