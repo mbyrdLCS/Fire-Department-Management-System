@@ -589,6 +589,224 @@ def get_inspection_checklist():
     conn.close()
     return items
 
+def get_all_checklist_items():
+    """Get all inspection checklist items (active and inactive)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, description, category, is_active, display_order
+        FROM inspection_checklist_items
+        ORDER BY display_order
+    ''')
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'description': row[1],
+            'category': row[2],
+            'is_active': row[3],
+            'display_order': row[4]
+        })
+
+    conn.close()
+    return items
+
+def create_checklist_item(description, category='', display_order=0):
+    """Create a new inspection checklist item"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO inspection_checklist_items
+            (description, category, is_active, display_order)
+            VALUES (?, ?, 1, ?)
+        ''', (description, category, display_order))
+
+        conn.commit()
+        item_id = cursor.lastrowid
+        conn.close()
+        return True, item_id
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def toggle_checklist_item(item_id):
+    """Toggle active status of a checklist item"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE inspection_checklist_items
+            SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END
+            WHERE id = ?
+        ''', (item_id,))
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False
+
+def delete_checklist_item(item_id):
+    """Delete a checklist item"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM inspection_checklist_items WHERE id = ?', (item_id,))
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False
+
+def update_checklist_item_order(item_id, display_order):
+    """Update the display order of a checklist item"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE inspection_checklist_items
+            SET display_order = ?
+            WHERE id = ?
+        ''', (display_order, item_id))
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False
+
+def get_vehicle_checklist(vehicle_id):
+    """Get checklist items assigned to a specific vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT ci.id, ci.description, ci.category, ci.display_order
+        FROM inspection_checklist_items ci
+        INNER JOIN vehicle_checklist_assignments vca ON ci.id = vca.checklist_item_id
+        WHERE vca.vehicle_id = ? AND ci.is_active = 1
+        ORDER BY ci.display_order
+    ''', (vehicle_id,))
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row[0],
+            'description': row[1],
+            'category': row[2],
+            'display_order': row[3]
+        })
+
+    conn.close()
+    return items
+
+def assign_checklist_to_vehicle(vehicle_id, checklist_item_ids):
+    """Assign checklist items to a vehicle (replaces existing assignments)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Remove existing assignments
+        cursor.execute('DELETE FROM vehicle_checklist_assignments WHERE vehicle_id = ?', (vehicle_id,))
+
+        # Add new assignments
+        for item_id in checklist_item_ids:
+            cursor.execute('''
+                INSERT INTO vehicle_checklist_assignments (vehicle_id, checklist_item_id)
+                VALUES (?, ?)
+            ''', (vehicle_id, item_id))
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False
+
+def add_checklist_item_to_vehicle(vehicle_id, checklist_item_id):
+    """Add a single checklist item to a vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT OR IGNORE INTO vehicle_checklist_assignments (vehicle_id, checklist_item_id)
+            VALUES (?, ?)
+        ''', (vehicle_id, checklist_item_id))
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False
+
+def remove_checklist_item_from_vehicle(vehicle_id, checklist_item_id):
+    """Remove a checklist item from a vehicle"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            DELETE FROM vehicle_checklist_assignments
+            WHERE vehicle_id = ? AND checklist_item_id = ?
+        ''', (vehicle_id, checklist_item_id))
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False
+
+def get_vehicles_for_checklist_item(checklist_item_id):
+    """Get all vehicles that have this checklist item assigned"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT v.id, v.vehicle_code, v.name
+        FROM vehicles v
+        INNER JOIN vehicle_checklist_assignments vca ON v.id = vca.vehicle_id
+        WHERE vca.checklist_item_id = ?
+        ORDER BY v.vehicle_code
+    ''', (checklist_item_id,))
+
+    vehicles = []
+    for row in cursor.fetchall():
+        vehicles.append({
+            'id': row[0],
+            'code': row[1],
+            'name': row[2]
+        })
+
+    conn.close()
+    return vehicles
+
 def create_vehicle_inspection(vehicle_id, inspector_id, inspection_results, additional_notes=''):
     """Create a new vehicle inspection with results"""
     conn = get_db_connection()

@@ -624,7 +624,8 @@ def inspect_vehicle(vehicle_id):
         flash('Vehicle not found!')
         return redirect(url_for('inspections_menu'))
 
-    checklist_items = db_helpers.get_inspection_checklist()
+    # Get vehicle-specific checklist items
+    checklist_items = db_helpers.get_vehicle_checklist(vehicle_id)
     firefighters = db_helpers.get_all_firefighters()
 
     return render_template('inspect_vehicle.html',
@@ -1147,6 +1148,99 @@ def create_station():
         logger.error(f"Create station error: {str(e)}")
         flash('An error occurred while creating the station.')
         return redirect(url_for('manage_stations'))
+
+# ========== INSPECTION CHECKLIST MANAGEMENT ROUTES ==========
+
+@app.route('/admin/checklist-items')
+def manage_checklist_items():
+    """Manage inspection checklist items"""
+    items = db_helpers.get_all_checklist_items()
+    return render_template('manage_checklist_items.html', items=items)
+
+@app.route('/admin/checklist-item/create', methods=['POST'])
+def create_checklist_item():
+    """Create a new checklist item"""
+    try:
+        description = request.form['description']
+        category = request.form.get('category', '')
+        display_order = request.form.get('display_order', 0)
+
+        success, result = db_helpers.create_checklist_item(
+            description=description,
+            category=category,
+            display_order=int(display_order) if display_order else 0
+        )
+
+        if success:
+            flash(f'Checklist item created successfully!')
+            logger.info(f"Checklist item created: {description}")
+        else:
+            flash(f'Error creating checklist item: {result}')
+
+        return redirect(url_for('manage_checklist_items'))
+
+    except Exception as e:
+        logger.error(f"Create checklist item error: {str(e)}")
+        flash('An error occurred while creating the checklist item.')
+        return redirect(url_for('manage_checklist_items'))
+
+@app.route('/admin/checklist-item/toggle/<int:item_id>', methods=['POST'])
+def toggle_checklist_item(item_id):
+    """Toggle active status of a checklist item"""
+    try:
+        success = db_helpers.toggle_checklist_item(item_id)
+
+        if success:
+            flash('Checklist item status updated successfully!')
+            logger.info(f"Checklist item {item_id} toggled")
+        else:
+            flash('Error updating checklist item status.')
+
+        return redirect(url_for('manage_checklist_items'))
+
+    except Exception as e:
+        logger.error(f"Toggle checklist item error: {str(e)}")
+        flash('An error occurred while updating the checklist item.')
+        return redirect(url_for('manage_checklist_items'))
+
+@app.route('/admin/checklist-item/delete/<int:item_id>', methods=['POST'])
+def delete_checklist_item(item_id):
+    """Delete a checklist item"""
+    try:
+        success = db_helpers.delete_checklist_item(item_id)
+
+        if success:
+            flash('Checklist item deleted successfully!')
+            logger.info(f"Checklist item {item_id} deleted")
+        else:
+            flash('Error deleting checklist item.')
+
+        return redirect(url_for('manage_checklist_items'))
+
+    except Exception as e:
+        logger.error(f"Delete checklist item error: {str(e)}")
+        flash('An error occurred while deleting the checklist item.')
+        return redirect(url_for('manage_checklist_items'))
+
+@app.route('/admin/checklist-item/update-order/<int:item_id>', methods=['POST'])
+def update_checklist_item_order(item_id):
+    """Update the display order of a checklist item"""
+    try:
+        display_order = request.form.get('display_order', 0)
+        success = db_helpers.update_checklist_item_order(item_id, int(display_order))
+
+        if success:
+            flash('Checklist item order updated successfully!')
+            logger.info(f"Checklist item {item_id} order updated to {display_order}")
+        else:
+            flash('Error updating checklist item order.')
+
+        return redirect(url_for('manage_checklist_items'))
+
+    except Exception as e:
+        logger.error(f"Update checklist item order error: {str(e)}")
+        flash('An error occurred while updating the checklist item order.')
+        return redirect(url_for('manage_checklist_items'))
 
 # ========== DASHBOARD ROUTE ==========
 

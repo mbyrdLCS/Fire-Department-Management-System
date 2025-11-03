@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Inspection Checklist Items</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-submit {
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .checklist-table th,
+        .checklist-table td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .checklist-table th {
+            background: #f8f8f8;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .checklist-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-inactive {
+            background: #999;
+            color: white;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #1976D2;
+        }
+
+        .btn-delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #d32f2f;
+        }
+
+        .flash-message {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .category-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .order-input {
+            width: 60px !important;
+        }
+
+        .drag-handle {
+            cursor: move;
+            color: #999;
+            padding-right: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .checklist-table {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('admin_panel') }}" class="back-btn">← Back to Admin</a>
+
+        <div class="header">
+            <h1>📋 Inspection Checklist Management</h1>
+            <div class="subtitle">Manage checklist items for vehicle inspections</div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    ✓ {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Add New Checklist Item -->
+        <div class="section">
+            <div class="section-title">➕ Add New Checklist Item</div>
+            <form method="POST" action="{{ url_for('create_checklist_item') }}">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="description">Description: *</label>
+                        <input type="text" name="description" id="description" placeholder="e.g., Check engine oil level" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category:</label>
+                        <select name="category" id="category">
+                            <option value="">-- Select Category --</option>
+                            <option value="Engine">Engine</option>
+                            <option value="Fluids">Fluids</option>
+                            <option value="Tires">Tires</option>
+                            <option value="Lights">Lights</option>
+                            <option value="Safety Equipment">Safety Equipment</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="Pumps">Pumps</option>
+                            <option value="Ladders">Ladders</option>
+                            <option value="SCBA">SCBA</option>
+                            <option value="Tools">Tools</option>
+                            <option value="Communications">Communications</option>
+                            <option value="Exterior">Exterior</option>
+                            <option value="Interior">Interior</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="display_order">Display Order:</label>
+                        <input type="number" name="display_order" id="display_order" value="0" min="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Add Checklist Item</button>
+            </form>
+        </div>
+
+        <!-- Existing Checklist Items -->
+        <div class="section">
+            <div class="section-title">📋 Current Checklist Items ({{ items|length }})</div>
+
+            {% if items %}
+            <div style="overflow-x: auto;">
+                <table class="checklist-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">Order</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>
+                                <form method="POST" action="{{ url_for('update_checklist_item_order', item_id=item.id) }}" style="display: inline;">
+                                    <input type="number" name="display_order" value="{{ item.display_order }}" class="order-input" min="0">
+                                    <button type="submit" style="display: none;">Update</button>
+                                </form>
+                            </td>
+                            <td><strong>{{ item.description }}</strong></td>
+                            <td>
+                                {% if item.category %}
+                                <span class="category-badge">{{ item.category }}</span>
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ 'active' if item.is_active else 'inactive' }}">
+                                    {{ 'Active' if item.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('toggle_checklist_item', item_id=item.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn-edit">
+                                        {{ 'Deactivate' if item.is_active else 'Activate' }}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('delete_checklist_item', item_id=item.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this checklist item?');">
+                                    <button type="submit" class="btn-delete">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #999; padding: 40px;">No checklist items added yet. Add your first item above!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Auto-submit order changes on blur
+        document.querySelectorAll('.order-input').forEach(input => {
+            input.addEventListener('change', function() {
+                this.form.submit();
+            });
+        });
+    </script>
+</body>
+</html>
