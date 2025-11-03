@@ -924,17 +924,23 @@ def export_station_inventory(station_id):
         output = StringIO()
         cw = csv.writer(output)
 
-        cw.writerow([f'STATION INVENTORY - {station["name"]}'])
+        cw.writerow([f'COMPLETE STATION INVENTORY - {station["name"]}'])
+        cw.writerow(['Includes station building and all vehicles'])
         cw.writerow([])
+
+        grand_total = 0
+
+        # Station building inventory
+        cw.writerow(['=== STATION BUILDING INVENTORY ==='])
         cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Location', 'Last Checked'])
 
         inventory = db_helpers.get_station_inventory(station_id)
-        total_value = 0
+        station_total = 0
         for item in inventory:
             cost_per_unit = item.get('cost_per_unit', 0) or 0
             quantity = item.get('quantity', 0) or 0
             item_value = cost_per_unit * quantity
-            total_value += item_value
+            station_total += item_value
 
             cw.writerow([
                 item.get('name', ''),
@@ -947,9 +953,41 @@ def export_station_inventory(station_id):
                 item.get('last_checked', '')
             ])
 
-        # Add total row
+        cw.writerow(['', '', '', '', 'STATION SUBTOTAL:', f"${station_total:.2f}", '', ''])
         cw.writerow([])
-        cw.writerow(['', '', '', '', 'TOTAL VALUE:', f"${total_value:.2f}", '', ''])
+        grand_total += station_total
+
+        # Vehicle inventories
+        vehicles = db_helpers.get_vehicles_by_station(station_id)
+        for vehicle in vehicles:
+            cw.writerow([f'=== {vehicle["name"]} ({vehicle["vehicle_code"]}) ==='])
+            cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Location', 'Last Checked'])
+
+            vehicle_inventory = db_helpers.get_vehicle_inventory(vehicle['id'])
+            vehicle_total = 0
+            for item in vehicle_inventory:
+                cost_per_unit = item.get('cost_per_unit', 0) or 0
+                quantity = item.get('quantity', 0) or 0
+                item_value = cost_per_unit * quantity
+                vehicle_total += item_value
+
+                cw.writerow([
+                    item.get('name', ''),
+                    item.get('category', ''),
+                    quantity,
+                    item.get('unit_of_measure', ''),
+                    f"${cost_per_unit:.2f}",
+                    f"${item_value:.2f}",
+                    f'{vehicle["name"]} (Truck)',
+                    item.get('last_checked', '')
+                ])
+
+            cw.writerow(['', '', '', '', f'{vehicle["name"]} SUBTOTAL:', f"${vehicle_total:.2f}", '', ''])
+            cw.writerow([])
+            grand_total += vehicle_total
+
+        # Grand total
+        cw.writerow(['', '', '', '', 'GRAND TOTAL (STATION + ALL VEHICLES):', f"${grand_total:.2f}", '', ''])
 
         output.seek(0)
         filename = f'station_{station_id}_inventory_{datetime.now().strftime("%Y%m%d")}.csv'
@@ -989,36 +1027,41 @@ def export_station_inventory_pdf(station_id):
         styles = getSampleStyleSheet()
 
         title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
-        title = Paragraph(f"<b>STATION INVENTORY - {station['name']}</b>", title_style)
+        title = Paragraph(f"<b>COMPLETE STATION INVENTORY - {station['name']}</b>", title_style)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], alignment=TA_CENTER, fontSize=12, spaceAfter=20)
+        subtitle = Paragraph("<i>Includes station building and all vehicles</i>", subtitle_style)
         elements.append(title)
+        elements.append(subtitle)
         elements.append(Spacer(1, 0.25*inch))
 
-        data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value', 'Location']]
+        grand_total = 0
 
+        # Station building inventory
+        station_header = Paragraph("<b>STATION BUILDING INVENTORY</b>", styles['Heading2'])
+        elements.append(station_header)
+        elements.append(Spacer(1, 0.1*inch))
+
+        data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value']]
         inventory = db_helpers.get_station_inventory(station_id)
-        total_value = 0
+        station_total = 0
         for item in inventory:
             cost_per_unit = item.get('cost_per_unit', 0) or 0
             quantity = item.get('quantity', 0) or 0
             item_value = cost_per_unit * quantity
-            total_value += item_value
+            station_total += item_value
 
             data.append([
-                item.get('name', '')[:25],
+                item.get('name', '')[:30],
                 item.get('category', '')[:15],
                 str(quantity),
                 item.get('unit_of_measure', '')[:8],
                 f"${cost_per_unit:.2f}",
-                f"${item_value:.2f}",
-                station['name']
+                f"${item_value:.2f}"
             ])
 
-        # Add total row
         if len(data) > 1:
-            data.append(['', '', '', '', 'TOTAL:', f"${total_value:.2f}", ''])
-
-        if len(data) > 1:
-            table = Table(data, colWidths=[2*inch, 1.3*inch, 0.6*inch, 0.7*inch, 0.9*inch, 1*inch, 1.5*inch])
+            data.append(['', '', '', '', 'SUBTOTAL:', f"${station_total:.2f}"])
+            table = Table(data, colWidths=[2.5*inch, 1.5*inch, 0.7*inch, 0.8*inch, 1*inch, 1.2*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1032,8 +1075,60 @@ def export_station_inventory_pdf(station_id):
                 ('GRID', (0, 0), (-1, -1), 1, colors.black)
             ]))
             elements.append(table)
-        else:
-            elements.append(Paragraph("No inventory items found for this station.", styles['Normal']))
+            grand_total += station_total
+
+        elements.append(Spacer(1, 0.3*inch))
+
+        # Vehicle inventories
+        vehicles = db_helpers.get_vehicles_by_station(station_id)
+        for vehicle in vehicles:
+            vehicle_header = Paragraph(f"<b>{vehicle['name']} ({vehicle['vehicle_code']})</b>", styles['Heading2'])
+            elements.append(vehicle_header)
+            elements.append(Spacer(1, 0.1*inch))
+
+            data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value']]
+            vehicle_inventory = db_helpers.get_vehicle_inventory(vehicle['id'])
+            vehicle_total = 0
+            for item in vehicle_inventory:
+                cost_per_unit = item.get('cost_per_unit', 0) or 0
+                quantity = item.get('quantity', 0) or 0
+                item_value = cost_per_unit * quantity
+                vehicle_total += item_value
+
+                data.append([
+                    item.get('name', '')[:30],
+                    item.get('category', '')[:15],
+                    str(quantity),
+                    item.get('unit_of_measure', '')[:8],
+                    f"${cost_per_unit:.2f}",
+                    f"${item_value:.2f}"
+                ])
+
+            if len(data) > 1:
+                data.append(['', '', '', '', 'SUBTOTAL:', f"${vehicle_total:.2f}"])
+                table = Table(data, colWidths=[2.5*inch, 1.5*inch, 0.7*inch, 0.8*inch, 1*inch, 1.2*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                elements.append(table)
+                grand_total += vehicle_total
+            else:
+                elements.append(Paragraph("<i>No inventory items on this vehicle</i>", styles['Normal']))
+
+            elements.append(Spacer(1, 0.3*inch))
+
+        # Grand total
+        grand_total_para = Paragraph(f"<b>GRAND TOTAL (STATION + ALL VEHICLES): ${grand_total:.2f}</b>", styles['Heading2'])
+        elements.append(grand_total_para)
 
         doc.build(elements)
         buffer.seek(0)
