@@ -124,7 +124,7 @@
                             <tr>
                                 <td>{{ fireman_number }}</td>
                                 <td>{{ details['full_name'] }}</td>
-                                <td>{{ details['hours'] | round(2) }}</td>
+                                <td>{{ (details['hours'] | default(0)) | round(2) }}</td>
                                 <td>
                                     <button class="action-button" onclick="showLogs('{{ fireman_number }}')">View Logs</button>
                                     <button class="action-button" onclick="showEditForm('{{ fireman_number }}')">Edit</button>

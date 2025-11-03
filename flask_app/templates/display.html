@@ -436,7 +436,7 @@
                                 <tr>
                                     <td class="rank">#{{ loop.index }}</td>
                                     <td class="truncate">{{ firefighter.name }}</td>
-                                    <td class="hours">{{ firefighter.hours|round(1) }}</td>
+                                    <td class="hours">{{ (firefighter.hours | default(0)) | round(1) }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
