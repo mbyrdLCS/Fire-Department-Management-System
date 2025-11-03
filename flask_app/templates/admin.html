@@ -233,10 +233,14 @@
     </button>
 </div>
 <div id="activityLogsSection" style="display: none;">
+    <p style="color: #666; margin-bottom: 15px; font-size: 14px;">
+        <em>Showing logs sorted by most recent first. Today's logs appear at the top.</em>
+    </p>
     <div class="table-responsive">
         <table class="admin-table">
             <thead>
                 <tr>
+                    <th>Date</th>
                     <th>Firefighter</th>
                     <th>Activity</th>
                     <th>Time In</th>
@@ -250,6 +254,14 @@
                     {% for log_index in range(details['logs']|length) %}
                         {% set log = details['logs'][log_index] %}
                         <tr>
+                            <td>
+                                {% if log['time_in'] %}
+                                    {% set time_in_obj = log['time_in']|fromisoformat %}
+                                    {{ time_in_obj.strftime('%m/%d/%Y') }}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </td>
                             <td>{{ details['full_name'] }}</td>
                             <td>{{ log['type'] }}</td>
                             <td>{{ log['time_in']|format_log_time }}</td>
