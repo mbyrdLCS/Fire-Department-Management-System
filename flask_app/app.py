@@ -82,9 +82,16 @@ def kiosk():
     categories = [cat['name'] for cat in db_helpers.get_all_categories()]
 
     # Put "Work night" first as default (most common activity)
-    if 'Work night' in categories:
-        categories.remove('Work night')
-        categories.insert(0, 'Work night')
+    # Handle both "Work night" and "Work Night" (case variations)
+    work_night = None
+    for cat in categories[:]:
+        if cat.lower() == 'work night':
+            work_night = cat
+            categories.remove(cat)
+            break
+
+    if work_night:
+        categories.insert(0, work_night)
 
     # Get current status for each firefighter
     for ff in firefighters:
