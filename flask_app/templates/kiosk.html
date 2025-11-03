@@ -308,7 +308,7 @@
                     <label for="activity">Activity:</label>
                     <select name="activity" id="activity" required>
                         {% for category in categories %}
-                        <option value="{{ category }}" {% if category == 'Work night' %}selected{% endif %}>
+                        <option value="{{ category }}" {% if loop.first %}selected{% endif %}>
                             {{ category }}
                         </option>
                         {% endfor %}
@@ -383,8 +383,8 @@
                 if (data.success) {
                     showSuccess(action);
                     form.reset();
-                    // Reset to Work night default
-                    document.getElementById('activity').value = 'Work night';
+                    // Reset to first option (Work night)
+                    document.getElementById('activity').selectedIndex = 0;
                     setTimeout(() => {
                         location.reload();
                     }, 2000);
