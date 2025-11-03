@@ -413,8 +413,8 @@ def delete_log(fireman_number, log_index):
     log = logs[log_index]
     log_id = log['id']
 
-    # Get hours to subtract
-    hours_to_subtract = log.get('hours_worked', 0) or log.get('manual_added_hours', 0) or 0
+    # Get hours to subtract (prefer manual_added_hours if exists, else hours_worked)
+    hours_to_subtract = log.get('manual_added_hours', 0) or log.get('hours_worked', 0) or 0
 
     # Delete the log
     cursor.execute('DELETE FROM time_logs WHERE id = ?', (log_id,))
@@ -447,7 +447,8 @@ def delete_log_by_id(log_id):
         conn.close()
         return False, "Log not found"
 
-    hours_to_subtract = row[0] or row[1] or 0
+    # Prefer manual_added_hours (row[1]) if exists, else hours_worked (row[0])
+    hours_to_subtract = row[1] or row[0] or 0
     fireman_number = row[2]
 
     # Delete the log

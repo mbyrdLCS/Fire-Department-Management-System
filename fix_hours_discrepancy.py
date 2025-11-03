@@ -29,7 +29,7 @@ def fix_hours_discrepancy():
             f.full_name,
             COALESCE(f.total_hours, 0) as stored_hours,
             COUNT(tl.id) as log_count,
-            COALESCE(SUM(tl.hours_worked), 0) + COALESCE(SUM(tl.manual_added_hours), 0) as calculated_hours
+            COALESCE(SUM(COALESCE(tl.manual_added_hours, tl.hours_worked, 0)), 0) as calculated_hours
         FROM firefighters f
         LEFT JOIN time_logs tl ON f.id = tl.firefighter_id
         GROUP BY f.id
@@ -82,10 +82,11 @@ def fix_hours_discrepancy():
     print("\n🔨 Fixing discrepancies...\n")
 
     # Update each firefighter's total_hours based on actual logs
+    # Use COALESCE to pick manual_added_hours if exists, else hours_worked (never add them together)
     cursor.execute('''
         UPDATE firefighters
         SET total_hours = COALESCE((
-            SELECT COALESCE(SUM(hours_worked), 0) + COALESCE(SUM(manual_added_hours), 0)
+            SELECT SUM(COALESCE(manual_added_hours, hours_worked, 0))
             FROM time_logs
             WHERE time_logs.firefighter_id = firefighters.id
         ), 0),
