@@ -318,6 +318,33 @@ def get_active_firefighters():
     conn.close()
     return active
 
+def get_latest_time_log(firefighter_number):
+    """Get the most recent time log entry for a firefighter"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT tl.id, tl.time_in, tl.time_out, ac.name as activity
+        FROM time_logs tl
+        JOIN firefighters f ON tl.firefighter_id = f.id
+        JOIN activity_categories ac ON tl.category_id = ac.id
+        WHERE f.fireman_number = ?
+        ORDER BY tl.time_in DESC
+        LIMIT 1
+    ''', (firefighter_number,))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return {
+            'id': row[0],
+            'clock_in': row[1],
+            'clock_out': row[2],
+            'activity': row[3]
+        }
+    return None
+
 def add_manual_hours(fireman_number, activity_name, log_date, time_in, time_out):
     """Manually add hours for a firefighter"""
     conn = get_db_connection()
