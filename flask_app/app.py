@@ -200,7 +200,12 @@ def clock_in_out():
         firefighter = db_helpers.get_firefighter_by_number(firefighter_number)
 
         if not firefighter:
-            return jsonify({'success': False, 'message': 'Firefighter not found!'})
+            return jsonify({
+                'success': False,
+                'message': 'Firefighter not found!',
+                'needs_registration': True,
+                'firefighter_number': firefighter_number
+            })
 
         if action == 'checkin':
             success, message = db_helpers.clock_in(firefighter_number, activity)
@@ -224,6 +229,26 @@ def clock_in_out():
     except Exception as e:
         logger.error(f"Kiosk clock in/out error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'An error occurred'})
+
+@app.route('/kiosk_register', methods=['POST'])
+def kiosk_register():
+    """Register a new firefighter from kiosk - returns JSON"""
+    try:
+        full_name = request.form['full_name']
+        fireman_number = request.form['fireman_number']
+
+        # Register the firefighter
+        success, message = db_helpers.register_firefighter(full_name, fireman_number)
+
+        if success:
+            logger.info(f"Kiosk registration: {full_name} (#{fireman_number})")
+            return jsonify({'success': True, 'message': f'{full_name} registered successfully!'})
+        else:
+            return jsonify({'success': False, 'message': message})
+
+    except Exception as e:
+        logger.error(f"Kiosk registration error: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'An error occurred during registration'})
 
 # ========== ADMIN ROUTES ==========
 

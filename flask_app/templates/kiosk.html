@@ -351,6 +351,83 @@
         <div class="text" id="successText"></div>
     </div>
 
+    <!-- Registration Modal -->
+    <div class="modal-overlay" id="registrationModal">
+        <div class="modal-content">
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">Register New Firefighter</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 25px;">
+                Number <span id="regNumber" style="font-weight: 700; color: #667eea;"></span> not found. Please register.
+            </p>
+
+            <form id="registrationForm">
+                <input type="hidden" id="regFirefighterNumber" name="fireman_number">
+
+                <div class="form-group">
+                    <label for="regFullName">Full Name:</label>
+                    <input type="text"
+                           id="regFullName"
+                           name="full_name"
+                           placeholder="Enter full name"
+                           required
+                           style="width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 18px;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-checkin">
+                        ✓ Register
+                    </button>
+                    <button type="button" class="btn btn-cancel" onclick="closeRegistrationModal()" style="background: #999;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .btn-cancel {
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .btn-cancel:active {
+            transform: scale(0.95);
+        }
+    </style>
+
     <script>
         function submitAction(action) {
             const form = document.getElementById('kioskForm');
@@ -388,6 +465,9 @@
                     setTimeout(() => {
                         location.reload();
                     }, 2000);
+                } else if (data.needs_registration) {
+                    // Show registration modal
+                    showRegistrationModal(data.firefighter_number);
                 } else {
                     alert(data.message || 'An error occurred');
                 }
@@ -416,6 +496,49 @@
                 animation.classList.remove('show');
             }, 1800);
         }
+
+        function showRegistrationModal(firefighterNumber) {
+            document.getElementById('regNumber').textContent = '#' + firefighterNumber;
+            document.getElementById('regFirefighterNumber').value = firefighterNumber;
+            document.getElementById('registrationModal').classList.add('show');
+            document.getElementById('regFullName').focus();
+        }
+
+        function closeRegistrationModal() {
+            document.getElementById('registrationModal').classList.remove('show');
+            document.getElementById('registrationForm').reset();
+            document.getElementById('kioskForm').reset();
+            document.getElementById('activity').selectedIndex = 0;
+            document.getElementById('firefighter_number').focus();
+        }
+
+        // Handle registration form submission
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            fetch('{{ url_for("kiosk_register") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeRegistrationModal();
+                    alert(data.message + ' You can now check in!');
+                    // Refocus on number input for check-in
+                    document.getElementById('firefighter_number').value = formData.get('fireman_number');
+                    document.getElementById('firefighter_number').focus();
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during registration.');
+            });
+        });
 
         // Auto-focus on number input after form submission
         document.getElementById('kioskForm').addEventListener('submit', function(e) {
