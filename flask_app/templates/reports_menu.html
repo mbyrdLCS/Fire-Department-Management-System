@@ -96,6 +96,14 @@
 </head>
 <body>
     <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div style="background: #f44336; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
 
         <div class="header">

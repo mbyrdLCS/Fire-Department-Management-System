@@ -2360,8 +2360,8 @@ def maintenance_costs_report():
                              selected_vehicle=vehicle_id)
 
     except Exception as e:
-        logger.error(f"Maintenance costs report error: {str(e)}")
-        flash('An error occurred while generating the report.')
+        logger.error(f"Maintenance costs report error: {str(e)}", exc_info=True)
+        flash(f'An error occurred while generating the report: {str(e)}')
         return redirect(url_for('reports_menu'))
 
 @app.route('/reports/inventory-value', methods=['GET'])
