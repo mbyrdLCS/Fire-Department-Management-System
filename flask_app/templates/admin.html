@@ -182,20 +182,24 @@
                         <form method="POST" action="{{ url_for('add_category') }}" class="admin-form">
                             <div class="form-group">
                                 <label for="new_category">Add Category:</label>
-                                <input type="text" name="new_category" id="new_category" required>
-                                <button type="submit" class="submit-button">Add Category</button>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" name="new_category" id="new_category" required style="flex: 1;">
+                                    <button type="submit" class="action-button" style="background: #28a745; white-space: nowrap;">➕ Add Category</button>
+                                </div>
                             </div>
                         </form>
 
-                        <form method="POST" action="{{ url_for('remove_category') }}" class="admin-form">
+                        <form method="POST" action="{{ url_for('remove_category') }}" class="admin-form" onsubmit="return confirmCategoryRemoval()">
                             <div class="form-group">
                                 <label for="category_to_remove">Remove Category:</label>
-                                <select name="category_to_remove" id="category_to_remove" required>
-                                    {% for category in categories %}
-                                        <option value="{{ category }}">{{ category }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button type="submit" class="delete-button">Remove Category</button>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <select name="category_to_remove" id="category_to_remove" required style="flex: 1;">
+                                        {% for category in categories %}
+                                            <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="action-button delete-button" style="white-space: nowrap;">🗑️ Remove Category</button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -212,60 +216,67 @@
             </div>
         </div>
 
-<h3>Activity Logs</h3>
-<div class="table-responsive">
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>Firefighter</th>
-                <th>Activity</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Hours</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for fireman_number, details in user_data.items() %}
-                {% for log_index in range(details['logs']|length) %}
-                    {% set log = details['logs'][log_index] %}
-                    <tr>
-                        <td>{{ details['full_name'] }}</td>
-                        <td>{{ log['type'] }}</td>
-                        <td>{{ log['time_in']|format_log_time }}</td>
-                        <td>
-                            {% if log['time_out'] %}
-                                {{ log['time_out']|format_log_time }}
-                            {% else %}
-                                <span style="color: #dc3545;">Still Active</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if log['manual_added_hours'] %}
-                                {{ log['manual_added_hours']|round(2) }}
-                            {% elif log['time_out'] %}
-                                {% set time_in = log['time_in']|fromisoformat %}
-                                {% set time_out = log['time_out']|fromisoformat %}
-                                {{ ((time_out - time_in).total_seconds() / 3600)|round(2) }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            <form action="{{ url_for('delete_log') }}" method="post" style="display: inline;"
-                                  onsubmit="return confirm('Are you sure you want to delete this log entry?');">
-                                <input type="hidden" name="fireman_number" value="{{ fireman_number }}">
-                                <input type="hidden" name="log_index" value="{{ log_index }}">
-                                <button type="submit" class="action-button delete-button">
-                                    Delete Log
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <h3 style="margin: 0;">Activity Logs</h3>
+    <button onclick="toggleActivityLogs()" class="action-button" id="toggleLogsBtn" style="background: #1976d2;">
+        📋 Show Activity Logs
+    </button>
+</div>
+<div id="activityLogsSection" style="display: none;">
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Firefighter</th>
+                    <th>Activity</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Hours</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fireman_number, details in user_data.items() %}
+                    {% for log_index in range(details['logs']|length) %}
+                        {% set log = details['logs'][log_index] %}
+                        <tr>
+                            <td>{{ details['full_name'] }}</td>
+                            <td>{{ log['type'] }}</td>
+                            <td>{{ log['time_in']|format_log_time }}</td>
+                            <td>
+                                {% if log['time_out'] %}
+                                    {{ log['time_out']|format_log_time }}
+                                {% else %}
+                                    <span style="color: #dc3545;">Still Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log['manual_added_hours'] %}
+                                    {{ log['manual_added_hours']|round(2) }}
+                                {% elif log['time_out'] %}
+                                    {% set time_in = log['time_in']|fromisoformat %}
+                                    {% set time_out = log['time_out']|fromisoformat %}
+                                    {{ ((time_out - time_in).total_seconds() / 3600)|round(2) }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form action="{{ url_for('delete_log') }}" method="post" style="display: inline;"
+                                      onsubmit="return confirm('Are you sure you want to delete this log entry?');">
+                                    <input type="hidden" name="fireman_number" value="{{ fireman_number }}">
+                                    <input type="hidden" name="log_index" value="{{ log_index }}">
+                                    <button type="submit" class="action-button delete-button">
+                                        Delete Log
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>
 
         <!-- Modals -->
@@ -522,6 +533,28 @@ window.onclick = function(event) {
     if (event.target == modal) {
         modal.style.display = 'none';
     }
+}
+
+// Toggle activity logs visibility
+function toggleActivityLogs() {
+    const logsSection = document.getElementById('activityLogsSection');
+    const toggleBtn = document.getElementById('toggleLogsBtn');
+
+    if (logsSection.style.display === 'none') {
+        logsSection.style.display = 'block';
+        toggleBtn.textContent = '📋 Hide Activity Logs';
+        toggleBtn.style.background = '#dc3545';
+    } else {
+        logsSection.style.display = 'none';
+        toggleBtn.textContent = '📋 Show Activity Logs';
+        toggleBtn.style.background = '#1976d2';
+    }
+}
+
+// Confirm category removal
+function confirmCategoryRemoval() {
+    const category = document.getElementById('category_to_remove').value;
+    return confirm(`⚠️ Are you sure you want to remove the "${category}" category?\n\nNote: This may affect existing time logs that use this category.`);
 }
 </script>
 
