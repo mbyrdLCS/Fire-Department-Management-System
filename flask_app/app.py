@@ -1401,13 +1401,17 @@ def display():
         alerts = db_helpers.get_all_alerts()
         recent_activity = db_helpers.get_recent_activity(limit=15)
 
+        # Get base URL for QR codes
+        base_url = request.url_root.rstrip('/')
+
         logger.info("Display page loaded successfully")
         return render_template('display.html',
                              active_firefighters=active_firefighters,
                              leaderboard=leaderboard,
                              vehicles_needing_inspection=vehicles_needing_inspection,
                              alerts=alerts,
-                             recent_activity=recent_activity)
+                             recent_activity=recent_activity,
+                             base_url=base_url)
 
     except Exception as e:
         logger.error(f"Display page error: {str(e)}")

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SVVFD Activity Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -19,40 +20,41 @@
             font-family: Arial, sans-serif;
             overflow: hidden;
             height: 100vh;
+            width: 100vw;
         }
 
         .display-container {
             height: 100vh;
             display: flex;
             flex-direction: column;
-            padding: 1rem;
+            padding: 0.8rem;
         }
 
         .header {
             text-align: center;
-            padding: 0.5rem;
+            padding: 0.3rem;
         }
 
         .header h1 {
             color: white;
-            font-size: 2.5vw;
-            margin-bottom: 0.5rem;
+            font-size: 2.2vw;
+            margin-bottom: 0.3rem;
         }
 
         .clock {
-            font-size: 1.8vw;
+            font-size: 1.5vw;
             color: #ffeb3b;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
         }
 
-        /* Alert Banner Styles */
+        /* Alert Banner */
         .alert-banner {
             border-radius: 0.5rem;
-            padding: 1rem 2rem;
-            margin-bottom: 1rem;
+            padding: 0.8rem 1.5rem;
+            margin-bottom: 0.8rem;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            min-height: 60px;
+            min-height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -60,7 +62,7 @@
         }
 
         .alert-banner-content {
-            font-size: 1.8vw;
+            font-size: 1.6vw;
             font-weight: bold;
             color: white;
         }
@@ -77,53 +79,50 @@
 
         .alert-banner.all-clear {
             background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            animation: none;
         }
 
         @keyframes critical-pulse {
-            0% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+            0%, 100% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
             50% { box-shadow: 0 4px 25px rgba(255,107,107,0.8); }
-            100% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
         }
 
         @keyframes warning-pulse {
-            0% { box-shadow: 0 4px 15px rgba(255,152,0,0.4); }
+            0%, 100% { box-shadow: 0 4px 15px rgba(255,152,0,0.4); }
             50% { box-shadow: 0 4px 25px rgba(255,152,0,0.8); }
-            100% { box-shadow: 0 4px 15px rgba(255,152,0,0.4); }
         }
 
         /* Stats Row */
         .stats-row {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
         }
 
         .stat-card {
             flex: 1;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
-            padding: 1rem;
+            padding: 0.8rem;
             text-align: center;
         }
 
         .stat-value {
-            font-size: 3vw;
+            font-size: 2.5vw;
             font-weight: bold;
             color: #ffeb3b;
         }
 
         .stat-label {
-            font-size: 1.2vw;
+            font-size: 1vw;
             color: rgba(255, 255, 255, 0.8);
-            margin-top: 0.5rem;
+            margin-top: 0.3rem;
         }
 
-        /* Main Display Grid */
+        /* Main Grid - 3 columns for 16:9 aspect ratio */
         .display-grid {
             display: grid;
-            grid-template-columns: 1.2fr 1fr 1fr;
-            gap: 1rem;
+            grid-template-columns: 1.3fr 0.9fr 0.8fr;
+            gap: 0.8rem;
             flex: 1;
             overflow: hidden;
         }
@@ -131,7 +130,7 @@
         .section {
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
-            padding: 1rem;
+            padding: 0.8rem;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -139,26 +138,40 @@
 
         .section-title {
             color: #ffeb3b;
-            font-size: 1.8vw;
-            margin-bottom: 1rem;
+            font-size: 1.6vw;
+            margin-bottom: 0.8rem;
             text-align: center;
             font-weight: bold;
         }
 
-        /* Active Firefighters Grid */
-        .active-grid {
+        /* Active Firefighters - AUTO ROTATING */
+        .active-carousel {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .active-page {
+            display: none;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+            height: 100%;
+            align-content: start;
+        }
+
+        .active-page.visible {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 0.75rem;
-            overflow-y: auto;
-            padding-right: 0.5rem;
         }
 
         .active-card {
             background-color: rgba(76, 175, 80, 0.2);
             border-left: 4px solid #4caf50;
             border-radius: 0.5rem;
-            padding: 0.75rem;
+            padding: 0.7rem;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .active-name {
@@ -168,7 +181,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
         }
 
         .active-activity {
@@ -185,75 +198,95 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-top: 0.25rem;
+            margin-top: 0.2rem;
         }
 
-        /* Recent Activity Feed */
-        .activity-feed {
-            overflow-y: auto;
-            padding-right: 0.5rem;
+        /* Carousel dots */
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
         }
 
-        .activity-item {
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: all 0.3s;
+        }
+
+        .dot.active-dot {
+            background: #ffeb3b;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* QR Code Section */
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .qr-card {
             background-color: rgba(255, 255, 255, 0.05);
             border-radius: 0.5rem;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-left: 3px solid transparent;
+            padding: 0.6rem;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
-        .activity-item.clock-in {
-            border-left-color: #4caf50;
+        .qr-card .qr-code {
+            background: white;
+            padding: 0.4rem;
+            border-radius: 0.3rem;
+            margin-bottom: 0.4rem;
         }
 
-        .activity-item.clock-out {
-            border-left-color: #ff9800;
-        }
-
-        .activity-name {
-            font-size: 1vw;
-            font-weight: bold;
+        .qr-label {
+            font-size: 0.9vw;
             color: #fff;
-            margin-bottom: 0.25rem;
+            font-weight: bold;
+            margin-top: 0.3rem;
         }
 
-        .activity-details {
-            font-size: 0.85vw;
-            color: #bbdefb;
-        }
-
-        .activity-time {
-            font-size: 0.75vw;
-            color: #90caf9;
-            margin-top: 0.25rem;
+        .qr-sublabel {
+            font-size: 0.7vw;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         /* Leaderboard */
         .leaderboard-container {
             overflow-y: auto;
-            padding-right: 0.5rem;
+            flex: 1;
         }
 
         .leaderboard-table {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 0 0.5rem;
+            border-spacing: 0 0.3rem;
         }
 
         .leaderboard-table th {
             position: sticky;
             top: 0;
             background-color: #1a237e;
-            padding: 0.5rem;
+            padding: 0.4rem;
             text-align: left;
             color: #ffeb3b;
-            font-size: 1.3vw;
+            font-size: 1.1vw;
             z-index: 1;
         }
 
         .leaderboard-table td {
-            padding: 0.75rem;
-            font-size: 1.1vw;
+            padding: 0.5rem;
+            font-size: 1vw;
             background-color: rgba(255, 255, 255, 0.05);
         }
 
@@ -270,51 +303,13 @@
         .hours {
             font-weight: bold;
             color: #4caf50;
-            width: 25%;
-        }
-
-        /* Scrollbar Styles */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Responsive adjustments for large screens */
-        @media (min-width: 1920px) {
-            .header h1 { font-size: 48px; }
-            .clock { font-size: 36px; }
-            .alert-banner-content { font-size: 36px; }
-            .stat-value { font-size: 60px; }
-            .stat-label { font-size: 24px; }
-            .section-title { font-size: 36px; }
-            .active-name { font-size: 22px; }
-            .active-activity { font-size: 18px; }
-            .active-time { font-size: 16px; }
-            .activity-name { font-size: 20px; }
-            .activity-details { font-size: 17px; }
-            .activity-time { font-size: 15px; }
-            .leaderboard-table th { font-size: 26px; }
-            .leaderboard-table td { font-size: 22px; }
+            width: 30%;
         }
 
         .truncate {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%;
         }
 
         .no-data {
@@ -323,17 +318,49 @@
             font-size: 1.2vw;
             padding: 2rem;
         }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        /* Large screen adjustments */
+        @media (min-width: 1920px) {
+            .header h1 { font-size: 42px; }
+            .clock { font-size: 28px; }
+            .alert-banner-content { font-size: 30px; }
+            .stat-value { font-size: 48px; }
+            .stat-label { font-size: 18px; }
+            .section-title { font-size: 30px; }
+            .active-name { font-size: 20px; }
+            .active-activity { font-size: 16px; }
+            .active-time { font-size: 14px; }
+            .qr-label { font-size: 16px; }
+            .qr-sublabel { font-size: 12px; }
+            .leaderboard-table th { font-size: 20px; }
+            .leaderboard-table td { font-size: 18px; }
+        }
     </style>
 </head>
 <body>
     <div class="display-container">
         <!-- Header -->
         <div class="header">
-            <h1>Spring Valley Volunteer Fire Department</h1>
+            <h1>🚒 Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
         </div>
 
-        <!-- Rotating Alert Banner -->
+        <!-- Alert Banner -->
         {% if alerts.total_count > 0 %}
         <div class="alert-banner" id="alertBanner">
             <div class="alert-banner-content" id="alertMessage">
@@ -366,75 +393,78 @@
 
         <!-- Main Display Grid -->
         <div class="display-grid">
-            <!-- Currently Active Firefighters -->
+            <!-- Currently Active Firefighters (AUTO ROTATING) -->
             <div class="section">
                 <h2 class="section-title">🔥 Currently On Duty</h2>
-                <div class="active-grid">
+                <div class="active-carousel">
                     {% if active_firefighters %}
-                        {% for firefighter in active_firefighters %}
-                        <div class="active-card">
-                            <div class="active-name truncate">{{ firefighter.name }}</div>
-                            <div class="active-activity truncate">{{ firefighter.activity }}</div>
-                            <div class="active-time truncate">
-                                Since: {{ firefighter.time_in|format_log_time }}
+                        {% set firefighters_per_page = 6 %}
+                        {% set total_pages = ((active_firefighters|length - 1) // firefighters_per_page) + 1 %}
+
+                        {% for page_num in range(total_pages) %}
+                        <div class="active-page {% if page_num == 0 %}visible{% endif %}" data-page="{{ page_num }}">
+                            {% set start_idx = page_num * firefighters_per_page %}
+                            {% set end_idx = start_idx + firefighters_per_page %}
+                            {% for firefighter in active_firefighters[start_idx:end_idx] %}
+                            <div class="active-card">
+                                <div class="active-name truncate">{{ firefighter.name }}</div>
+                                <div class="active-activity truncate">{{ firefighter.activity }}</div>
+                                <div class="active-time truncate">
+                                    Since: {{ firefighter.time_in|format_log_time }}
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
                         {% endfor %}
                     {% else %}
                         <div class="no-data">No firefighters on duty</div>
                     {% endif %}
                 </div>
+
+                {% if active_firefighters|length > 6 %}
+                <div class="carousel-dots" id="carouselDots">
+                    {% set total_pages = ((active_firefighters|length - 1) // 6) + 1 %}
+                    {% for i in range(total_pages) %}
+                    <div class="dot {% if i == 0 %}active-dot{% endif %}" data-dot="{{ i }}"></div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
-            <!-- Recent Activity Feed -->
+            <!-- QR Codes for Quick Access -->
             <div class="section">
-                <h2 class="section-title">📋 Recent Activity</h2>
-                <div class="activity-feed">
-                    {% if recent_activity %}
-                        {% for activity in recent_activity %}
-                        <div class="activity-item {{ 'clock-in' if activity.action_type == 'clocked_in' else 'clock-out' }}">
-                            <div class="activity-name">
-                                {% if activity.action_type == 'clocked_in' %}
-                                    ▶️ {{ activity.name }}
-                                {% else %}
-                                    ⏹️ {{ activity.name }}
-                                {% endif %}
-                            </div>
-                            <div class="activity-details">
-                                {{ activity.activity }}
-                            </div>
-                            <div class="activity-time">
-                                {% if activity.action_type == 'clocked_in' %}
-                                    In: {{ activity.time_in|format_log_time }}
-                                {% else %}
-                                    Out: {{ activity.time_out|format_log_time }}
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="no-data">No recent activity</div>
-                    {% endif %}
+                <h2 class="section-title">📱 Quick Access</h2>
+                <div class="qr-section">
+                    <div class="qr-card">
+                        <div class="qr-code" id="qr-kiosk"></div>
+                        <div class="qr-label">Check In/Out</div>
+                        <div class="qr-sublabel">Kiosk Mode</div>
+                    </div>
+                    <div class="qr-card">
+                        <div class="qr-code" id="qr-inspect"></div>
+                        <div class="qr-label">Inspections</div>
+                        <div class="qr-sublabel">Vehicle Check</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Hours Leaderboard -->
             <div class="section">
-                <h2 class="section-title">🏆 Hours Leaders</h2>
+                <h2 class="section-title">🏆 Top Hours</h2>
                 <div class="leaderboard-container">
                     {% if leaderboard %}
                     <table class="leaderboard-table">
                         <thead>
                             <tr>
-                                <th class="rank">Rank</th>
+                                <th class="rank">#</th>
                                 <th>Name</th>
                                 <th class="hours">Hours</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for firefighter in leaderboard[:15] %}
+                            {% for firefighter in leaderboard[:12] %}
                                 <tr>
-                                    <td class="rank">#{{ loop.index }}</td>
+                                    <td class="rank">{{ loop.index }}</td>
                                     <td class="truncate">{{ firefighter.name }}</td>
                                     <td class="hours">{{ (firefighter.hours | default(0)) | round(1) }}</td>
                                 </tr>
@@ -442,7 +472,7 @@
                         </tbody>
                     </table>
                     {% else %}
-                        <div class="no-data">No data available</div>
+                        <div class="no-data">No data</div>
                     {% endif %}
                 </div>
             </div>
@@ -453,83 +483,126 @@
         // Update clock
         function updateClock() {
             const now = new Date();
-            const clockElement = document.getElementById('clock');
-            clockElement.textContent = now.toLocaleString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
+            document.getElementById('clock').textContent = now.toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
                 day: 'numeric',
                 hour: 'numeric',
-                minute: 'numeric',
-                second: 'numeric'
+                minute: '2-digit',
+                second: '2-digit'
             });
         }
 
-        // Build alerts array from all alert types
+        // Build alerts array
         const allAlerts = [];
-
         {% if alerts.total_count > 0 %}
-            // Add inspection alerts
             {% for vehicle in alerts.inspections_overdue %}
             allAlerts.push({
                 type: 'critical',
-                message: '🚒 INSPECTION OVERDUE: {{ vehicle.name }} ({{ vehicle.code }}) - {{ vehicle.days_since_inspection or "NEVER" }} days'
+                message: '🚒 INSPECTION OVERDUE: {{ vehicle.name }} ({{ vehicle.code }})'
             });
             {% endfor %}
-
-            // Add low station inventory alerts
             {% for item in alerts.low_inventory_station %}
             allAlerts.push({
                 type: 'warning',
-                message: '📦 LOW STATION STOCK: {{ item.item_name }} at {{ item.station_name }} - Only {{ item.quantity }} left (min: {{ item.min_quantity }})'
+                message: '📦 LOW STOCK: {{ item.item_name }} at {{ item.station_name }} - {{ item.quantity }}/{{ item.min_quantity }}'
             });
             {% endfor %}
-
-            // Add low vehicle inventory alerts
             {% for item in alerts.low_inventory_vehicle %}
             allAlerts.push({
                 type: 'warning',
-                message: '🚒 LOW VEHICLE EQUIPMENT: {{ item.item_name }} on {{ item.vehicle_name }} - Only {{ item.quantity }} left (min: {{ item.min_quantity }})'
+                message: '🚒 LOW EQUIPMENT: {{ item.item_name }} on {{ item.vehicle_name }} - {{ item.quantity }}/{{ item.min_quantity }}'
             });
             {% endfor %}
         {% endif %}
 
-        // Rotate through all alerts
+        // Rotate alerts
         let currentAlertIndex = 0;
-
         function rotateAlerts() {
             if (allAlerts.length > 0) {
                 const alert = allAlerts[currentAlertIndex];
-                const bannerElement = document.getElementById('alertBanner');
-                const messageElement = document.getElementById('alertMessage');
-
-                if (bannerElement && messageElement) {
-                    // Update message
-                    messageElement.textContent = alert.message;
-
-                    // Update banner class for styling
-                    bannerElement.className = 'alert-banner ' + alert.type;
+                const banner = document.getElementById('alertBanner');
+                const message = document.getElementById('alertMessage');
+                if (banner && message) {
+                    message.textContent = alert.message;
+                    banner.className = 'alert-banner ' + alert.type;
                 }
-
-                // Move to next alert
                 currentAlertIndex = (currentAlertIndex + 1) % allAlerts.length;
             }
         }
 
-        // Initialize clock
+        // Carousel for active firefighters (show 6 at a time, rotate every 8 seconds)
+        const totalPages = document.querySelectorAll('.active-page').length;
+        let currentPage = 0;
+
+        function rotateCarousel() {
+            if (totalPages > 1) {
+                // Hide current page
+                document.querySelectorAll('.active-page').forEach(page => {
+                    page.classList.remove('visible');
+                });
+
+                // Update dots
+                document.querySelectorAll('.dot').forEach(dot => {
+                    dot.classList.remove('active-dot');
+                });
+
+                // Show next page
+                currentPage = (currentPage + 1) % totalPages;
+                const nextPage = document.querySelector(`.active-page[data-page="${currentPage}"]`);
+                if (nextPage) {
+                    nextPage.classList.add('visible');
+                }
+
+                // Update dot
+                const activeDot = document.querySelector(`.dot[data-dot="${currentPage}"]`);
+                if (activeDot) {
+                    activeDot.classList.add('active-dot');
+                }
+            }
+        }
+
+        // Generate QR codes
+        function generateQRCodes() {
+            const baseUrl = '{{ base_url }}';
+
+            // Kiosk QR code
+            new QRCode(document.getElementById('qr-kiosk'), {
+                text: baseUrl + '/kiosk',
+                width: 100,
+                height: 100,
+                colorDark: '#000000',
+                colorLight: '#ffffff'
+            });
+
+            // Inspections QR code
+            new QRCode(document.getElementById('qr-inspect'), {
+                text: baseUrl + '/inspections',
+                width: 100,
+                height: 100,
+                colorDark: '#000000',
+                colorLight: '#ffffff'
+            });
+        }
+
+        // Initialize
         updateClock();
         setInterval(updateClock, 1000);
 
-        // Initialize alert rotation
         if (allAlerts.length > 0) {
-            rotateAlerts(); // Show first alert immediately
-            setInterval(rotateAlerts, 5000); // Rotate every 5 seconds
+            rotateAlerts();
+            setInterval(rotateAlerts, 5000); // Rotate alerts every 5 seconds
         }
 
-        // Auto-refresh page every 30 seconds to get fresh data
-        setTimeout(function() {
-            window.location.reload();
-        }, 30000);
+        if (totalPages > 1) {
+            setInterval(rotateCarousel, 8000); // Rotate firefighters every 8 seconds
+        }
+
+        // Generate QR codes after page load
+        window.addEventListener('load', generateQRCodes);
+
+        // Auto-refresh every 30 seconds
+        setTimeout(() => window.location.reload(), 30000);
     </script>
 </body>
 </html>
