@@ -1,0 +1,16 @@
+"""
+Dropbox Configuration Template
+Copy this file to dropbox_config.py and fill in your actual credentials
+NEVER commit dropbox_config.py to git - it's in .gitignore for security
+"""
+
+# Get these from your Dropbox App Console: https://www.dropbox.com/developers/apps
+DROPBOX_APP_KEY = 'your_app_key_here'
+DROPBOX_APP_SECRET = 'your_app_secret_here'
+DROPBOX_REFRESH_TOKEN = 'your_refresh_token_here'
+
+# Dropbox folder for backups (will be created if it doesn't exist)
+DROPBOX_FOLDER = '/Fire_Dept_Backups'
+
+# Number of local backups to keep (older ones are deleted automatically)
+KEEP_LOCAL_BACKUPS = 5

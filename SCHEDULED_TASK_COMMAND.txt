@@ -1,0 +1,6 @@
+Copy this EXACT command for the PythonAnywhere scheduled task:
+
+cd /home/michealhelps/Fire-Department-Management-System && /home/michealhelps/.virtualenvs/fdms-env/bin/python backup_to_dropbox.py
+
+Time: 03:00
+Frequency: Daily

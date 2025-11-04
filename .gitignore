@@ -74,6 +74,7 @@ backups/
 get_token.py
 *_credentials.json
 *_token.json
+dropbox_config.py
 
 # Zip files
 *.zip

@@ -23,12 +23,20 @@ except ImportError:
 
 from db_init import DATABASE_PATH
 
-# Dropbox settings (from your existing setup)
-DROPBOX_APP_KEY = '0hpcgffvcu5vuei'
-DROPBOX_APP_SECRET = '6kwngadn7oh3yrl'
-DROPBOX_REFRESH_TOKEN = 'K98vLaIfGvMAAAAAAAAAAWHechPq9eCkRrYkWoOSjzZ3m7-ixpWNgiXspj0Vopvh'
-DROPBOX_FOLDER = '/Fire_Dept_Backups'  # Folder in your Dropbox
-KEEP_LOCAL_BACKUPS = 5  # How many local backups to keep
+# Import Dropbox credentials from config file (not tracked in git)
+try:
+    from dropbox_config import (
+        DROPBOX_APP_KEY,
+        DROPBOX_APP_SECRET,
+        DROPBOX_REFRESH_TOKEN,
+        DROPBOX_FOLDER,
+        KEEP_LOCAL_BACKUPS
+    )
+except ImportError:
+    print("❌ Error: dropbox_config.py not found")
+    print("   Create dropbox_config.py with your Dropbox credentials")
+    print("   See dropbox_config.py.example for template")
+    sys.exit(1)
 
 def get_dropbox_client():
     """Get Dropbox client using refresh token (never expires)"""
