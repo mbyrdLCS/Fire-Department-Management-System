@@ -451,7 +451,13 @@
         <div class="display-grid">
             <!-- Currently Active Firefighters (AUTO ROTATING) -->
             <div class="section">
-                <h2 class="section-title">🔥 Currently On Duty</h2>
+                <h2 class="section-title">
+                    {% if active_firefighters %}
+                        🔥 Currently On Duty
+                    {% else %}
+                        ⚠️ Important Notices
+                    {% endif %}
+                </h2>
                 <div class="active-carousel">
                     {% if active_firefighters %}
                         {% set firefighters_per_page = 6 %}
