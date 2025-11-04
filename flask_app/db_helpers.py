@@ -182,6 +182,16 @@ def clock_in(fireman_number, activity_name):
 
     firefighter_id = firefighter_row[0]
 
+    # Check if already clocked in (prevent duplicate check-ins)
+    cursor.execute('''
+        SELECT id FROM time_logs
+        WHERE firefighter_id = ? AND time_out IS NULL
+    ''', (firefighter_id,))
+
+    if cursor.fetchone():
+        conn.close()
+        return False, "Already clocked in. Please clock out first."
+
     # Get or create category
     category = get_category_by_name(activity_name)
     if not category:
@@ -261,6 +271,59 @@ def clock_out(fireman_number):
     conn.close()
 
     return True, f"Clocked out after {hours_worked:.2f} hours"
+
+def auto_checkout_stale_logs():
+    """
+    Auto-checkout any logs that have been open for more than 12 hours.
+    Records them as 1 hour instead of actual time.
+    This prevents forgotten check-ins from inflating hours.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Find logs that have been open for more than 12 hours
+    cursor.execute('''
+        SELECT id, firefighter_id, time_in
+        FROM time_logs
+        WHERE time_out IS NULL
+        AND datetime(time_in) <= datetime('now', '-12 hours')
+    ''')
+
+    stale_logs = cursor.fetchall()
+    count = 0
+
+    for log in stale_logs:
+        log_id = log[0]
+        firefighter_id = log[1]
+        time_in = datetime.fromisoformat(log[2])
+
+        # Set checkout time to 1 hour after check-in
+        if time_in.tzinfo is None:
+            time_in = pytz.utc.localize(time_in).astimezone(CENTRAL)
+
+        time_out = time_in + timedelta(hours=1)
+        hours_worked = 1.0  # Record as 1 hour
+
+        # Update time log with auto_checkout flag
+        cursor.execute('''
+            UPDATE time_logs
+            SET time_out = ?, hours_worked = ?, auto_checkout = 1
+            WHERE id = ?
+        ''', (time_out.isoformat(), hours_worked, log_id))
+
+        # Update firefighter total hours (add 1 hour)
+        cursor.execute('''
+            UPDATE firefighters
+            SET total_hours = total_hours + 1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (firefighter_id,))
+
+        count += 1
+
+    conn.commit()
+    conn.close()
+
+    return count
 
 def get_firefighter_logs(fireman_number):
     """Get all logs for a firefighter"""

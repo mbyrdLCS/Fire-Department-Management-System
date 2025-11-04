@@ -70,6 +70,9 @@ app.jinja_env.filters['format_log_time'] = format_log_time
 @app.route('/')
 def index():
     """Home page - clock in/out interface"""
+    # Auto-checkout stale logs (over 12 hours)
+    db_helpers.auto_checkout_stale_logs()
+
     show_new_user_form = session.get('show_new_user_form', False)
     session.pop('show_new_user_form', None)
     categories = [cat['name'] for cat in db_helpers.get_all_categories()]
@@ -78,6 +81,9 @@ def index():
 @app.route('/kiosk')
 def kiosk():
     """Kiosk mode - simplified check in/out interface for iPad"""
+    # Auto-checkout stale logs (over 12 hours)
+    db_helpers.auto_checkout_stale_logs()
+
     firefighters = db_helpers.get_all_firefighters()
     categories = [cat['name'] for cat in db_helpers.get_all_categories()]
 
@@ -1395,6 +1401,9 @@ def logout():
 def display():
     """Display dashboard - active firefighters, alerts, and recent activity"""
     try:
+        # Auto-checkout stale logs (over 12 hours)
+        db_helpers.auto_checkout_stale_logs()
+
         active_firefighters = db_helpers.get_active_firefighters()
         leaderboard = db_helpers.get_leaderboard()
         vehicles_needing_inspection = db_helpers.get_vehicles_needing_inspection()
