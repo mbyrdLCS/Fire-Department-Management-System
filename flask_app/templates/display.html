@@ -33,6 +33,7 @@
         .header {
             text-align: center;
             padding: 0.3rem;
+            position: relative;
         }
 
         .header h1 {
@@ -45,6 +46,30 @@
             font-size: 1.5vw;
             color: #ffeb3b;
             margin-bottom: 0.3rem;
+        }
+
+        /* QR Code in corner */
+        .qr-corner {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .qr-corner .qr-code {
+            background: white;
+            padding: 0.3rem;
+            border-radius: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .qr-corner-label {
+            font-size: 0.7vw;
+            color: #fff;
+            font-weight: bold;
         }
 
         /* Alert Banner */
@@ -223,57 +248,28 @@
             border-radius: 4px;
         }
 
-        /* QR Code Row */
-        .qr-row {
-            display: flex;
-            gap: 0.8rem;
-            margin-bottom: 0.8rem;
-            justify-content: center;
-        }
-
-        .qr-card {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 0.5rem;
-            padding: 0.5rem 1rem;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-
-        .qr-card .qr-code {
-            background: white;
-            padding: 0.3rem;
-            border-radius: 0.3rem;
-        }
-
-        .qr-text {
-            text-align: left;
-        }
-
-        .qr-label {
-            font-size: 1.1vw;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .qr-sublabel {
-            font-size: 0.8vw;
-            color: rgba(255, 255, 255, 0.7);
-            margin-top: 0.2rem;
-        }
-
-        /* Recent Activity Feed */
-        .activity-feed {
-            overflow-y: auto;
+        /* Recent Activity Feed - AUTO ROTATING */
+        .activity-carousel {
             flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .activity-page {
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            height: 100%;
+        }
+
+        .activity-page.visible {
+            display: flex;
         }
 
         .activity-item {
             background-color: rgba(255, 255, 255, 0.05);
             border-radius: 0.5rem;
             padding: 0.7rem;
-            margin-bottom: 0.5rem;
             border-left: 3px solid transparent;
         }
 
@@ -387,8 +383,7 @@
             .active-name { font-size: 20px; }
             .active-activity { font-size: 16px; }
             .active-time { font-size: 14px; }
-            .qr-label { font-size: 20px; }
-            .qr-sublabel { font-size: 14px; }
+            .qr-corner-label { font-size: 12px; }
             .activity-name { font-size: 18px; }
             .activity-details { font-size: 16px; }
             .activity-time { font-size: 14px; }
@@ -403,6 +398,12 @@
         <div class="header">
             <h1>🚒 Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
+
+            <!-- QR Code in corner -->
+            <div class="qr-corner">
+                <div class="qr-code" id="qr-inspect"></div>
+                <div class="qr-corner-label">🔍 Inspections</div>
+            </div>
         </div>
 
         <!-- Alert Banner -->
@@ -433,24 +434,6 @@
             <div class="stat-card">
                 <div class="stat-value">{{ alerts.inspections_overdue|length }}</div>
                 <div class="stat-label">INSPECTIONS DUE</div>
-            </div>
-        </div>
-
-        <!-- QR Code Row -->
-        <div class="qr-row">
-            <div class="qr-card">
-                <div class="qr-code" id="qr-kiosk"></div>
-                <div class="qr-text">
-                    <div class="qr-label">📱 Check In/Out</div>
-                    <div class="qr-sublabel">Kiosk Mode</div>
-                </div>
-            </div>
-            <div class="qr-card">
-                <div class="qr-code" id="qr-inspect"></div>
-                <div class="qr-text">
-                    <div class="qr-label">🔍 Inspections</div>
-                    <div class="qr-sublabel">Vehicle Check</div>
-                </div>
             </div>
         </div>
 
@@ -494,30 +477,39 @@
                 {% endif %}
             </div>
 
-            <!-- Recent Activity Feed -->
+            <!-- Recent Activity Feed - AUTO ROTATING -->
             <div class="section">
                 <h2 class="section-title">📋 Recent Activity</h2>
-                <div class="activity-feed">
+                <div class="activity-carousel">
                     {% if recent_activity %}
-                        {% for activity in recent_activity %}
-                        <div class="activity-item {{ 'clock-in' if activity.action_type == 'clocked_in' else 'clock-out' }}">
-                            <div class="activity-name">
-                                {% if activity.action_type == 'clocked_in' %}
-                                    ▶️ {{ activity.name }}
-                                {% else %}
-                                    ⏹️ {{ activity.name }}
-                                {% endif %}
+                        {% set activities_per_page = 8 %}
+                        {% set total_activity_pages = ((recent_activity|length - 1) // activities_per_page) + 1 %}
+
+                        {% for page_num in range(total_activity_pages) %}
+                        <div class="activity-page {% if page_num == 0 %}visible{% endif %}" data-activity-page="{{ page_num }}">
+                            {% set start_idx = page_num * activities_per_page %}
+                            {% set end_idx = start_idx + activities_per_page %}
+                            {% for activity in recent_activity[start_idx:end_idx] %}
+                            <div class="activity-item {{ 'clock-in' if activity.action_type == 'clocked_in' else 'clock-out' }}">
+                                <div class="activity-name">
+                                    {% if activity.action_type == 'clocked_in' %}
+                                        ▶️ {{ activity.name }}
+                                    {% else %}
+                                        ⏹️ {{ activity.name }}
+                                    {% endif %}
+                                </div>
+                                <div class="activity-details">
+                                    {{ activity.activity }}
+                                </div>
+                                <div class="activity-time">
+                                    {% if activity.action_type == 'clocked_in' %}
+                                        In: {{ activity.time_in|format_log_time }}
+                                    {% else %}
+                                        Out: {{ activity.time_out|format_log_time }}
+                                    {% endif %}
+                                </div>
                             </div>
-                            <div class="activity-details">
-                                {{ activity.activity }}
-                            </div>
-                            <div class="activity-time">
-                                {% if activity.action_type == 'clocked_in' %}
-                                    In: {{ activity.time_in|format_log_time }}
-                                {% else %}
-                                    Out: {{ activity.time_out|format_log_time }}
-                                {% endif %}
-                            </div>
+                            {% endfor %}
                         </div>
                         {% endfor %}
                     {% else %}
@@ -640,24 +632,35 @@
             }
         }
 
-        // Generate QR codes
-        function generateQRCodes() {
-            const baseUrl = '{{ base_url }}';
+        // Activity feed rotation (show 8 items at a time, rotate every 8 seconds)
+        const totalActivityPages = document.querySelectorAll('.activity-page').length;
+        let currentActivityPage = 0;
 
-            // Kiosk QR code
-            new QRCode(document.getElementById('qr-kiosk'), {
-                text: baseUrl + '/kiosk',
-                width: 100,
-                height: 100,
-                colorDark: '#000000',
-                colorLight: '#ffffff'
-            });
+        function rotateActivity() {
+            if (totalActivityPages > 1) {
+                // Hide current page
+                document.querySelectorAll('.activity-page').forEach(page => {
+                    page.classList.remove('visible');
+                });
+
+                // Show next page
+                currentActivityPage = (currentActivityPage + 1) % totalActivityPages;
+                const nextPage = document.querySelector(`.activity-page[data-activity-page="${currentActivityPage}"]`);
+                if (nextPage) {
+                    nextPage.classList.add('visible');
+                }
+            }
+        }
+
+        // Generate QR code
+        function generateQRCode() {
+            const baseUrl = '{{ base_url }}';
 
             // Inspections QR code
             new QRCode(document.getElementById('qr-inspect'), {
                 text: baseUrl + '/inspections',
-                width: 100,
-                height: 100,
+                width: 80,
+                height: 80,
                 colorDark: '#000000',
                 colorLight: '#ffffff'
             });
@@ -676,8 +679,12 @@
             setInterval(rotateCarousel, 8000); // Rotate firefighters every 8 seconds
         }
 
-        // Generate QR codes after page load
-        window.addEventListener('load', generateQRCodes);
+        if (totalActivityPages > 1) {
+            setInterval(rotateActivity, 8000); // Rotate activity feed every 8 seconds
+        }
+
+        // Generate QR code after page load
+        window.addEventListener('load', generateQRCode);
 
         // Auto-refresh every 30 seconds
         setTimeout(() => window.location.reload(), 30000);
