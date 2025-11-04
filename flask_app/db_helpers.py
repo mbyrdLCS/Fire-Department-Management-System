@@ -1503,6 +1503,7 @@ def get_all_alerts():
     """Get all active alerts for the dashboard"""
     alerts = {
         'inspections_overdue': [],
+        'inspections_failed': [],
         'low_inventory_station': [],
         'low_inventory_vehicle': [],
         'total_count': 0
@@ -1511,9 +1512,32 @@ def get_all_alerts():
     # Get overdue inspections
     alerts['inspections_overdue'] = get_vehicles_needing_inspection()
 
-    # Get low inventory at stations
+    # Get failed inspections (vehicles needing maintenance)
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes
+        FROM vehicle_inspections vi
+        JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE vi.passed = 0
+        AND vi.id = (
+            SELECT MAX(id) FROM vehicle_inspections
+            WHERE vehicle_id = v.id
+        )
+        ORDER BY vi.inspection_date DESC
+    ''')
+
+    for row in cursor.fetchall():
+        alerts['inspections_failed'].append({
+            'id': row[0],
+            'name': row[1],
+            'code': row[2],
+            'failed_date': row[3],
+            'notes': row[4] or 'Maintenance required'
+        })
+
+    # Get low inventory at stations
 
     cursor.execute('''
         SELECT s.name as station_name, ii.name as item_name, si.quantity, ii.min_quantity, ii.category
@@ -1558,6 +1582,7 @@ def get_all_alerts():
     # Calculate total alerts
     alerts['total_count'] = (
         len(alerts['inspections_overdue']) +
+        len(alerts['inspections_failed']) +
         len(alerts['low_inventory_station']) +
         len(alerts['low_inventory_vehicle'])
     )
