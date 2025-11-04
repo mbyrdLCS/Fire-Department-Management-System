@@ -223,42 +223,84 @@
             border-radius: 4px;
         }
 
-        /* QR Code Section */
-        .qr-section {
+        /* QR Code Row */
+        .qr-row {
             display: flex;
-            flex-direction: column;
             gap: 0.8rem;
+            margin-bottom: 0.8rem;
+            justify-content: center;
         }
 
         .qr-card {
-            background-color: rgba(255, 255, 255, 0.05);
+            background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
-            padding: 0.6rem;
+            padding: 0.5rem 1rem;
             text-align: center;
-            flex: 1;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 0.8rem;
         }
 
         .qr-card .qr-code {
             background: white;
-            padding: 0.4rem;
+            padding: 0.3rem;
             border-radius: 0.3rem;
-            margin-bottom: 0.4rem;
+        }
+
+        .qr-text {
+            text-align: left;
         }
 
         .qr-label {
-            font-size: 0.9vw;
+            font-size: 1.1vw;
             color: #fff;
             font-weight: bold;
-            margin-top: 0.3rem;
         }
 
         .qr-sublabel {
-            font-size: 0.7vw;
+            font-size: 0.8vw;
             color: rgba(255, 255, 255, 0.7);
+            margin-top: 0.2rem;
+        }
+
+        /* Recent Activity Feed */
+        .activity-feed {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .activity-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            padding: 0.7rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid transparent;
+        }
+
+        .activity-item.clock-in {
+            border-left-color: #4caf50;
+        }
+
+        .activity-item.clock-out {
+            border-left-color: #ff9800;
+        }
+
+        .activity-name {
+            font-size: 1vw;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .activity-details {
+            font-size: 0.85vw;
+            color: #bbdefb;
+        }
+
+        .activity-time {
+            font-size: 0.75vw;
+            color: #90caf9;
+            margin-top: 0.3rem;
         }
 
         /* Leaderboard */
@@ -345,8 +387,11 @@
             .active-name { font-size: 20px; }
             .active-activity { font-size: 16px; }
             .active-time { font-size: 14px; }
-            .qr-label { font-size: 16px; }
-            .qr-sublabel { font-size: 12px; }
+            .qr-label { font-size: 20px; }
+            .qr-sublabel { font-size: 14px; }
+            .activity-name { font-size: 18px; }
+            .activity-details { font-size: 16px; }
+            .activity-time { font-size: 14px; }
             .leaderboard-table th { font-size: 20px; }
             .leaderboard-table td { font-size: 18px; }
         }
@@ -391,6 +436,24 @@
             </div>
         </div>
 
+        <!-- QR Code Row -->
+        <div class="qr-row">
+            <div class="qr-card">
+                <div class="qr-code" id="qr-kiosk"></div>
+                <div class="qr-text">
+                    <div class="qr-label">📱 Check In/Out</div>
+                    <div class="qr-sublabel">Kiosk Mode</div>
+                </div>
+            </div>
+            <div class="qr-card">
+                <div class="qr-code" id="qr-inspect"></div>
+                <div class="qr-text">
+                    <div class="qr-label">🔍 Inspections</div>
+                    <div class="qr-sublabel">Vehicle Check</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Display Grid -->
         <div class="display-grid">
             <!-- Currently Active Firefighters (AUTO ROTATING) -->
@@ -431,20 +494,35 @@
                 {% endif %}
             </div>
 
-            <!-- QR Codes for Quick Access -->
+            <!-- Recent Activity Feed -->
             <div class="section">
-                <h2 class="section-title">📱 Quick Access</h2>
-                <div class="qr-section">
-                    <div class="qr-card">
-                        <div class="qr-code" id="qr-kiosk"></div>
-                        <div class="qr-label">Check In/Out</div>
-                        <div class="qr-sublabel">Kiosk Mode</div>
-                    </div>
-                    <div class="qr-card">
-                        <div class="qr-code" id="qr-inspect"></div>
-                        <div class="qr-label">Inspections</div>
-                        <div class="qr-sublabel">Vehicle Check</div>
-                    </div>
+                <h2 class="section-title">📋 Recent Activity</h2>
+                <div class="activity-feed">
+                    {% if recent_activity %}
+                        {% for activity in recent_activity %}
+                        <div class="activity-item {{ 'clock-in' if activity.action_type == 'clocked_in' else 'clock-out' }}">
+                            <div class="activity-name">
+                                {% if activity.action_type == 'clocked_in' %}
+                                    ▶️ {{ activity.name }}
+                                {% else %}
+                                    ⏹️ {{ activity.name }}
+                                {% endif %}
+                            </div>
+                            <div class="activity-details">
+                                {{ activity.activity }}
+                            </div>
+                            <div class="activity-time">
+                                {% if activity.action_type == 'clocked_in' %}
+                                    In: {{ activity.time_in|format_log_time }}
+                                {% else %}
+                                    Out: {{ activity.time_out|format_log_time }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data">No recent activity</div>
+                    {% endif %}
                 </div>
             </div>
 
