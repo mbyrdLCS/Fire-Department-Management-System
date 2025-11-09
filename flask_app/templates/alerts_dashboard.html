@@ -327,62 +327,74 @@
             margin-top: 10px;
         }
 
-        /* Inventory QR Code Toggle (left side) */
-        .qr-toggle-container {
-            position: fixed;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 1000;
+        /* Display Control Toggle */
+        .display-control {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
         }
 
-        .qr-toggle-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .display-control h3 {
+            margin: 0 0 15px 0;
+            font-size: 20px;
             color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 15px 20px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
+        }
+
+        .toggle-row {
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-
-        .qr-toggle-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-
-        .qr-display {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 15px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            text-align: center;
-            display: none;
-        }
-
-        .qr-display.visible {
-            display: block;
-        }
-
-        .qr-display .qr-code {
-            background: white;
-            padding: 10px;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
             border-radius: 8px;
-            display: inline-block;
+            margin-bottom: 10px;
         }
 
-        .qr-label {
-            font-weight: 700;
-            color: #333;
-            margin-top: 10px;
-            font-size: 14px;
+        .toggle-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(30px);
+        }
+
+        .toggle-status {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 5px;
         }
 
         @media (max-width: 768px) {
@@ -394,35 +406,15 @@
                 font-size: 24px;
             }
 
-            .qr-toggle-container {
-                position: fixed;
-                left: 10px;
-                bottom: 20px;
-                top: auto;
-                transform: none;
-            }
-
-            .qr-display {
-                position: fixed;
-                bottom: 90px;
-                left: 10px;
-                margin-top: 0;
+            .toggle-row {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Inventory QR Code Toggle (left side) -->
-    <div class="qr-toggle-container">
-        <button class="qr-toggle-btn" onclick="toggleInventoryQR()">
-            📦 Inventory QR
-        </button>
-        <div class="qr-display" id="qrDisplay">
-            <div class="qr-code" id="qr-inventory"></div>
-            <div class="qr-label">Scan to access inventory</div>
-        </div>
-    </div>
-
     <div class="container">
         <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
 
@@ -482,6 +474,20 @@
                 <div class="feature">
                     <strong>💰 Affordable</strong>
                     Only $10/month per device
+                </div>
+            </div>
+
+            <!-- Display Customization Controls -->
+            <div class="display-control">
+                <h3>⚙️ Display Page Controls</h3>
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">
+                            📦 Show Inventory QR Code
+                        </div>
+                        <div class="toggle-status" id="inventoryQrStatus">Currently hidden on display</div>
+                    </div>
+                    <div class="toggle-switch" id="inventoryQrToggle" onclick="toggleInventoryQR()"></div>
                 </div>
             </div>
 
@@ -592,32 +598,44 @@
     </div>
 
     <script>
-        // Generate QR code for inventory
-        function generateInventoryQR() {
-            const baseUrl = window.location.origin;
-            const qrElement = document.getElementById('qr-inventory');
-
-            if (qrElement && !qrElement.hasChildNodes()) {
-                new QRCode(qrElement, {
-                    text: baseUrl + '/inventory',
-                    width: 128,
-                    height: 128,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff'
-                });
-            }
-        }
-
-        // Toggle inventory QR display
+        // Toggle inventory QR on display page
         function toggleInventoryQR() {
-            const display = document.getElementById('qrDisplay');
-            display.classList.toggle('visible');
+            const toggle = document.getElementById('inventoryQrToggle');
+            const status = document.getElementById('inventoryQrStatus');
 
-            // Generate QR code on first toggle
-            if (display.classList.contains('visible')) {
-                generateInventoryQR();
+            // Get current state
+            const currentState = localStorage.getItem('showInventoryQR') === 'true';
+            const newState = !currentState;
+
+            // Save new state
+            localStorage.setItem('showInventoryQR', newState);
+
+            // Update UI
+            if (newState) {
+                toggle.classList.add('active');
+                status.textContent = 'Currently visible on display';
+            } else {
+                toggle.classList.remove('active');
+                status.textContent = 'Currently hidden on display';
             }
         }
+
+        // Initialize toggle state on page load
+        function initializeToggle() {
+            const toggle = document.getElementById('inventoryQrToggle');
+            const status = document.getElementById('inventoryQrStatus');
+            const showInventoryQR = localStorage.getItem('showInventoryQR') === 'true';
+
+            if (showInventoryQR) {
+                toggle.classList.add('active');
+                status.textContent = 'Currently visible on display';
+            } else {
+                status.textContent = 'Currently hidden on display';
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', initializeToggle);
     </script>
 </body>
 </html>
