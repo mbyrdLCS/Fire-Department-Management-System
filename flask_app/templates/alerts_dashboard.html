@@ -489,6 +489,15 @@
                     </div>
                     <div class="toggle-switch" id="inventoryQrToggle" onclick="toggleInventoryQR()"></div>
                 </div>
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">
+                            🔧 Show Maintenance QR Code
+                        </div>
+                        <div class="toggle-status" id="maintenanceQrStatus">Currently hidden on display</div>
+                    </div>
+                    <div class="toggle-switch" id="maintenanceQrToggle" onclick="toggleMaintenanceQR()"></div>
+                </div>
             </div>
 
             <div class="cta-buttons">
@@ -620,17 +629,51 @@
             }
         }
 
-        // Initialize toggle state on page load
-        function initializeToggle() {
-            const toggle = document.getElementById('inventoryQrToggle');
-            const status = document.getElementById('inventoryQrStatus');
-            const showInventoryQR = localStorage.getItem('showInventoryQR') === 'true';
+        function toggleMaintenanceQR() {
+            const toggle = document.getElementById('maintenanceQrToggle');
+            const status = document.getElementById('maintenanceQrStatus');
 
-            if (showInventoryQR) {
+            // Get current state
+            const currentState = localStorage.getItem('showMaintenanceQR') === 'true';
+            const newState = !currentState;
+
+            // Save new state
+            localStorage.setItem('showMaintenanceQR', newState);
+
+            // Update UI
+            if (newState) {
                 toggle.classList.add('active');
                 status.textContent = 'Currently visible on display';
             } else {
+                toggle.classList.remove('active');
                 status.textContent = 'Currently hidden on display';
+            }
+        }
+
+        // Initialize toggle state on page load
+        function initializeToggle() {
+            // Initialize Inventory QR toggle
+            const inventoryToggle = document.getElementById('inventoryQrToggle');
+            const inventoryStatus = document.getElementById('inventoryQrStatus');
+            const showInventoryQR = localStorage.getItem('showInventoryQR') === 'true';
+
+            if (showInventoryQR) {
+                inventoryToggle.classList.add('active');
+                inventoryStatus.textContent = 'Currently visible on display';
+            } else {
+                inventoryStatus.textContent = 'Currently hidden on display';
+            }
+
+            // Initialize Maintenance QR toggle
+            const maintenanceToggle = document.getElementById('maintenanceQrToggle');
+            const maintenanceStatus = document.getElementById('maintenanceQrStatus');
+            const showMaintenanceQR = localStorage.getItem('showMaintenanceQR') === 'true';
+
+            if (showMaintenanceQR) {
+                maintenanceToggle.classList.add('active');
+                maintenanceStatus.textContent = 'Currently visible on display';
+            } else {
+                maintenanceStatus.textContent = 'Currently hidden on display';
             }
         }
 

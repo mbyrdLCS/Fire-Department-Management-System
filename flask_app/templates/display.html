@@ -70,13 +70,26 @@
             text-align: center;
         }
 
+        /* QR Code - Maintenance on left bottom */
+        .qr-corner-left-bottom {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
         .qr-corner-left.hidden,
-        .qr-corner-right.hidden {
+        .qr-corner-right.hidden,
+        .qr-corner-left-bottom.hidden {
             display: none;
         }
 
         .qr-corner-left .qr-code,
-        .qr-corner-right .qr-code {
+        .qr-corner-right .qr-code,
+        .qr-corner-left-bottom .qr-code {
             background: white;
             padding: 0.3rem;
             border-radius: 0.3rem;
@@ -426,10 +439,16 @@
             <h1>🚒 Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
 
-            <!-- Inventory QR - LEFT side, controlled by alerts page toggle -->
+            <!-- Inventory QR - LEFT top, controlled by alerts page toggle -->
             <div class="qr-corner-left hidden" id="qrInventory">
                 <div class="qr-code" id="qr-inventory"></div>
                 <div class="qr-corner-label">📦 Inventory</div>
+            </div>
+
+            <!-- Maintenance QR - LEFT bottom, controlled by alerts page toggle -->
+            <div class="qr-corner-left-bottom hidden" id="qrMaintenance">
+                <div class="qr-code" id="qr-maintenance"></div>
+                <div class="qr-corner-label">🔧 Maintenance</div>
             </div>
 
             <!-- Inspections QR - RIGHT side, only shown when inspections are overdue -->
@@ -784,6 +803,18 @@
                     colorLight: '#ffffff'
                 });
             }
+
+            // Maintenance QR code
+            const qrMaintenanceElement = document.getElementById('qr-maintenance');
+            if (qrMaintenanceElement) {
+                new QRCode(qrMaintenanceElement, {
+                    text: baseUrl + '/maintenance',
+                    width: 80,
+                    height: 80,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff'
+                });
+            }
         }
 
         // Check localStorage and show/hide inventory QR
@@ -796,6 +827,20 @@
                     qrInventory.classList.remove('hidden');
                 } else {
                     qrInventory.classList.add('hidden');
+                }
+            }
+        }
+
+        // Check localStorage and show/hide maintenance QR
+        function updateMaintenanceQRVisibility() {
+            const showMaintenanceQR = localStorage.getItem('showMaintenanceQR') === 'true';
+            const qrMaintenance = document.getElementById('qrMaintenance');
+
+            if (qrMaintenance) {
+                if (showMaintenanceQR) {
+                    qrMaintenance.classList.remove('hidden');
+                } else {
+                    qrMaintenance.classList.add('hidden');
                 }
             }
         }
@@ -820,6 +865,7 @@
         // Generate QR codes and update visibility after page load
         window.addEventListener('load', function() {
             updateInventoryQRVisibility();
+            updateMaintenanceQRVisibility();
             generateQRCode();
         });
 
