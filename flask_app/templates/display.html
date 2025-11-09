@@ -48,27 +48,35 @@
             margin-bottom: 0.3rem;
         }
 
-        /* QR Codes in corner */
-        .qr-corner-container {
+        /* QR Code - Inspections on right */
+        .qr-corner-right {
             position: absolute;
             top: 0.5rem;
             right: 0.5rem;
-            display: flex;
-            gap: 0.8rem;
-        }
-
-        .qr-corner {
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             padding: 0.5rem;
             text-align: center;
         }
 
-        .qr-corner.hidden {
+        /* QR Code - Inventory on left */
+        .qr-corner-left {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .qr-corner-left.hidden,
+        .qr-corner-right.hidden {
             display: none;
         }
 
-        .qr-corner .qr-code {
+        .qr-corner-left .qr-code,
+        .qr-corner-right .qr-code {
             background: white;
             padding: 0.3rem;
             border-radius: 0.3rem;
@@ -418,22 +426,19 @@
             <h1>🚒 Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
 
-            <!-- QR Codes in corner -->
-            <div class="qr-corner-container">
-                <!-- Inspections QR - only shown when inspections are overdue -->
-                {% if alerts.inspections_overdue|length > 0 %}
-                <div class="qr-corner" id="qrInspections">
-                    <div class="qr-code" id="qr-inspect"></div>
-                    <div class="qr-corner-label">🔍 Inspections</div>
-                </div>
-                {% endif %}
-
-                <!-- Inventory QR - controlled by alerts page toggle -->
-                <div class="qr-corner hidden" id="qrInventory">
-                    <div class="qr-code" id="qr-inventory"></div>
-                    <div class="qr-corner-label">📦 Inventory</div>
-                </div>
+            <!-- Inventory QR - LEFT side, controlled by alerts page toggle -->
+            <div class="qr-corner-left hidden" id="qrInventory">
+                <div class="qr-code" id="qr-inventory"></div>
+                <div class="qr-corner-label">📦 Inventory</div>
             </div>
+
+            <!-- Inspections QR - RIGHT side, only shown when inspections are overdue -->
+            {% if alerts.inspections_overdue|length > 0 %}
+            <div class="qr-corner-right" id="qrInspections">
+                <div class="qr-code" id="qr-inspect"></div>
+                <div class="qr-corner-label">🔍 Inspections</div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Alert Banner -->

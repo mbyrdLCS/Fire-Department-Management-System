@@ -87,11 +87,10 @@
 
         .form-group select,
         .form-group input {
-            padding: 16px;
+            padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
-            font-size: 18px;
-            min-height: 56px;
+            font-size: 16px;
         }
 
         .form-group select:focus,
@@ -102,16 +101,15 @@
         }
 
         .add-button {
-            padding: 18px;
+            padding: 14px;
             background: #673AB7;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.3s ease;
-            min-height: 56px;
         }
 
         .add-button:hover {
@@ -174,13 +172,12 @@
         }
 
         .btn-small {
-            padding: 10px 16px;
+            padding: 8px 14px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             transition: all 0.2s ease;
-            min-height: 44px;
             white-space: nowrap;
         }
 
@@ -211,12 +208,11 @@
         }
 
         .qty-input {
-            width: 100px;
-            padding: 10px;
+            width: 80px;
+            padding: 8px;
             border: 2px solid #ddd;
             border-radius: 6px;
-            font-size: 18px;
-            min-height: 44px;
+            font-size: 16px;
             text-align: center;
             font-weight: 600;
         }
@@ -261,6 +257,20 @@
                 padding: 15px;
             }
 
+            /* Make form inputs larger on mobile */
+            .form-group select,
+            .form-group input {
+                padding: 16px;
+                font-size: 18px;
+                min-height: 56px;
+            }
+
+            .add-button {
+                padding: 18px;
+                font-size: 18px;
+                min-height: 56px;
+            }
+
             .inventory-table {
                 font-size: 15px;
             }
@@ -278,10 +288,16 @@
             .btn-small {
                 width: 100%;
                 justify-content: center;
+                padding: 12px 16px;
+                font-size: 16px;
+                min-height: 48px;
             }
 
             .qty-input {
                 width: 100%;
+                padding: 12px;
+                font-size: 18px;
+                min-height: 48px;
             }
 
             /* Make form fields stack on mobile */
