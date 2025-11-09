@@ -49,14 +49,23 @@
         }
 
         /* QR Code in corner */
-        .qr-corner {
+        .qr-corner-container {
             position: absolute;
             top: 0.5rem;
             right: 0.5rem;
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .qr-corner {
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             padding: 0.5rem;
             text-align: center;
+        }
+
+        .qr-corner.hidden {
+            display: none;
         }
 
         .qr-corner .qr-code {
@@ -70,6 +79,28 @@
             font-size: 0.7vw;
             color: #fff;
             font-weight: bold;
+        }
+
+        /* QR Toggle Button */
+        .qr-toggle-btn {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.8rem;
+            color: white;
+            font-size: 0.8vw;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .qr-toggle-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         /* Alert Banner */
@@ -409,10 +440,21 @@
             <h1>🚒 Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
 
-            <!-- QR Code in corner -->
-            <div class="qr-corner">
-                <div class="qr-code" id="qr-inspect"></div>
-                <div class="qr-corner-label">🔍 Inspections</div>
+            <!-- QR Toggle Button -->
+            <button class="qr-toggle-btn" id="qrToggleBtn" onclick="toggleQRCodes()">
+                🔲 Toggle QR Codes
+            </button>
+
+            <!-- QR Codes in corner -->
+            <div class="qr-corner-container" id="qrContainer">
+                <div class="qr-corner" id="qrInspections">
+                    <div class="qr-code" id="qr-inspect"></div>
+                    <div class="qr-corner-label">🔍 Inspections</div>
+                </div>
+                <div class="qr-corner" id="qrInventory">
+                    <div class="qr-code" id="qr-inventory"></div>
+                    <div class="qr-corner-label">📦 Inventory</div>
+                </div>
             </div>
         </div>
 
@@ -732,7 +774,7 @@
             }
         }
 
-        // Generate QR code
+        // Generate QR codes
         function generateQRCode() {
             const baseUrl = '{{ base_url }}';
 
@@ -744,6 +786,40 @@
                 colorDark: '#000000',
                 colorLight: '#ffffff'
             });
+
+            // Inventory QR code
+            new QRCode(document.getElementById('qr-inventory'), {
+                text: baseUrl + '/inventory',
+                width: 80,
+                height: 80,
+                colorDark: '#000000',
+                colorLight: '#ffffff'
+            });
+        }
+
+        // Toggle QR codes visibility
+        function toggleQRCodes() {
+            const container = document.getElementById('qrContainer');
+            const isHidden = container.style.display === 'none';
+
+            if (isHidden) {
+                container.style.display = 'flex';
+                localStorage.setItem('qrCodesVisible', 'true');
+            } else {
+                container.style.display = 'none';
+                localStorage.setItem('qrCodesVisible', 'false');
+            }
+        }
+
+        // Restore QR codes visibility state on load
+        function restoreQRState() {
+            const container = document.getElementById('qrContainer');
+            const isVisible = localStorage.getItem('qrCodesVisible');
+
+            // Default to visible if not set
+            if (isVisible === 'false') {
+                container.style.display = 'none';
+            }
         }
 
         // Initialize
@@ -763,8 +839,11 @@
             setInterval(rotateActivity, 8000); // Rotate activity feed every 8 seconds
         }
 
-        // Generate QR code after page load
-        window.addEventListener('load', generateQRCode);
+        // Generate QR codes and restore state after page load
+        window.addEventListener('load', function() {
+            restoreQRState();
+            generateQRCode();
+        });
 
         // Auto-refresh every 30 seconds
         setTimeout(() => window.location.reload(), 30000);

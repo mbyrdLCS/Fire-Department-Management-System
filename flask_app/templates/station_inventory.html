@@ -87,32 +87,39 @@
 
         .form-group select,
         .form-group input {
-            padding: 12px;
+            padding: 16px;
             border: 2px solid #ddd;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 18px;
+            min-height: 56px;
         }
 
         .form-group select:focus,
         .form-group input:focus {
             outline: none;
             border-color: #673AB7;
+            box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.1);
         }
 
         .add-button {
-            padding: 14px;
+            padding: 18px;
             background: #673AB7;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.3s ease;
+            min-height: 56px;
         }
 
         .add-button:hover {
             background: #5E35B1;
+        }
+
+        .add-button:active {
+            transform: scale(0.98);
         }
 
         .inventory-table {
@@ -167,12 +174,14 @@
         }
 
         .btn-small {
-            padding: 6px 12px;
+            padding: 10px 16px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             transition: all 0.2s ease;
+            min-height: 44px;
+            white-space: nowrap;
         }
 
         .btn-update {
@@ -184,6 +193,10 @@
             background: #45a049;
         }
 
+        .btn-update:active {
+            transform: scale(0.95);
+        }
+
         .btn-remove {
             background: #f44336;
             color: white;
@@ -193,12 +206,25 @@
             background: #da190b;
         }
 
+        .btn-remove:active {
+            transform: scale(0.95);
+        }
+
         .qty-input {
-            width: 80px;
-            padding: 6px;
+            width: 100px;
+            padding: 10px;
             border: 2px solid #ddd;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 18px;
+            min-height: 44px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .qty-input:focus {
+            outline: none;
+            border-color: #673AB7;
+            box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.1);
         }
 
         .vehicles-section {
@@ -231,17 +257,44 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
             .inventory-table {
-                font-size: 14px;
+                font-size: 15px;
             }
 
             .inventory-table th,
             .inventory-table td {
-                padding: 8px 6px;
+                padding: 12px 8px;
             }
 
             .action-buttons {
                 flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn-small {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .qty-input {
+                width: 100%;
+            }
+
+            /* Make form fields stack on mobile */
+            .add-item-form {
+                grid-template-columns: 1fr;
+            }
+
+            /* Hide less important columns on very small screens */
+            @media (max-width: 480px) {
+                .inventory-table th:nth-child(4),
+                .inventory-table td:nth-child(4) {
+                    display: none;
+                }
             }
         }
 
