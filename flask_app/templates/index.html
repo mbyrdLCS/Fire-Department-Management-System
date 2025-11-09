@@ -393,60 +393,6 @@
                 </form>
             </div>
         </div>
-
-        <!-- Management Section -->
-        <div class="management-section">
-            <div class="section-title">📋 Management & Tools</div>
-            <div class="management-grid">
-                <div class="management-card" onclick="window.location.href='{{ url_for('dashboard') }}'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <div class="icon">📊</div>
-                    <div class="title" style="color: white;">Dashboard</div>
-                    <div class="description" style="color: rgba(255,255,255,0.9);">Statistics & analytics</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('inspections_menu') }}'">
-                    <div class="icon">🔍</div>
-                    <div class="title">Vehicle Inspections</div>
-                    <div class="description">6-day inspection tracking</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('maintenance_menu') }}'">
-                    <div class="icon">🔧</div>
-                    <div class="title">Maintenance</div>
-                    <div class="description">Work orders & repairs</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('manage_vehicles') }}'">
-                    <div class="icon">🚛</div>
-                    <div class="title">Fleet Management</div>
-                    <div class="description">Add & manage vehicles</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('inventory_menu') }}'">
-                    <div class="icon">📦</div>
-                    <div class="title">Inventory</div>
-                    <div class="description">Equipment & supplies</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('reports_menu') }}'">
-                    <div class="icon">📊</div>
-                    <div class="title">Reports</div>
-                    <div class="description">Generate & export reports</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('alerts_dashboard') }}'" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white;">
-                    <div class="icon">🚨</div>
-                    <div class="title" style="color: white;">Alerts Dashboard</div>
-                    <div class="description" style="color: rgba(255,255,255,0.9);">Warnings & notifications</div>
-                </div>
-
-                <div class="management-card" onclick="window.location.href='{{ url_for('admin') }}'">
-                    <div class="icon">⚙️</div>
-                    <div class="title">Admin Panel</div>
-                    <div class="description">User management</div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
