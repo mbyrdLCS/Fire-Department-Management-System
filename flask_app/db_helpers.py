@@ -1698,13 +1698,16 @@ def get_dashboard_stats():
 
     # Vehicles needing inspection
     cursor.execute('''
-        SELECT COUNT(DISTINCT v.id)
-        FROM vehicles v
-        LEFT JOIN vehicle_inspections vi ON v.id = vi.vehicle_id
-        WHERE v.status = 'active'
-        GROUP BY v.id
-        HAVING MAX(vi.inspection_date) IS NULL OR
-               julianday('now') - julianday(MAX(vi.inspection_date)) > 6
+        SELECT COUNT(*)
+        FROM (
+            SELECT v.id
+            FROM vehicles v
+            LEFT JOIN vehicle_inspections vi ON v.id = vi.vehicle_id
+            WHERE v.status = 'active'
+            GROUP BY v.id
+            HAVING MAX(vi.inspection_date) IS NULL OR
+                   julianday('now') - julianday(MAX(vi.inspection_date)) > 6
+        )
     ''')
     stats['vehicles_needing_inspection'] = cursor.fetchone()[0] or 0
 
