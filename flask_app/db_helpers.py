@@ -1206,6 +1206,10 @@ def create_inventory_item(name, category, item_code='', subcategory='', descript
     cursor = conn.cursor()
 
     try:
+        # Convert empty strings to None for UNIQUE constraint fields
+        item_code = item_code.strip() if item_code and item_code.strip() else None
+        serial_number = serial_number.strip() if serial_number and serial_number.strip() else None
+
         cursor.execute('''
             INSERT INTO inventory_items
             (name, item_code, serial_number, category, subcategory, description,
