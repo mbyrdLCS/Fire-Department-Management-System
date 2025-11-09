@@ -103,6 +103,58 @@
                 </div>
 
             </div>
+
+            <!-- Management Tools Section - Moved to Top -->
+            <div style="background: rgba(255,255,255,0.9); padding: 25px; border-radius: 12px; margin-top: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h2 style="color: #333; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: 600;">📋 Management & Tools</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <a href="{{ url_for('dashboard') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
+                        <div style="font-weight: 600; font-size: 16px;">Dashboard</div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Statistics & analytics</div>
+                    </a>
+                    <a href="{{ url_for('inspections_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+                        <div style="font-weight: 600; font-size: 16px;">Vehicle Inspections</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 5px;">6-day inspection tracking</div>
+                    </a>
+                    <a href="{{ url_for('maintenance_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🔧</div>
+                        <div style="font-weight: 600; font-size: 16px;">Maintenance</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 5px;">Work orders & repairs</div>
+                    </a>
+                    <a href="{{ url_for('manage_vehicles') }}" style="display: block; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🚛</div>
+                        <div style="font-weight: 600; font-size: 16px;">Fleet Management</div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Add & manage vehicles</div>
+                    </a>
+                    <a href="{{ url_for('inventory_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📦</div>
+                        <div style="font-weight: 600; font-size: 16px;">Inventory</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 5px;">Equipment & supplies</div>
+                    </a>
+                    <a href="{{ url_for('reports_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
+                        <div style="font-weight: 600; font-size: 16px;">Reports</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 5px;">Generate & export reports</div>
+                    </a>
+                    <a href="{{ url_for('alerts_dashboard') }}" style="display: block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🚨</div>
+                        <div style="font-weight: 600; font-size: 16px;">Alerts Dashboard</div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Warnings & notifications</div>
+                    </a>
+                    <a href="{{ url_for('manage_stations') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🏢</div>
+                        <div style="font-weight: 600; font-size: 16px;">Manage Stations</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 5px;">Add fire station locations</div>
+                    </a>
+                    <a href="{{ url_for('manage_checklist_items') }}" style="display: block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📋</div>
+                        <div style="font-weight: 600; font-size: 16px;">Manage Checklist Items</div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Configure inspection checks</div>
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -375,58 +427,6 @@
                         <button type="button" class="cancel-button" onclick="closeClearLogsModal()">Cancel</button>
                     </div>
                 </form>
-            </div>
-        </div>
-
-        <!-- Management Tools Section -->
-        <div style="background: rgba(255,255,255,0.9); padding: 25px; border-radius: 12px; margin: 30px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <h2 style="color: #333; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: 600;">📋 Management & Tools</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                <a href="{{ url_for('dashboard') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                    <div style="font-weight: 600; font-size: 16px;">Dashboard</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Statistics & analytics</div>
-                </a>
-                <a href="{{ url_for('inspections_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
-                    <div style="font-weight: 600; font-size: 16px;">Vehicle Inspections</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">6-day inspection tracking</div>
-                </a>
-                <a href="{{ url_for('maintenance_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🔧</div>
-                    <div style="font-weight: 600; font-size: 16px;">Maintenance</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Work orders & repairs</div>
-                </a>
-                <a href="{{ url_for('manage_vehicles') }}" style="display: block; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🚛</div>
-                    <div style="font-weight: 600; font-size: 16px;">Fleet Management</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Add & manage vehicles</div>
-                </a>
-                <a href="{{ url_for('inventory_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📦</div>
-                    <div style="font-weight: 600; font-size: 16px;">Inventory</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Equipment & supplies</div>
-                </a>
-                <a href="{{ url_for('reports_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                    <div style="font-weight: 600; font-size: 16px;">Reports</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Generate & export reports</div>
-                </a>
-                <a href="{{ url_for('alerts_dashboard') }}" style="display: block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🚨</div>
-                    <div style="font-weight: 600; font-size: 16px;">Alerts Dashboard</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Warnings & notifications</div>
-                </a>
-                <a href="{{ url_for('manage_stations') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🏢</div>
-                    <div style="font-weight: 600; font-size: 16px;">Manage Stations</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Add fire station locations</div>
-                </a>
-                <a href="{{ url_for('manage_checklist_items') }}" style="display: block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📋</div>
-                    <div style="font-weight: 600; font-size: 16px;">Manage Checklist Items</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Configure inspection checks</div>
-                </a>
             </div>
         </div>
 

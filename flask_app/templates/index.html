@@ -301,10 +301,13 @@
             <div class="subtitle">Activity Log & Management System</div>
         </div>
 
-        <!-- Kiosk Mode Link -->
-        <div style="text-align: center; margin: 20px 0;">
+        <!-- Kiosk Mode & Admin Links -->
+        <div style="text-align: center; margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
             <a href="{{ url_for('kiosk') }}" style="display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s;">
                 📱 Switch to Kiosk Mode (iPad Check-In/Out)
+            </a>
+            <a href="{{ url_for('admin') }}" style="display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s;">
+                ⚙️ Admin Panel
             </a>
         </div>
 
