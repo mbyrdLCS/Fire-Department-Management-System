@@ -1698,13 +1698,15 @@ def get_dashboard_stats():
 
     # Vehicles needing inspection
     cursor.execute('''
-        SELECT COUNT(*) FROM vehicles
-        WHERE status = 'active' AND (
-            last_inspection_date IS NULL OR
-            julianday('now') - julianday(last_inspection_date) > 6
-        )
+        SELECT COUNT(DISTINCT v.id)
+        FROM vehicles v
+        LEFT JOIN vehicle_inspections vi ON v.id = vi.vehicle_id
+        WHERE v.status = 'active'
+        GROUP BY v.id
+        HAVING MAX(vi.inspection_date) IS NULL OR
+               julianday('now') - julianday(MAX(vi.inspection_date)) > 6
     ''')
-    stats['vehicles_needing_inspection'] = cursor.fetchone()[0]
+    stats['vehicles_needing_inspection'] = cursor.fetchone()[0] or 0
 
     # Total inventory items
     cursor.execute('SELECT COUNT(*) FROM inventory_items')
@@ -1810,22 +1812,21 @@ def get_vehicle_status_summary():
     cursor.execute('''
         SELECT
             CASE
-                WHEN last_inspection_date IS NULL THEN 'overdue'
-                WHEN julianday('now') - julianday(last_inspection_date) > 6 THEN 'overdue'
-                WHEN julianday('now') - julianday(last_inspection_date) > 5 THEN 'due_soon'
+                WHEN MAX(vi.inspection_date) IS NULL THEN 'overdue'
+                WHEN julianday('now') - julianday(MAX(vi.inspection_date)) > 6 THEN 'overdue'
+                WHEN julianday('now') - julianday(MAX(vi.inspection_date)) > 5 THEN 'due_soon'
                 ELSE 'up_to_date'
-            END as status,
-            COUNT(*) as count
-        FROM vehicles
-        WHERE status = 'active'
-        GROUP BY status
+            END as inspection_status
+        FROM vehicles v
+        LEFT JOIN vehicle_inspections vi ON v.id = vi.vehicle_id
+        WHERE v.status = 'active'
+        GROUP BY v.id
     ''')
 
     for row in cursor.fetchall():
         status = row[0]
-        count = row[1]
         if status in summary:
-            summary[status] = count
+            summary[status] += 1
 
     conn.close()
     return summary
