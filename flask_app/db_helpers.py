@@ -1724,10 +1724,6 @@ def get_dashboard_stats():
     ''')
     stats['low_inventory_count'] = cursor.fetchone()[0]
 
-    # Open maintenance work orders
-    cursor.execute("SELECT COUNT(*) FROM maintenance_work_orders WHERE status IN ('open', 'in_progress')")
-    stats['open_work_orders'] = cursor.fetchone()[0]
-
     # Total alerts
     stats['total_alerts'] = stats['vehicles_needing_inspection'] + stats['low_inventory_count']
 
