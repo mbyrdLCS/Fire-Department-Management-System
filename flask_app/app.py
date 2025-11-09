@@ -132,6 +132,25 @@ def register():
 
     return redirect(url_for('index'))
 
+@app.route('/welcome')
+def welcome():
+    """Welcome screen after check-in with optional inspection QR"""
+    firefighter_name = request.args.get('name', 'Firefighter')
+    activity = request.args.get('activity', 'your shift')
+
+    # Check if vehicles need inspection
+    alerts = db_helpers.get_all_alerts()
+    show_inspection_qr = len(alerts.get('inspections_overdue', [])) > 0
+
+    # Get base URL for QR code
+    base_url = request.url_root.rstrip('/')
+
+    return render_template('welcome.html',
+                         firefighter_name=firefighter_name,
+                         activity=activity,
+                         show_inspection_qr=show_inspection_qr,
+                         base_url=base_url)
+
 @app.route('/clock_in', methods=['POST'])
 def clock_in():
     """Clock in a firefighter"""
@@ -217,7 +236,11 @@ def clock_in_out():
             success, message = db_helpers.clock_in(firefighter_number, activity)
             if success:
                 logger.info(f"Kiosk clock in: {firefighter['full_name']} - {activity}")
-                return jsonify({'success': True, 'message': f'Checked in for {activity}'})
+                # Redirect to welcome screen instead of returning JSON
+                return jsonify({
+                    'success': True,
+                    'redirect': url_for('welcome', name=firefighter['full_name'], activity=activity)
+                })
             else:
                 return jsonify({'success': False, 'message': message})
 

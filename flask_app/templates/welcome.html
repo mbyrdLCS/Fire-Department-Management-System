@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Welcome - SVVFD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .welcome-container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .welcome-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-title {
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .welcome-name {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        .welcome-message {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .qr-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .qr-title {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .qr-instruction {
+            color: white;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 18px 35px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .countdown {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+
+        .countdown-number {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .welcome-container {
+                padding: 30px 20px;
+            }
+
+            .welcome-title {
+                font-size: 28px;
+            }
+
+            .welcome-name {
+                font-size: 36px;
+            }
+
+            .welcome-message {
+                font-size: 18px;
+            }
+
+            .qr-title {
+                font-size: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <div class="welcome-icon">👋</div>
+        <div class="welcome-title">Welcome Back,</div>
+        <div class="welcome-name">{{ firefighter_name }}</div>
+
+        {% if show_inspection_qr %}
+        <div class="welcome-message">
+            Vehicles need inspection! Use your device to inspect trucks.
+        </div>
+
+        <div class="qr-section">
+            <div class="qr-title">🔍 Vehicle Inspections</div>
+            <div class="qr-code" id="qr-inspect"></div>
+            <div class="qr-instruction">Scan with your phone to start inspecting</div>
+        </div>
+        {% else %}
+        <div class="welcome-message">
+            You're all checked in for {{ activity }}!
+        </div>
+        {% endif %}
+
+        <div class="button-group">
+            <a href="{{ url_for('kiosk') }}" class="btn btn-primary">
+                ➕ Check In Another Firefighter
+            </a>
+            <a href="{{ url_for('kiosk') }}" class="btn btn-secondary">
+                ← Back to Kiosk
+            </a>
+        </div>
+
+        <div class="countdown">
+            Returning to kiosk in <span class="countdown-number" id="countdown">15</span> seconds...
+        </div>
+    </div>
+
+    <script>
+        {% if show_inspection_qr %}
+        // Generate QR code
+        const baseUrl = '{{ base_url }}';
+        new QRCode(document.getElementById('qr-inspect'), {
+            text: baseUrl + '/inspections',
+            width: 200,
+            height: 200,
+            colorDark: '#000000',
+            colorLight: '#ffffff'
+        });
+        {% endif %}
+
+        // Countdown and auto-redirect
+        let timeLeft = 15;
+        const countdownElement = document.getElementById('countdown');
+
+        const countdown = setInterval(() => {
+            timeLeft--;
+            countdownElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                window.location.href = "{{ url_for('kiosk') }}";
+            }
+        }, 1000);
+
+        // Clear countdown if user clicks any button
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                clearInterval(countdown);
+            });
+        });
+    </script>
+</body>
+</html>

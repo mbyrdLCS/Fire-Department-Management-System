@@ -458,6 +458,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // If there's a redirect URL (welcome screen), go there
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
                     showSuccess(action);
                     form.reset();
                     // Reset to first option (Work night)
