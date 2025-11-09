@@ -469,10 +469,6 @@
                             <option value="pound">Pound</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="new_code">Item Code (optional):</label>
-                        <input type="text" name="item_code" id="new_code" placeholder="e.g. EXT-ABC-10" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
-                    </div>
                 </div>
                 <button type="submit" class="add-button" style="margin-top: 15px;">Create Item in Catalog</button>
             </form>
@@ -501,9 +497,6 @@
                         <tr>
                             <td>
                                 <strong>{{ item.name }}</strong>
-                                {% if item.item_code %}
-                                <br><small style="color: #999;">{{ item.item_code }}</small>
-                                {% endif %}
                             </td>
                             <td><span class="category-badge">{{ item.category }}</span></td>
                             <td>
