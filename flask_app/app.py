@@ -2209,12 +2209,19 @@ def update_checklist_item_order(item_id):
 def dashboard():
     """Main dashboard with statistics and charts"""
     try:
+        logger.info("Loading dashboard stats...")
         stats = db_helpers.get_dashboard_stats()
+        logger.info("Loading hours by day...")
         hours_by_day = db_helpers.get_hours_by_day(30)
+        logger.info("Loading activity breakdown...")
         activity_breakdown = db_helpers.get_activity_breakdown()
+        logger.info("Loading vehicle status...")
         vehicle_status = db_helpers.get_vehicle_status_summary()
+        logger.info("Loading top performers...")
         top_performers = db_helpers.get_top_performers(10)
+        logger.info("Loading alerts...")
         alerts = db_helpers.get_all_alerts()
+        logger.info("Loading recent activity...")
         recent_activity = db_helpers.get_recent_activity(10)
 
         return render_template('dashboard.html',
@@ -2227,8 +2234,10 @@ def dashboard():
                              recent_activity=recent_activity)
 
     except Exception as e:
+        import traceback
         logger.error(f"Dashboard error: {str(e)}")
-        flash('An error occurred while loading the dashboard.')
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        flash(f'An error occurred while loading the dashboard: {str(e)}')
         return redirect(url_for('index'))
 
 # ========== ALERTS DASHBOARD ROUTE ==========
