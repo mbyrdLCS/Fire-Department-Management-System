@@ -445,12 +445,6 @@
                 <div class="qr-corner-label">📦 Inventory</div>
             </div>
 
-            <!-- Maintenance QR - LEFT bottom, controlled by alerts page toggle -->
-            <div class="qr-corner-left-bottom hidden" id="qrMaintenance">
-                <div class="qr-code" id="qr-maintenance"></div>
-                <div class="qr-corner-label">🔧 Maintenance</div>
-            </div>
-
             <!-- Inspections QR - RIGHT side, only shown when inspections are overdue -->
             {% if alerts.inspections_overdue|length > 0 %}
             <div class="qr-corner-right" id="qrInspections">
@@ -458,6 +452,12 @@
                 <div class="qr-corner-label">🔍 Inspections</div>
             </div>
             {% endif %}
+        </div>
+
+        <!-- Maintenance QR - BOTTOM LEFT of entire page, controlled by alerts page toggle -->
+        <div class="qr-corner-left-bottom hidden" id="qrMaintenance">
+            <div class="qr-code" id="qr-maintenance"></div>
+            <div class="qr-corner-label">🔧 Maintenance</div>
         </div>
 
         <!-- Alert Banner -->
