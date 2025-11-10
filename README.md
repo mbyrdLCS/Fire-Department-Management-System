@@ -1,23 +1,70 @@
-# Fire Department Management System
+# 🚒 Fire Department Management System
 
-A web-based time tracking and management system for fire departments, built with Flask.
+A comprehensive web-based time tracking and management system designed specifically for volunteer fire departments. Built with Flask and SQLite, this system helps fire departments track volunteer hours, manage equipment inventory, schedule vehicle inspections, and monitor station operations.
 
-## Features
+**Live Demo:** [Spring Valley VFD](https://michealhelps.pythonanywhere.com/)
 
-- **Clock In/Out System**: Firefighters can clock in and out for various activities
-- **Activity Tracking**: Track different types of activities (Firefighting, Training, Work Night, Board Meeting, EMR Meeting, or custom)
-- **Admin Panel**: Manage firefighters, view hours, and generate reports
-- **Automatic Checkout**: Prevents stuck sessions by auto-checking out after 12 hours
-- **Display Dashboard**: Real-time view of active firefighters and leaderboard
-- **Data Export**: Export time logs to CSV for reporting
-- **Automatic Backups**: Hourly backups to Dropbox
+[![License](https://img.shields.io/badge/License-Non--Commercial-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.0%2B-green)](https://flask.palletsprojects.com/)
 
-## Technology Stack
+## ✨ Features
 
-- **Backend**: Flask (Python)
-- **Frontend**: HTML, CSS, JavaScript
-- **Data Storage**: JSON files
-- **Backup**: Dropbox API
+### Time Tracking & Activity Management
+- ⏱️ **Kiosk Mode Clock In/Out**: iPad-friendly touch interface for firefighters to check in/out
+- 📋 **Activity Tracking**: Track firefighting calls, training, work nights, meetings, and custom activities
+- 👥 **Real-Time Dashboard**: Live display showing active firefighters and recent activity
+- 📊 **Comprehensive Reports**: Hours by firefighter, activity breakdown, date ranges, and exportable Excel reports
+- ⚠️ **Smart Alerts**: Automatic alerts for overdue vehicle inspections and low inventory levels
+
+### Equipment & Inventory Management
+- 📦 **Inventory System**: Track station and vehicle inventory with quantities, costs, and categories
+- 🔍 **Vehicle Inspections**: Schedule and track weekly vehicle inspections with detailed checklists
+- 🔧 **Maintenance Tracking**: Monitor vehicle maintenance needs and history
+- 📱 **QR Code Access**: Generate QR codes for mobile access to inspections and inventory
+- 💰 **Value Reporting**: Track total inventory value by location
+
+### Administration & Reporting
+- 🔐 **Admin Panel**: Comprehensive management interface for all system features
+- 📈 **Dashboard Analytics**: Visual charts and statistics for department operations
+- 📤 **Excel Export**: Export any report to formatted Excel spreadsheets
+- 🔔 **Alert Dashboard**: Centralized view of all system alerts and warnings
+- 📺 **Digital Signage**: Display mode perfect for TV displays in the station
+
+### Modern Features
+- 📱 **Mobile Responsive**: Works great on phones, tablets, and desktop
+- 🎨 **Modern UI**: Clean, intuitive interface with smooth animations
+- ⚡ **Real-Time Updates**: Auto-refreshing displays keep information current
+- 🔄 **Automatic Backups**: Hourly backups to Dropbox for data safety
+
+## 📸 Screenshots
+
+### Kiosk Mode
+Touch-friendly iPad interface for firefighters to check in and out
+
+### Display Dashboard
+Real-time display with active firefighters, alerts, and leaderboards - perfect for station TVs
+
+### Admin Panel
+Comprehensive management interface with firefighter management, reports, and system controls
+
+### Inventory Management
+Track equipment across stations and vehicles with cost tracking
+
+### Vehicle Inspections
+Mobile-friendly inspection checklists accessible via QR codes
+
+*More screenshots available in the `/docs/screenshots` folder*
+
+## 🛠️ Technology Stack
+
+- **Backend**: Flask 2.0+ (Python)
+- **Database**: SQLite with optimized queries
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+- **Charts**: Chart.js for dashboard analytics
+- **QR Codes**: qrcodejs for mobile access
+- **Excel Export**: openpyxl for formatted reports
+- **Backup**: Dropbox API for automatic backups
 - **Timezone**: America/Chicago (Central Time)
 
 ## Installation
@@ -217,10 +264,54 @@ To manually trigger a backup, visit `/test_backup` while logged in as admin.
 - System automatically tries to recover from backups
 - Check local backup files with `_backup_` in filename
 
-## License
+## 📄 License
 
-[Add your license here]
+This project is licensed under a **Non-Commercial License with Attribution Requirement**.
 
-## Support
+**Key Points:**
+- ✅ Free to use for fire departments and non-profits
+- ✅ Can modify and adapt for your needs
+- ✅ Must keep SignPresenter.com references
+- ❌ Cannot sell or use commercially
+- ❌ Cannot remove attribution
 
-For issues or questions, contact [your contact info]
+See [LICENSE](LICENSE) file for full details.
+
+For commercial licensing inquiries, contact: mike@signpresenter.com
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development Guidelines
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Test your changes thoroughly
+4. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+5. Push to the branch (`git push origin feature/AmazingFeature`)
+6. Open a Pull Request
+
+## 💡 Support & Questions
+
+- **Issues**: [GitHub Issues](https://github.com/mbyrdLCS/Fire-Department-Management-System/issues)
+- **Email**: mike@signpresenter.com
+- **Live Demo**: [Spring Valley VFD](https://michealhelps.pythonanywhere.com/)
+
+## 🙏 Acknowledgments
+
+- Built for volunteer fire departments who serve their communities
+- Powered by [SignPresenter](https://www.signpresenter.com/) for digital signage displays
+- Thanks to all contributors and fire departments using this system
+
+## 📈 Roadmap
+
+- [ ] Mobile app for iOS/Android
+- [ ] Advanced scheduling system
+- [ ] Training record management
+- [ ] Grant reporting features
+- [ ] Multi-department support
+- [ ] API for third-party integrations
+
+---
+
+**Made with ❤️ for volunteer firefighters**
