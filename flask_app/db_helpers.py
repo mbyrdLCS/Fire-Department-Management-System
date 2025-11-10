@@ -2063,82 +2063,15 @@ def get_activity_report(start_date=None, end_date=None):
     }
 
 def get_maintenance_cost_report(start_date=None, end_date=None, vehicle_id=None):
-    """Get maintenance costs report"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    query = '''
-        SELECT
-            v.vehicle_code,
-            v.name as vehicle_name,
-            mwo.id as work_order_id,
-            mwo.title,
-            mwo.description,
-            mwo.status,
-            mwo.priority,
-            mwo.reported_date,
-            mwo.completed_date,
-            mwo.labor_cost,
-            mwo.parts_cost,
-            (COALESCE(mwo.labor_cost, 0) + COALESCE(mwo.parts_cost, 0)) as total_cost
-        FROM maintenance_work_orders mwo
-        JOIN vehicles v ON mwo.vehicle_id = v.id
-        WHERE 1=1
-    '''
-
-    params = []
-
-    if start_date:
-        query += ' AND DATE(mwo.reported_date) >= ?'
-        params.append(start_date)
-
-    if end_date:
-        query += ' AND DATE(mwo.reported_date) <= ?'
-        params.append(end_date)
-
-    if vehicle_id:
-        query += ' AND v.id = ?'
-        params.append(vehicle_id)
-
-    query += ' ORDER BY mwo.reported_date DESC'
-
-    cursor.execute(query, params)
-
-    report_data = []
-    total_labor = 0
-    total_parts = 0
-    total_cost = 0
-
-    for row in cursor.fetchall():
-        labor = row[9] or 0
-        parts = row[10] or 0
-        cost = row[11] or 0
-        total_labor += labor
-        total_parts += parts
-        total_cost += cost
-
-        report_data.append({
-            'vehicle_code': row[0],
-            'vehicle_name': row[1],
-            'work_order_id': row[2],
-            'title': row[3],
-            'description': row[4],
-            'status': row[5],
-            'priority': row[6],
-            'reported_date': row[7],
-            'completed_date': row[8],
-            'labor_cost': round(labor, 2),
-            'parts_cost': round(parts, 2),
-            'total_cost': round(cost, 2)
-        })
-
-    conn.close()
+    """Get maintenance costs report - Returns empty data until work orders system is implemented"""
+    # TODO: Implement maintenance_work_orders table and tracking system
+    # For now, return empty report structure with $0 totals
 
     return {
-        'data': report_data,
-        'total_labor_cost': round(total_labor, 2),
-        'total_parts_cost': round(total_parts, 2),
-        'total_cost': round(total_cost, 2),
+        'data': [],
+        'total_labor_cost': 0.00,
+        'total_parts_cost': 0.00,
+        'total_cost': 0.00,
         'start_date': start_date,
         'end_date': end_date
     }
