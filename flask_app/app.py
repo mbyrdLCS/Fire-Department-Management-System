@@ -610,19 +610,35 @@ def export_inspections():
         return redirect(url_for('admin'))
 
     try:
-        # Get month and year from query parameters
+        # Get query parameters
         month = request.args.get('month')
         year = request.args.get('year')
+        week = request.args.get('week')  # 'current' for current week
 
         output = StringIO()
         cw = csv.writer(output)
 
+        # Determine date range for filtering
+        start_date = None
+        end_date = None
+        title_suffix = 'ALL TIME'
+        filename_suffix = 'all_time'
+
+        if week == 'current':
+            # Get current week (Sunday to Saturday)
+            now = datetime.now(central)
+            # Calculate days since Sunday (0=Monday, 6=Sunday in weekday())
+            days_since_sunday = (now.weekday() + 1) % 7
+            start_date = (now - timedelta(days=days_since_sunday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            title_suffix = f'WEEK OF {start_date.strftime("%B %d, %Y")}'
+            filename_suffix = f'week_{start_date.strftime("%Y_%m_%d")}'
+        elif month and year:
+            title_suffix = datetime(int(year), int(month), 1).strftime('%B %Y')
+            filename_suffix = f'{year}_{int(month):02d}'
+
         # Header row
-        if month and year:
-            month_name = datetime(int(year), int(month), 1).strftime('%B %Y')
-            cw.writerow([f'VEHICLE INSPECTION REPORT - {month_name}'])
-        else:
-            cw.writerow(['VEHICLE INSPECTION REPORT - ALL TIME'])
+        cw.writerow([f'VEHICLE INSPECTION REPORT - {title_suffix}'])
         cw.writerow([])
         cw.writerow(['Vehicle Code', 'Vehicle Name', 'Inspection Date', 'Inspector', 'Result', 'Notes'])
 
@@ -632,13 +648,17 @@ def export_inspections():
             history = db_helpers.get_vehicle_inspection_history(vehicle['id'], limit=1000)
 
             for inspection in history:
-                # Filter by month and year if provided
-                if month and year:
-                    inspection_date = datetime.fromisoformat(inspection['date'])
+                inspection_date = datetime.fromisoformat(inspection['date'])
+
+                # Filter by date range
+                if week == 'current':
+                    if not (start_date <= inspection_date <= end_date):
+                        continue
+                elif month and year:
                     if inspection_date.month != int(month) or inspection_date.year != int(year):
                         continue
 
-                date_str = datetime.fromisoformat(inspection['date']).strftime('%Y-%m-%d %I:%M %p')
+                date_str = inspection_date.strftime('%Y-%m-%d %I:%M %p')
                 result = 'PASSED' if inspection['passed'] else 'FAILED'
 
                 cw.writerow([
@@ -653,10 +673,7 @@ def export_inspections():
         output.seek(0)
 
         # Generate filename
-        if month and year:
-            filename = f'inspections_{year}_{int(month):02d}.csv'
-        else:
-            filename = 'inspections_all_time.csv'
+        filename = f'inspections_{filename_suffix}.csv'
 
         return send_file(
             BytesIO(output.getvalue().encode()),
@@ -772,6 +789,25 @@ def export_inspections_pdf():
     try:
         month = request.args.get('month')
         year = request.args.get('year')
+        week = request.args.get('week')  # 'current' for current week
+
+        # Determine date range for filtering
+        start_date = None
+        end_date = None
+        title_suffix = 'ALL TIME'
+        filename_suffix = 'all_time'
+
+        if week == 'current':
+            # Get current week (Sunday to Saturday)
+            now = datetime.now(central)
+            days_since_sunday = (now.weekday() + 1) % 7
+            start_date = (now - timedelta(days=days_since_sunday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            title_suffix = f'WEEK OF {start_date.strftime("%B %d, %Y")}'
+            filename_suffix = f'week_{start_date.strftime("%Y_%m_%d")}'
+        elif month and year:
+            title_suffix = datetime(int(year), int(month), 1).strftime('%B %Y')
+            filename_suffix = f'{year}_{int(month):02d}'
 
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
@@ -780,11 +816,7 @@ def export_inspections_pdf():
 
         # Title
         title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=20)
-        if month and year:
-            month_name = datetime(int(year), int(month), 1).strftime('%B %Y')
-            title = Paragraph(f"<b>VEHICLE INSPECTION REPORT - {month_name}</b>", title_style)
-        else:
-            title = Paragraph("<b>VEHICLE INSPECTION REPORT - ALL TIME</b>", title_style)
+        title = Paragraph(f"<b>VEHICLE INSPECTION REPORT - {title_suffix}</b>", title_style)
         elements.append(title)
         elements.append(Spacer(1, 0.25*inch))
 
@@ -794,19 +826,24 @@ def export_inspections_pdf():
         for vehicle in vehicles:
             history = db_helpers.get_vehicle_inspection_history(vehicle['id'], limit=1000)
             for insp in history:
-                insp_date = datetime.fromisoformat(insp['inspection_date'])
-                if month and year:
+                insp_date = datetime.fromisoformat(insp['date'])
+
+                # Filter by date range
+                if week == 'current':
+                    if not (start_date <= insp_date <= end_date):
+                        continue
+                elif month and year:
                     if insp_date.month != int(month) or insp_date.year != int(year):
                         continue
 
                 date_str = insp_date.strftime('%Y-%m-%d %I:%M %p')
-                result = 'Pass' if insp['result'] == 'pass' else 'Fail'
+                result = 'PASSED' if insp['passed'] else 'FAILED'
                 notes = insp.get('notes', '')[:40] + '...' if len(insp.get('notes', '')) > 40 else insp.get('notes', '')
                 data.append([
-                    vehicle['vehicle_code'],
+                    vehicle['code'],
                     vehicle['name'],
                     date_str,
-                    insp.get('inspector_name', 'N/A'),
+                    insp.get('inspector', 'N/A'),
                     result,
                     notes
                 ])
@@ -830,10 +867,7 @@ def export_inspections_pdf():
         doc.build(elements)
         buffer.seek(0)
 
-        if month and year:
-            filename = f'inspections_{year}_{int(month):02d}.pdf'
-        else:
-            filename = 'inspections_all_time.pdf'
+        filename = f'inspections_{filename_suffix}.pdf'
 
         return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
 

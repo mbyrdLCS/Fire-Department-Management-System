@@ -65,6 +65,16 @@
                     <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 20px;">🚒</span> VEHICLE INSPECTION EXPORT
                     </h3>
+                    <!-- Weekly Export (Most Common) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <button onclick="exportInspectionsWeek('csv')" style="padding: 12px; background: #20c997; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            📄 This Week (CSV)
+                        </button>
+                        <button onclick="exportInspectionsWeek('pdf')" style="padding: 12px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            📕 This Week (PDF)
+                        </button>
+                    </div>
+                    <!-- Monthly Export -->
                     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
                         <select id="insp_month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
                             <option value="1">January</option>
@@ -640,6 +650,11 @@ function exportInspections(format, useMonthYear) {
         const year = document.getElementById('insp_year').value;
         url += `?month=${month}&year=${year}`;
     }
+    window.location.href = url;
+}
+
+function exportInspectionsWeek(format) {
+    let url = format === 'pdf' ? '/export_inspections_pdf?week=current' : '/export_inspections?week=current';
     window.location.href = url;
 }
 </script>
