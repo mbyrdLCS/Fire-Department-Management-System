@@ -650,7 +650,8 @@ def export_inspections():
 
     try:
         # Get query parameters
-        month = request.args.get('month')
+        month_param = request.args.get('month')  # Format: YYYY-MM from HTML month input
+        month = request.args.get('month') if not month_param or '-' in month_param else request.args.get('month')
         year = request.args.get('year')
         week = request.args.get('week')  # 'current' for current week
 
@@ -672,6 +673,13 @@ def export_inspections():
             end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59)
             title_suffix = f'WEEK OF {start_date.strftime("%B %d, %Y")}'
             filename_suffix = f'week_{start_date.strftime("%Y_%m_%d")}'
+        elif month_param and '-' in month_param:
+            # Handle YYYY-MM format from HTML month input
+            year_val, month_val = month_param.split('-')
+            title_suffix = datetime(int(year_val), int(month_val), 1).strftime('%B %Y')
+            filename_suffix = f'{year_val}_{month_val}'
+            month = month_val
+            year = year_val
         elif month and year:
             title_suffix = datetime(int(year), int(month), 1).strftime('%B %Y')
             filename_suffix = f'{year}_{int(month):02d}'
@@ -828,7 +836,8 @@ def export_inspections_pdf():
         return redirect(url_for('admin'))
 
     try:
-        month = request.args.get('month')
+        month_param = request.args.get('month')  # Format: YYYY-MM from HTML month input
+        month = request.args.get('month') if not month_param or '-' in month_param else request.args.get('month')
         year = request.args.get('year')
         week = request.args.get('week')  # 'current' for current week
 
@@ -846,6 +855,13 @@ def export_inspections_pdf():
             end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59)
             title_suffix = f'WEEK OF {start_date.strftime("%B %d, %Y")}'
             filename_suffix = f'week_{start_date.strftime("%Y_%m_%d")}'
+        elif month_param and '-' in month_param:
+            # Handle YYYY-MM format from HTML month input
+            year_val, month_val = month_param.split('-')
+            title_suffix = datetime(int(year_val), int(month_val), 1).strftime('%B %Y')
+            filename_suffix = f'{year_val}_{month_val}'
+            month = month_val
+            year = year_val
         elif month and year:
             title_suffix = datetime(int(year), int(month), 1).strftime('%B %Y')
             filename_suffix = f'{year}_{int(month):02d}'
