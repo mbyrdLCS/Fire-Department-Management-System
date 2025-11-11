@@ -463,18 +463,18 @@
                 <strong style="display: block; margin-bottom: 12px; font-size: 16px;">🔗 Your Display URL:</strong>
 
                 <!-- Main Display Link -->
-                <div style="padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #4CAF50; margin-bottom: 10px;">
+                <div style="padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #1976d2; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <div style="flex: 1;">
-                            <strong style="color: #4CAF50; font-size: 15px;">Main Display (All Stations)</strong>
+                            <strong style="color: #64b5f6; font-size: 15px;">Main Display (All Stations)</strong>
                             <div style="margin-top: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <code id="mainDisplayUrlTop" style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display</code>
-                                <button onclick="copyToClipboard('mainDisplayUrlTop', this)" style="background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">
+                                <button onclick="copyToClipboard('mainDisplayUrlTop', this)" style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">
                                     📋 Copy
                                 </button>
                             </div>
                         </div>
-                        <a href="{{ url_for('display') }}" class="btn" target="_blank" style="background: #4CAF50; padding: 8px 16px; border-radius: 6px; text-decoration: none; color: white; font-size: 14px;">
+                        <a href="{{ url_for('display') }}" class="btn" target="_blank" style="background: #1976d2; padding: 8px 16px; border-radius: 6px; text-decoration: none; color: white; font-size: 14px;">
                             View →
                         </a>
                     </div>
@@ -483,25 +483,25 @@
                 <!-- Station-Specific Links (Expandable) -->
                 {% if stations and stations|length > 0 %}
                 <div style="text-align: center; margin-top: 12px;">
-                    <a href="#" onclick="document.getElementById('stationLinksTop').style.display = document.getElementById('stationLinksTop').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('stationLinksTop').style.display === 'none' ? '▼ Show individual station displays' : '▲ Hide individual station displays'; return false;" style="color: #2196F3; text-decoration: none; font-size: 14px; display: inline-block; padding: 8px 15px; background: rgba(33, 150, 243, 0.1); border-radius: 6px;">
+                    <a href="#" onclick="document.getElementById('stationLinksTop').style.display = document.getElementById('stationLinksTop').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('stationLinksTop').style.display === 'none' ? '▼ Show individual station displays' : '▲ Hide individual station displays'; return false;" style="color: #64b5f6; text-decoration: none; font-size: 14px; display: inline-block; padding: 8px 15px; background: rgba(100, 181, 246, 0.1); border-radius: 6px;">
                         ▼ Show individual station displays
                     </a>
                 </div>
 
                 <div id="stationLinksTop" style="display: none; margin-top: 12px;">
                     {% for station in stations %}
-                    <div style="margin-bottom: 8px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid #2196F3;">
+                    <div style="margin-bottom: 8px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid #42a5f5;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div style="flex: 1;">
-                                <strong style="color: #2196F3; font-size: 14px;">🏢 {{ station.name }}</strong>
+                                <strong style="color: #90caf9; font-size: 14px;">🏢 {{ station.name }}</strong>
                                 <div style="margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <code id="stationUrlTop{{ station.id }}" style="background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 4px; font-size: 12px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display?station={{ station.id }}</code>
-                                    <button onclick="copyToClipboard('stationUrlTop{{ station.id }}', this)" style="background: #2196F3; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">
+                                    <button onclick="copyToClipboard('stationUrlTop{{ station.id }}', this)" style="background: #42a5f5; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">
                                         📋 Copy
                                     </button>
                                 </div>
                             </div>
-                            <a href="{{ url_for('display', station=station.id) }}" target="_blank" style="background: #2196F3; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; white-space: nowrap;">
+                            <a href="{{ url_for('display', station=station.id) }}" target="_blank" style="background: #42a5f5; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; white-space: nowrap;">
                                 View →
                             </a>
                         </div>
@@ -510,7 +510,7 @@
                 </div>
                 {% endif %}
 
-                <small style="display: block; margin-top: 12px; opacity: 0.9;">Copy this URL and paste it into <a href="https://www.signpresenter.com/" target="_blank" rel="noopener" style="color: #4CAF50; text-decoration: none; font-weight: bold;">SignPresenter</a> to show your live dashboard on TV</small>
+                <small style="display: block; margin-top: 12px; opacity: 0.9;">Copy this URL and paste it into <a href="https://www.signpresenter.com/" target="_blank" rel="noopener" style="color: #64b5f6; text-decoration: none; font-weight: bold;">SignPresenter</a> to show your live dashboard on TV</small>
             </div>
 
             <div class="features">
