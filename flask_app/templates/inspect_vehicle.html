@@ -320,7 +320,7 @@
                     <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-left: 4px solid #FF9800; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #E65100;">
                         ⚙️ <strong>Use:</strong> {{ vehicle.oil_type }}
                     </div>
-                {% elif 'antifreeze' in desc_lower or 'coolant' in desc_lower and vehicle.antifreeze_type %}
+                {% elif ('antifreeze' in desc_lower or 'coolant' in desc_lower) and vehicle.antifreeze_type %}
                     <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-left: 4px solid #4CAF50; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #1B5E20;">
                         ❄️ <strong>Use:</strong> {{ vehicle.antifreeze_type }}
                     </div>
