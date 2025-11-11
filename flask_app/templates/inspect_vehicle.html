@@ -75,6 +75,30 @@
             box-sizing: border-box;
         }
 
+        .inspector-section select.error {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+            animation: shake 0.5s;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+            font-weight: bold;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
         .checklist-item {
             background: white;
             border-radius: 12px;
@@ -236,12 +260,13 @@
             <!-- Inspector Selection -->
             <div class="inspector-section">
                 <label for="inspector_number">Your Firefighter Number (Required):</label>
-                <select name="inspector_number" id="inspector_number" required>
+                <select name="inspector_number" id="inspector_number">
                     <option value="">Select Inspector</option>
                     {% for ff in firefighters %}
                     <option value="{{ ff.fireman_number }}">{{ ff.full_name }} (#{{ ff.fireman_number }})</option>
                     {% endfor %}
                 </select>
+                <div class="error-message" id="inspector_error">Please select your firefighter number</div>
             </div>
 
             <!-- Checklist Items -->
@@ -301,6 +326,40 @@
             const passButtons = document.querySelectorAll('.pass-button');
             passButtons.forEach(btn => {
                 btn.classList.add('selected-pass');
+            });
+
+            // Add form validation
+            const form = document.getElementById('inspectionForm');
+            form.addEventListener('submit', function(e) {
+                const inspectorSelect = document.getElementById('inspector_number');
+                const errorMessage = document.getElementById('inspector_error');
+
+                if (!inspectorSelect.value || inspectorSelect.value === '') {
+                    e.preventDefault(); // Stop form submission
+
+                    // Show error styling
+                    inspectorSelect.classList.add('error');
+                    errorMessage.classList.add('show');
+
+                    // Scroll to and focus the inspector dropdown
+                    inspectorSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    inspectorSelect.focus();
+
+                    // Remove error styling after animation
+                    setTimeout(function() {
+                        inspectorSelect.classList.remove('error');
+                    }, 500);
+
+                    return false;
+                }
+            });
+
+            // Clear error message when user selects an inspector
+            document.getElementById('inspector_number').addEventListener('change', function() {
+                const errorMessage = document.getElementById('inspector_error');
+                if (this.value) {
+                    errorMessage.classList.remove('show');
+                }
             });
         });
 
