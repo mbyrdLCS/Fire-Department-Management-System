@@ -515,18 +515,17 @@
                 </div>
             </div>
 
-            <!-- Station Display URLs -->
+            <!-- Display URL Section -->
             <div style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                <h3 style="margin: 0 0 15px 0; color: #fff;">🏢 Station Display Links</h3>
-                <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.7);">Use these URLs in SignPresenter to show station-specific displays:</p>
+                <h3 style="margin: 0 0 15px 0; color: #fff;">📺 Display Page URL</h3>
 
-                <!-- All Stations Link -->
-                <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #4CAF50;">
+                <!-- Main Display Link -->
+                <div style="padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #4CAF50;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <div>
-                            <strong style="color: #4CAF50; font-size: 16px;">📺 All Stations (Main Display)</strong>
+                        <div style="flex: 1;">
+                            <strong style="color: #4CAF50; font-size: 16px;">Main Display (All Stations)</strong>
                             <div style="margin-top: 5px;">
-                                <code style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all;">{{ request.url_root.rstrip('/') }}/display</code>
+                                <code style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display</code>
                             </div>
                         </div>
                         <a href="{{ url_for('display') }}" class="btn" target="_blank" style="background: #4CAF50; min-width: 120px;">
@@ -535,23 +534,31 @@
                     </div>
                 </div>
 
-                <!-- Individual Station Links -->
-                {% if stations %}
+                <!-- Station-Specific Links (Expandable) -->
+                {% if stations and stations|length > 0 %}
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="#" onclick="document.getElementById('stationLinks').style.display = document.getElementById('stationLinks').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('stationLinks').style.display === 'none' ? '▼ Show individual station displays' : '▲ Hide individual station displays'; return false;" style="color: #2196F3; text-decoration: none; font-size: 14px; display: inline-block; padding: 8px 15px; background: rgba(33, 150, 243, 0.1); border-radius: 6px; transition: all 0.3s;">
+                        ▼ Show individual station displays
+                    </a>
+                </div>
+
+                <div id="stationLinks" style="display: none; margin-top: 15px;">
                     {% for station in stations %}
-                    <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #2196F3;">
+                    <div style="margin-bottom: 10px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid #2196F3;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div style="flex: 1;">
-                                <strong style="color: #2196F3; font-size: 16px;">🏢 {{ station.name }}</strong>
-                                <div style="margin-top: 5px;">
-                                    <code style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all;">{{ request.url_root.rstrip('/') }}/display?station={{ station.id }}</code>
+                                <strong style="color: #2196F3; font-size: 14px;">🏢 {{ station.name }}</strong>
+                                <div style="margin-top: 3px;">
+                                    <code style="background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 4px; font-size: 12px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display?station={{ station.id }}</code>
                                 </div>
                             </div>
-                            <a href="{{ url_for('display', station=station.id) }}" class="btn" target="_blank" style="background: #2196F3; min-width: 120px;">
+                            <a href="{{ url_for('display', station=station.id) }}" class="btn" target="_blank" style="background: #2196F3; min-width: 100px; font-size: 14px; padding: 8px 16px;">
                                 View →
                             </a>
                         </div>
                     </div>
                     {% endfor %}
+                </div>
                 {% endif %}
             </div>
 
