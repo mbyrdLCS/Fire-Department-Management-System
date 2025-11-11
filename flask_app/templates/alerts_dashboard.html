@@ -524,8 +524,11 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <div style="flex: 1;">
                             <strong style="color: #4CAF50; font-size: 16px;">Main Display (All Stations)</strong>
-                            <div style="margin-top: 5px;">
-                                <code style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display</code>
+                            <div style="margin-top: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <code id="mainDisplayUrl" style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display</code>
+                                <button onclick="copyToClipboard('mainDisplayUrl', this)" style="background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">
+                                    📋 Copy
+                                </button>
                             </div>
                         </div>
                         <a href="{{ url_for('display') }}" class="btn" target="_blank" style="background: #4CAF50; min-width: 120px;">
@@ -548,8 +551,11 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div style="flex: 1;">
                                 <strong style="color: #2196F3; font-size: 14px;">🏢 {{ station.name }}</strong>
-                                <div style="margin-top: 3px;">
-                                    <code style="background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 4px; font-size: 12px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display?station={{ station.id }}</code>
+                                <div style="margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <code id="stationUrl{{ station.id }}" style="background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 4px; font-size: 12px; color: #fff; word-break: break-all; display: inline-block;">{{ request.url_root.rstrip('/') }}/display?station={{ station.id }}</code>
+                                    <button onclick="copyToClipboard('stationUrl{{ station.id }}', this)" style="background: #2196F3; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">
+                                        📋 Copy
+                                    </button>
                                 </div>
                             </div>
                             <a href="{{ url_for('display', station=station.id) }}" class="btn" target="_blank" style="background: #2196F3; min-width: 100px; font-size: 14px; padding: 8px 16px;">
@@ -811,6 +817,27 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('Failed to update setting');
+            });
+        }
+
+        // Copy URL to clipboard
+        function copyToClipboard(elementId, button) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+
+            navigator.clipboard.writeText(text).then(function() {
+                // Success feedback
+                const originalText = button.innerHTML;
+                button.innerHTML = '✓ Copied!';
+                button.style.background = '#4CAF50';
+
+                setTimeout(function() {
+                    button.innerHTML = originalText;
+                    button.style.background = button.parentElement.parentElement.parentElement.style.borderLeftColor || '#2196F3';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy URL. Please copy manually.');
             });
         }
 
