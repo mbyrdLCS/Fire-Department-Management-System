@@ -12,7 +12,17 @@ from db_init import get_db_connection, DATABASE_PATH
 
 # Load environment variables
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+# Try multiple paths for .env file (local dev vs PythonAnywhere)
+env_paths = [
+    os.path.join(os.path.dirname(__file__), '..', '.env'),  # Local development
+    os.path.join(os.path.dirname(__file__), '.env'),        # Same directory
+    '/home/michealhelps/Fire-Department-Management-System/.env',  # PythonAnywhere absolute path
+]
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        print(f"Loaded .env from: {env_path}")
+        break
 
 # Optional Dropbox import
 try:

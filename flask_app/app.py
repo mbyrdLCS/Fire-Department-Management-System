@@ -23,8 +23,16 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-# Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+# Load environment variables - try multiple paths for different environments
+env_paths = [
+    os.path.join(os.path.dirname(__file__), '..', '.env'),  # Local development
+    '/home/michealhelps/Fire-Department-Management-System/.env',  # PythonAnywhere
+]
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        print(f"[APP] Loaded .env from: {env_path}")
+        break
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -35,6 +43,11 @@ ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 # Validate required environment variables
 if not all([app.secret_key, ADMIN_USERNAME, ADMIN_PASSWORD]):
     raise ValueError("Missing required environment variables. Check your .env file.")
+
+# Log Dropbox configuration status for debugging
+print(f"[APP] Dropbox credentials loaded: APP_KEY={bool(os.getenv('DROPBOX_APP_KEY'))}, "
+      f"APP_SECRET={bool(os.getenv('DROPBOX_APP_SECRET'))}, "
+      f"REFRESH_TOKEN={bool(os.getenv('DROPBOX_REFRESH_TOKEN'))}")
 
 # Enhanced logging configuration
 logging.basicConfig(
