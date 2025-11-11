@@ -10,6 +10,10 @@ import os
 import shutil
 from db_init import get_db_connection, DATABASE_PATH
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+
 # Optional Dropbox import
 try:
     import dropbox
@@ -2751,6 +2755,7 @@ def get_dropbox_client():
     Returns: Dropbox client or None if unavailable/failed
     """
     if not DROPBOX_AVAILABLE:
+        print("Dropbox SDK not available - dropbox module not installed")
         return None
 
     try:
@@ -2759,7 +2764,15 @@ def get_dropbox_client():
         app_secret = os.getenv('DROPBOX_APP_SECRET')
         refresh_token = os.getenv('DROPBOX_REFRESH_TOKEN')
 
+        # Debug: Check if credentials are present
+        has_key = bool(app_key)
+        has_secret = bool(app_secret)
+        has_token = bool(refresh_token)
+
+        print(f"Dropbox credentials check - Key: {has_key}, Secret: {has_secret}, Token: {has_token}")
+
         if not all([app_key, app_secret, refresh_token]):
+            print(f"Missing Dropbox credentials - app_key: {has_key}, app_secret: {has_secret}, refresh_token: {has_token}")
             return None
 
         dbx = dropbox.Dropbox(
@@ -2770,11 +2783,14 @@ def get_dropbox_client():
         )
 
         # Verify it works
-        dbx.users_get_current_account()
+        account = dbx.users_get_current_account()
+        print(f"Successfully connected to Dropbox account: {account.email}")
         return dbx
 
     except Exception as e:
         print(f"Error connecting to Dropbox: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def list_dropbox_backups():
