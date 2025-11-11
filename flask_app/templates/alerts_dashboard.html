@@ -515,10 +515,47 @@
                 </div>
             </div>
 
+            <!-- Station Display URLs -->
+            <div style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin: 0 0 15px 0; color: #fff;">🏢 Station Display Links</h3>
+                <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.7);">Use these URLs in SignPresenter to show station-specific displays:</p>
+
+                <!-- All Stations Link -->
+                <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #4CAF50;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <strong style="color: #4CAF50; font-size: 16px;">📺 All Stations (Main Display)</strong>
+                            <div style="margin-top: 5px;">
+                                <code style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all;">{{ request.url_root.rstrip('/') }}/display</code>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('display') }}" class="btn" target="_blank" style="background: #4CAF50; min-width: 120px;">
+                            View →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Individual Station Links -->
+                {% if stations %}
+                    {% for station in stations %}
+                    <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.08); border-radius: 8px; border-left: 4px solid #2196F3;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="flex: 1;">
+                                <strong style="color: #2196F3; font-size: 16px;">🏢 {{ station.name }}</strong>
+                                <div style="margin-top: 5px;">
+                                    <code style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #fff; word-break: break-all;">{{ request.url_root.rstrip('/') }}/display?station={{ station.id }}</code>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('display', station=station.id) }}" class="btn" target="_blank" style="background: #2196F3; min-width: 120px;">
+                                View →
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
             <div class="cta-buttons">
-                <a href="{{ url_for('display') }}" class="btn" target="_blank">
-                    🖥️ View Display Page
-                </a>
                 <a href="https://www.signpresenter.com/" class="btn btn-secondary" target="_blank" rel="noopener">
                     Get SignPresenter →
                 </a>

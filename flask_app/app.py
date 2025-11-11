@@ -2394,7 +2394,8 @@ def alerts_dashboard():
     """Alerts dashboard showing all warnings and notifications"""
     alerts = db_helpers.get_all_alerts()
     display_settings = db_helpers.get_all_display_settings()
-    return render_template('alerts_dashboard.html', alerts=alerts, display_settings=display_settings)
+    stations = db_helpers.get_all_stations()
+    return render_template('alerts_dashboard.html', alerts=alerts, display_settings=display_settings, stations=stations)
 
 @app.route('/api/display-settings/toggle', methods=['POST'])
 def toggle_display_setting():
