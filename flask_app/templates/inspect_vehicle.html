@@ -341,9 +341,22 @@
                     inspectorSelect.classList.add('error');
                     errorMessage.classList.add('show');
 
-                    // Scroll to and focus the inspector dropdown
-                    inspectorSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Focus and open the dropdown
                     inspectorSelect.focus();
+
+                    // Trigger the dropdown to open
+                    if (typeof inspectorSelect.showPicker === 'function') {
+                        // Modern browsers support showPicker()
+                        inspectorSelect.showPicker();
+                    } else {
+                        // Fallback: simulate click to open dropdown
+                        const clickEvent = new MouseEvent('mousedown', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        inspectorSelect.dispatchEvent(clickEvent);
+                    }
 
                     // Remove error styling after animation
                     setTimeout(function() {
