@@ -377,7 +377,8 @@ def init_database():
     print("\n⚙️ Adding default display settings...")
     default_settings = [
         ('show_inventory_qr', 'true'),
-        ('show_maintenance_qr', 'true')
+        ('show_maintenance_qr', 'true'),
+        ('show_inspections_qr', 'true')
     ]
 
     for setting_key, setting_value in default_settings:

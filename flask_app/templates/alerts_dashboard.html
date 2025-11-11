@@ -504,6 +504,15 @@
                     </div>
                     <div class="toggle-switch" id="maintenanceQrToggle" onclick="toggleMaintenanceQR()"></div>
                 </div>
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">
+                            🔍 Show Inspections QR Code
+                        </div>
+                        <div class="toggle-status" id="inspectionsQrStatus">Currently hidden on display</div>
+                    </div>
+                    <div class="toggle-switch" id="inspectionsQrToggle" onclick="toggleInspectionsQR()"></div>
+                </div>
             </div>
 
             <div class="cta-buttons">
@@ -721,6 +730,46 @@
             });
         }
 
+        function toggleInspectionsQR() {
+            const toggle = document.getElementById('inspectionsQrToggle');
+            const status = document.getElementById('inspectionsQrStatus');
+
+            // Get current state from toggle UI
+            const currentState = toggle.classList.contains('active');
+            const newState = !currentState;
+
+            // Save to database via API
+            fetch('/api/display-settings/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    setting_key: 'show_inspections_qr',
+                    value: newState ? 'true' : 'false'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI
+                    if (newState) {
+                        toggle.classList.add('active');
+                        status.textContent = 'Currently visible on display';
+                    } else {
+                        toggle.classList.remove('active');
+                        status.textContent = 'Currently hidden on display';
+                    }
+                } else {
+                    alert('Failed to update setting: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update setting');
+            });
+        }
+
         // Initialize toggle state on page load from server-side settings
         function initializeToggle() {
             const displaySettings = {{ display_settings | tojson }};
@@ -747,6 +796,18 @@
                 maintenanceStatus.textContent = 'Currently visible on display';
             } else {
                 maintenanceStatus.textContent = 'Currently hidden on display';
+            }
+
+            // Initialize Inspections QR toggle
+            const inspectionsToggle = document.getElementById('inspectionsQrToggle');
+            const inspectionsStatus = document.getElementById('inspectionsQrStatus');
+            const showInspectionsQR = displaySettings.show_inspections_qr === 'true';
+
+            if (showInspectionsQR) {
+                inspectionsToggle.classList.add('active');
+                inspectionsStatus.textContent = 'Currently visible on display';
+            } else {
+                inspectionsStatus.textContent = 'Currently hidden on display';
             }
         }
 

@@ -2449,6 +2449,10 @@ def get_all_display_settings():
             INSERT OR IGNORE INTO display_settings (setting_key, setting_value)
             VALUES ('show_maintenance_qr', 'true')
         ''')
+        cursor.execute('''
+            INSERT OR IGNORE INTO display_settings (setting_key, setting_value)
+            VALUES ('show_inspections_qr', 'true')
+        ''')
 
         cursor.execute('''
             SELECT setting_key, setting_value
@@ -2467,5 +2471,6 @@ def get_all_display_settings():
         conn.close()
         return {
             'show_inventory_qr': 'true',
-            'show_maintenance_qr': 'true'
+            'show_maintenance_qr': 'true',
+            'show_inspections_qr': 'true'
         }

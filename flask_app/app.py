@@ -2392,7 +2392,7 @@ def toggle_display_setting():
         setting_key = data.get('setting_key')
         new_value = data.get('value')
 
-        if setting_key not in ['show_inventory_qr', 'show_maintenance_qr']:
+        if setting_key not in ['show_inventory_qr', 'show_maintenance_qr', 'show_inspections_qr']:
             return jsonify({'success': False, 'error': 'Invalid setting key'}), 400
 
         if new_value not in ['true', 'false']:

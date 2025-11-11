@@ -48,7 +48,7 @@
             margin-bottom: 0.3rem;
         }
 
-        /* QR Code - Inspections on right */
+        /* QR Code - Inspections on top-right */
         .qr-corner-right {
             position: absolute;
             top: 0.5rem;
@@ -57,9 +57,10 @@
             border-radius: 0.5rem;
             padding: 0.5rem;
             text-align: center;
+            z-index: 1000;
         }
 
-        /* QR Code - Inventory on left */
+        /* QR Code - Inventory on top-left */
         .qr-corner-left {
             position: absolute;
             top: 0.5rem;
@@ -68,28 +69,30 @@
             border-radius: 0.5rem;
             padding: 0.5rem;
             text-align: center;
+            z-index: 1000;
         }
 
-        /* QR Code - Maintenance on left bottom */
-        .qr-corner-left-bottom {
+        /* QR Code - Maintenance on top-left (shows when inventory is off) */
+        .qr-corner-maintenance {
             position: absolute;
-            bottom: 0.5rem;
+            top: 0.5rem;
             left: 0.5rem;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             padding: 0.5rem;
             text-align: center;
+            z-index: 1000;
         }
 
         .qr-corner-left.hidden,
         .qr-corner-right.hidden,
-        .qr-corner-left-bottom.hidden {
+        .qr-corner-maintenance.hidden {
             display: none;
         }
 
         .qr-corner-left .qr-code,
         .qr-corner-right .qr-code,
-        .qr-corner-left-bottom .qr-code {
+        .qr-corner-maintenance .qr-code {
             background: white;
             padding: 0.3rem;
             border-radius: 0.3rem;
@@ -456,26 +459,27 @@
             <h1>🚒 Spring Valley Volunteer Fire Department</h1>
             <div class="clock" id="clock"></div>
 
-            <!-- Inventory QR - LEFT top, controlled by alerts page toggle -->
-            <div class="qr-corner-left {% if display_settings.get('show_inventory_qr') != 'true' %}hidden{% endif %}" id="qrInventory">
+            <!-- Inventory QR - TOP LEFT, controlled by alerts page toggle -->
+            {% set show_inventory = display_settings.get('show_inventory_qr') == 'true' %}
+            <div class="qr-corner-left {% if not show_inventory %}hidden{% endif %}" id="qrInventory">
                 <div class="qr-code" id="qr-inventory"></div>
                 <div class="qr-corner-label">📦 Inventory</div>
             </div>
 
-            <!-- Inspections QR - RIGHT side, only shown when inspections are overdue -->
-            {% if alerts.inspections_overdue|length > 0 %}
-            <div class="qr-corner-right" id="qrInspections">
+            <!-- Maintenance QR - TOP LEFT (shows when inventory is off), controlled by toggle or auto-show on failed inspections -->
+            {% set show_maintenance = display_settings.get('show_maintenance_qr') == 'true' or alerts.inspections_failed|length > 0 %}
+            {% set show_maintenance_qr = show_maintenance and not show_inventory %}
+            <div class="qr-corner-maintenance {% if not show_maintenance_qr %}hidden{% endif %}" id="qrMaintenance">
+                <div class="qr-code" id="qr-maintenance"></div>
+                <div class="qr-corner-label">🔧 Maintenance</div>
+            </div>
+
+            <!-- Inspections QR - TOP RIGHT, controlled by toggle and/or when inspections are overdue -->
+            {% set show_inspections = display_settings.get('show_inspections_qr') == 'true' or alerts.inspections_overdue|length > 0 %}
+            <div class="qr-corner-right {% if not show_inspections %}hidden{% endif %}" id="qrInspections">
                 <div class="qr-code" id="qr-inspect"></div>
                 <div class="qr-corner-label">🔍 Inspections</div>
             </div>
-            {% endif %}
-        </div>
-
-        <!-- Maintenance QR - BOTTOM LEFT of entire page, controlled by alerts page toggle -->
-        {% set show_maintenance = display_settings.get('show_maintenance_qr') == 'true' or alerts.inspections_failed|length > 0 %}
-        <div class="qr-corner-left-bottom {% if not show_maintenance %}hidden{% endif %}" id="qrMaintenance">
-            <div class="qr-code" id="qr-maintenance"></div>
-            <div class="qr-corner-label">🔧 Maintenance</div>
         </div>
 
         <!-- Alert Banner -->
