@@ -643,11 +643,11 @@ def get_all_vehicles():
                 'current_value': row[12],
                 'status': row[13],
                 'notes': row[14],
-                'oil_type': row[15] or '',
-                'antifreeze_type': row[16] or '',
-                'brake_fluid_type': row[17] or '',
-                'power_steering_fluid_type': row[18] or '',
-                'transmission_fluid_type': row[19] or ''
+                'oil_type': row[15] if row[15] else '',
+                'antifreeze_type': row[16] if row[16] else '',
+                'brake_fluid_type': row[17] if row[17] else '',
+                'power_steering_fluid_type': row[18] if row[18] else '',
+                'transmission_fluid_type': row[19] if row[19] else ''
             })
 
         conn.close()
