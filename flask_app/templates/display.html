@@ -844,11 +844,12 @@
             const qrInventory = document.getElementById('qrInventory');
 
             if (qrInventory) {
-                // Default to visible if never set, otherwise respect the toggle
-                if (showInventoryQR === null || showInventoryQR === 'true') {
-                    qrInventory.classList.remove('hidden');
-                } else {
+                // If user has explicitly set it (not null), respect that choice
+                // Otherwise default to visible
+                if (showInventoryQR === 'false') {
                     qrInventory.classList.add('hidden');
+                } else {
+                    qrInventory.classList.remove('hidden');
                 }
             }
         }
@@ -859,14 +860,16 @@
             const qrMaintenance = document.getElementById('qrMaintenance');
 
             if (qrMaintenance) {
-                // Auto-show if there are failed inspections (maintenance needed)
-                const hasFailedInspections = {{ alerts.inspections_failed|length }} > 0;
-
-                // Default to visible if never set OR if there are maintenance alerts, otherwise respect the toggle
-                if (showMaintenanceQR === null || showMaintenanceQR === 'true' || hasFailedInspections) {
-                    qrMaintenance.classList.remove('hidden');
-                } else {
+                // If user has explicitly turned it OFF, respect that choice
+                // Otherwise show it (default visible, or if there are maintenance alerts)
+                if (showMaintenanceQR === 'false') {
                     qrMaintenance.classList.add('hidden');
+                } else {
+                    // Auto-show if there are failed inspections (maintenance needed) OR default visible
+                    const hasFailedInspections = {{ alerts.inspections_failed|length }} > 0;
+                    if (showMaintenanceQR === 'true' || showMaintenanceQR === null || hasFailedInspections) {
+                        qrMaintenance.classList.remove('hidden');
+                    }
                 }
             }
         }
