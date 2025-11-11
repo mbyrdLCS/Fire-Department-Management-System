@@ -2110,14 +2110,17 @@ def update_vehicle(vehicle_id):
         if success:
             flash(f'Vehicle "{name}" updated successfully!')
             logger.info(f"Vehicle updated: {name} ({vehicle_code})")
+            logger.info(f"Fluid types saved - Oil: {oil_type}, Antifreeze: {antifreeze_type}, Brake: {brake_fluid_type}")
         else:
             flash(f'Error updating vehicle: {message}')
+            logger.error(f"Failed to update vehicle {vehicle_id}: {message}")
 
         return redirect(url_for('manage_vehicles'))
 
     except Exception as e:
         logger.error(f"Update vehicle error: {str(e)}")
-        flash('An error occurred while updating the vehicle.')
+        logger.error(f"Fluid data attempted - Oil: {oil_type}, Antifreeze: {antifreeze_type}, Brake: {brake_fluid_type}")
+        flash(f'An error occurred while updating the vehicle: {str(e)}')
         return redirect(url_for('manage_vehicles'))
 
 @app.route('/admin/vehicle/delete/<int:vehicle_id>', methods=['POST'])
