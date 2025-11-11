@@ -6,7 +6,9 @@ Provides easy-to-use functions for common database operations
 import sqlite3
 from datetime import datetime, timedelta
 import pytz
-from db_init import get_db_connection
+import os
+import shutil
+from db_init import get_db_connection, DATABASE_PATH
 
 # Timezone
 CENTRAL = pytz.timezone('America/Chicago')
@@ -2531,4 +2533,206 @@ def get_all_display_settings():
             'show_inventory_qr': 'true',
             'show_maintenance_qr': 'true',
             'show_inspections_qr': 'true'
+        }
+
+# ========== BACKUP FUNCTIONS ==========
+
+def create_database_backup():
+    """
+    Create a timestamped backup of the database
+    Returns: dict with success status, backup path, and statistics
+    """
+    try:
+        # Check if database exists
+        if not os.path.exists(DATABASE_PATH):
+            return {
+                'success': False,
+                'error': f'Database not found at {DATABASE_PATH}'
+            }
+
+        # Create backups directory
+        backup_dir = os.path.join(os.path.dirname(DATABASE_PATH), 'backups')
+        os.makedirs(backup_dir, exist_ok=True)
+
+        # Generate timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'fire_dept_backup_{timestamp}.db'
+        backup_path = os.path.join(backup_dir, backup_filename)
+
+        # Get database stats before backup
+        db_size = os.path.getsize(DATABASE_PATH)
+        db_size_kb = db_size / 1024
+
+        # Get record counts
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT COUNT(*) FROM firefighters')
+        firefighter_count = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COUNT(*) FROM time_logs')
+        log_count = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COALESCE(SUM(total_hours), 0) FROM firefighters')
+        total_hours = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COUNT(*) FROM vehicles')
+        vehicle_count = cursor.fetchone()[0]
+
+        cursor.execute('SELECT COUNT(*) FROM inventory_items')
+        inventory_count = cursor.fetchone()[0]
+
+        conn.close()
+
+        # Copy the database file
+        shutil.copy2(DATABASE_PATH, backup_path)
+
+        # Verify the backup
+        if os.path.exists(backup_path):
+            backup_size = os.path.getsize(backup_path)
+            if backup_size == db_size:
+                return {
+                    'success': True,
+                    'backup_path': backup_path,
+                    'backup_filename': backup_filename,
+                    'size_kb': db_size_kb,
+                    'stats': {
+                        'firefighters': firefighter_count,
+                        'time_logs': log_count,
+                        'total_hours': total_hours,
+                        'vehicles': vehicle_count,
+                        'inventory_items': inventory_count
+                    },
+                    'timestamp': timestamp
+                }
+            else:
+                # Size mismatch - delete bad backup
+                os.remove(backup_path)
+                return {
+                    'success': False,
+                    'error': 'Backup file size mismatch - backup may be corrupt'
+                }
+        else:
+            return {
+                'success': False,
+                'error': 'Backup file not created'
+            }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def list_database_backups():
+    """
+    List all existing database backups
+    Returns: list of backup info dictionaries
+    """
+    try:
+        backup_dir = os.path.join(os.path.dirname(DATABASE_PATH), 'backups')
+
+        if not os.path.exists(backup_dir):
+            return []
+
+        backups = []
+        for filename in os.listdir(backup_dir):
+            if filename.endswith('.db'):
+                backup_path = os.path.join(backup_dir, filename)
+                size = os.path.getsize(backup_path) / 1024  # KB
+                mtime = os.path.getmtime(backup_path)
+                date = datetime.fromtimestamp(mtime)
+
+                backups.append({
+                    'filename': filename,
+                    'path': backup_path,
+                    'size_kb': size,
+                    'date': date,
+                    'date_formatted': date.strftime('%Y-%m-%d %H:%M:%S')
+                })
+
+        # Sort by date, newest first
+        backups.sort(key=lambda x: x['date'], reverse=True)
+        return backups
+
+    except Exception as e:
+        print(f"Error listing backups: {e}")
+        return []
+
+def cleanup_old_backups(keep_count=10):
+    """
+    Remove old backups, keeping only the N most recent
+    Returns: dict with success status and number deleted
+    """
+    try:
+        backups = list_database_backups()
+
+        if len(backups) <= keep_count:
+            return {
+                'success': True,
+                'deleted_count': 0,
+                'message': f'Only {len(backups)} backup(s) exist. No cleanup needed.'
+            }
+
+        backups_to_delete = backups[keep_count:]
+        deleted_count = 0
+        errors = []
+
+        for backup in backups_to_delete:
+            try:
+                os.remove(backup['path'])
+                deleted_count += 1
+            except Exception as e:
+                errors.append(f"Failed to delete {backup['filename']}: {str(e)}")
+
+        return {
+            'success': True,
+            'deleted_count': deleted_count,
+            'errors': errors,
+            'message': f'Cleanup complete. {keep_count} backup(s) retained, {deleted_count} deleted.'
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def get_backup_status():
+    """
+    Get the current backup system status
+    Returns: dict with backup health information
+    """
+    try:
+        backups = list_database_backups()
+
+        if not backups:
+            return {
+                'healthy': False,
+                'total_backups': 0,
+                'last_backup': None,
+                'warning': 'No backups found! Please create a backup immediately.'
+            }
+
+        last_backup = backups[0]
+        hours_since_last = (datetime.now() - last_backup['date']).total_seconds() / 3600
+
+        # Check if backup is recent (within 7 days)
+        healthy = hours_since_last < (7 * 24)
+
+        total_size_mb = sum(b['size_kb'] for b in backups) / 1024
+
+        return {
+            'healthy': healthy,
+            'total_backups': len(backups),
+            'last_backup': last_backup,
+            'hours_since_last': hours_since_last,
+            'total_size_mb': total_size_mb,
+            'warning': None if healthy else f'Last backup was {hours_since_last/24:.1f} days ago. Consider creating a new backup.'
+        }
+
+    except Exception as e:
+        return {
+            'healthy': False,
+            'error': str(e)
         }

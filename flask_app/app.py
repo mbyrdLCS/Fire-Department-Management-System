@@ -65,6 +65,32 @@ def format_log_time(log_time):
 
 app.jinja_env.filters['format_log_time'] = format_log_time
 
+# ========== UTILITY FUNCTIONS ==========
+
+def get_form_value(form, key, default='', required=False):
+    """
+    Safely get form value with optional default and required validation
+    """
+    value = form.get(key, default)
+    if required and not value:
+        raise ValueError(f"Required field '{key}' is missing")
+    return value.strip() if isinstance(value, str) else value
+
+# ========== ERROR HANDLERS ==========
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Handle 404 errors"""
+    flash('Page not found.')
+    return redirect(url_for('index'))
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    logger.error(f"Internal server error: {str(error)}")
+    flash('An internal error occurred. Please try again later.')
+    return redirect(url_for('index'))
+
 # ========== ROUTES ==========
 
 @app.route('/')
@@ -1495,13 +1521,15 @@ def display():
                              stations=stations,
                              current_station_id=station_id))
 
-        # Allow this page to be embedded in iframes (for SignPresenter)
+        # Allow this page to be embedded in iframes (for SignPresenter and trusted origins)
         # Remove X-Frame-Options entirely to allow embedding
         if 'X-Frame-Options' in response.headers:
             del response.headers['X-Frame-Options']
 
-        # Allow embedding from any origin
-        response.headers['Content-Security-Policy'] = "frame-ancestors *;"
+        # Allow embedding from SignPresenter and same origin (more secure than wildcard)
+        # This allows: localhost, pythonanywhere.com, and signpresenter.com
+        allowed_origins = "'self' https://*.signpresenter.com https://*.pythonanywhere.com http://localhost:* http://127.0.0.1:*"
+        response.headers['Content-Security-Policy'] = f"frame-ancestors {allowed_origins};"
         response.headers['Access-Control-Allow-Origin'] = '*'
 
         return response
@@ -2422,6 +2450,97 @@ def toggle_display_setting():
         logger.error(f"Error toggling display setting: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ========== BACKUP ROUTES ==========
+
+@app.route('/admin/backups')
+def backup_management():
+    """Backup management page"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        backup_status = db_helpers.get_backup_status()
+        backups = db_helpers.list_database_backups()
+        return render_template('backup_management.html',
+                             backup_status=backup_status,
+                             backups=backups)
+    except Exception as e:
+        logger.error(f"Error loading backup management: {str(e)}")
+        flash('An error occurred while loading backup information.')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/backups/create', methods=['POST'])
+def create_backup():
+    """Create a new database backup"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    try:
+        result = db_helpers.create_database_backup()
+
+        if result['success']:
+            logger.info(f"Manual backup created: {result['backup_filename']}")
+            flash(f"Backup created successfully: {result['backup_filename']}")
+            return jsonify(result)
+        else:
+            logger.error(f"Backup creation failed: {result.get('error')}")
+            flash(f"Backup failed: {result.get('error')}")
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"Error creating backup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/backups/download/<filename>')
+def download_backup(filename):
+    """Download a backup file"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        # Security: validate filename to prevent directory traversal
+        if '..' in filename or '/' in filename:
+            flash('Invalid filename.')
+            return redirect(url_for('backup_management'))
+
+        backup_dir = os.path.join(os.path.dirname(db_helpers.DATABASE_PATH), 'backups')
+        backup_path = os.path.join(backup_dir, filename)
+
+        if not os.path.exists(backup_path):
+            flash('Backup file not found.')
+            return redirect(url_for('backup_management'))
+
+        return send_file(backup_path, as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Error downloading backup: {str(e)}")
+        flash('An error occurred while downloading the backup.')
+        return redirect(url_for('backup_management'))
+
+@app.route('/admin/backups/cleanup', methods=['POST'])
+def cleanup_backups():
+    """Cleanup old backups, keeping only the most recent"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    try:
+        keep_count = int(request.form.get('keep_count', 10))
+        result = db_helpers.cleanup_old_backups(keep_count)
+
+        if result['success']:
+            logger.info(f"Backup cleanup: {result['deleted_count']} backups deleted")
+            flash(result['message'])
+            return jsonify(result)
+        else:
+            flash(f"Cleanup failed: {result.get('error')}")
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"Error during backup cleanup: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ========== REPORTS ROUTES ==========
 
 @app.route('/reports')
@@ -2772,4 +2891,6 @@ def inventory_value_report():
         return redirect(url_for('reports_menu'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # Get debug mode from environment variable (defaults to False for production)
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5001)

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup Management - Fire Department</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+
+        .back-btn:hover {
+            background: #5568d3;
+        }
+
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+
+        .status-indicator {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .status-item-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .status-item-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .warning-message {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 4px;
+            color: #856404;
+            margin-top: 15px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .backups-table {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .backups-table h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 12px;
+            display: inline-block;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .no-backups {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .flash-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💾 Backup Management</h1>
+            <p>Manage and monitor your database backups</p>
+            <a href="{{ url_for('admin_panel') }}" class="back-btn">← Back to Admin Panel</a>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="status-card">
+            <div class="status-header">
+                <h2>Backup System Status</h2>
+                {% if backup_status.healthy %}
+                    <span class="status-indicator status-healthy">✓ Healthy</span>
+                {% elif backup_status.warning %}
+                    <span class="status-indicator status-warning">⚠ Warning</span>
+                {% else %}
+                    <span class="status-indicator status-error">✗ No Backups</span>
+                {% endif %}
+            </div>
+
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-item-label">Total Backups</div>
+                    <div class="status-item-value">{{ backup_status.total_backups }}</div>
+                </div>
+                {% if backup_status.last_backup %}
+                <div class="status-item">
+                    <div class="status-item-label">Last Backup</div>
+                    <div class="status-item-value">{{ backup_status.last_backup.date_formatted }}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">Hours Since Last</div>
+                    <div class="status-item-value">{{ "%.1f"|format(backup_status.hours_since_last) }}</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">Total Size</div>
+                    <div class="status-item-value">{{ "%.1f"|format(backup_status.total_size_mb) }} MB</div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if backup_status.warning %}
+            <div class="warning-message">
+                <strong>⚠ Warning:</strong> {{ backup_status.warning }}
+            </div>
+            {% endif %}
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="createBackup()">
+                    📦 Create Backup Now
+                </button>
+                <button class="btn btn-secondary" onclick="showCleanupDialog()">
+                    🧹 Cleanup Old Backups
+                </button>
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Creating backup...</p>
+            </div>
+        </div>
+
+        <div class="backups-table">
+            <h2>Available Backups ({{ backups|length }})</h2>
+            {% if backups %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Date</th>
+                        <th>Size</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td>{{ backup.filename }}</td>
+                        <td>{{ backup.date_formatted }}</td>
+                        <td>{{ "%.1f"|format(backup.size_kb) }} KB</td>
+                        <td>
+                            <a href="{{ url_for('download_backup', filename=backup.filename) }}" class="download-btn">
+                                ⬇ Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-backups">
+                <p>No backups found. Create your first backup above.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function createBackup() {
+            if (!confirm('Create a new backup now?')) {
+                return;
+            }
+
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+
+            fetch('{{ url_for("create_backup") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingIndicator.style.display = 'none';
+                if (data.success) {
+                    alert('Backup created successfully!\n\n' +
+                          'Filename: ' + data.backup_filename + '\n' +
+                          'Size: ' + data.size_kb.toFixed(1) + ' KB\n' +
+                          'Firefighters: ' + data.stats.firefighters + '\n' +
+                          'Time Logs: ' + data.stats.time_logs + '\n' +
+                          'Total Hours: ' + data.stats.total_hours.toFixed(2));
+                    window.location.reload();
+                } else {
+                    alert('Backup failed: ' + data.error);
+                }
+            })
+            .catch(error => {
+                loadingIndicator.style.display = 'none';
+                alert('Error creating backup: ' + error);
+            });
+        }
+
+        function showCleanupDialog() {
+            const keepCount = prompt('How many recent backups do you want to keep?', '10');
+            if (keepCount === null) {
+                return;
+            }
+
+            const count = parseInt(keepCount);
+            if (isNaN(count) || count < 1) {
+                alert('Please enter a valid number greater than 0');
+                return;
+            }
+
+            if (!confirm('This will delete all backups except the ' + count + ' most recent. Continue?')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('keep_count', count);
+
+            fetch('{{ url_for("cleanup_backups") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Cleanup failed: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error during cleanup: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>
