@@ -59,6 +59,62 @@
             border-left: 5px solid #ff6b00;
         }
 
+        .vehicle-card.failed-inspection {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-left: 8px solid #f44336;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% {
+                border-left-color: #f44336;
+                box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+            }
+            50% {
+                border-left-color: #d32f2f;
+                box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
+            }
+        }
+
+        .failed-badge {
+            background: #f44336;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: inline-block;
+            animation: pulse-badge 2s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .failure-details {
+            background: rgba(244, 67, 54, 0.1);
+            border: 2px solid #f44336;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #c62828;
+            font-weight: 500;
+        }
+
+        .failure-details strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #b71c1c;
+        }
+
         .vehicle-header {
             display: flex;
             justify-content: space-between;
@@ -160,8 +216,20 @@
         {% endwith %}
 
         {% if vehicles %}
-            {% for vehicle in vehicles %}
-            <div class="vehicle-card">
+            {% set failed_vehicles = vehicles | selectattr('has_failed_inspection', 'equalto', true) | list %}
+            {% set normal_vehicles = vehicles | rejectattr('has_failed_inspection', 'equalto', true) | list %}
+
+            {% for vehicle in failed_vehicles + normal_vehicles %}
+            <div class="vehicle-card {% if vehicle.has_failed_inspection %}failed-inspection{% endif %}">
+                {% if vehicle.has_failed_inspection %}
+                <div class="failed-badge">🚨 FAILED INSPECTION - NEEDS IMMEDIATE ATTENTION</div>
+                <div class="failure-details">
+                    <strong>Inspection Issue:</strong>
+                    {{ vehicle.failed_inspection_notes }}
+                    <br><strong>Failed Date:</strong> {{ vehicle.failed_date }}
+                </div>
+                {% endif %}
+
                 <div class="vehicle-header">
                     <span class="vehicle-name">{{ vehicle.name }}</span>
                     <span class="vehicle-code">{{ vehicle.code }}</span>

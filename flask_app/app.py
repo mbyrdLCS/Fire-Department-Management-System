@@ -1648,6 +1648,21 @@ def inspection_history(vehicle_id):
 def maintenance_menu():
     """Maintenance menu - select a vehicle"""
     vehicles = db_helpers.get_all_vehicles()
+    alerts = db_helpers.get_all_alerts()
+
+    # Create a set of vehicle IDs that have failed inspections
+    failed_vehicle_ids = {v['id'] for v in alerts['inspections_failed']}
+
+    # Add failed inspection info to each vehicle
+    for vehicle in vehicles:
+        vehicle['has_failed_inspection'] = vehicle['id'] in failed_vehicle_ids
+        # Find the specific failure info if it exists
+        for failed in alerts['inspections_failed']:
+            if failed['id'] == vehicle['id']:
+                vehicle['failed_inspection_notes'] = failed['notes']
+                vehicle['failed_date'] = failed['failed_date']
+                break
+
     return render_template('maintenance_menu.html', vehicles=vehicles)
 
 @app.route('/maintenance/<int:vehicle_id>')

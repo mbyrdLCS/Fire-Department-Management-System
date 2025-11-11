@@ -432,6 +432,12 @@
             </div>
 
             <div class="summary-card critical">
+                <div class="icon">❌</div>
+                <div class="count">{{ alerts.inspections_failed|length }}</div>
+                <div class="label">Failed Inspections</div>
+            </div>
+
+            <div class="summary-card critical">
                 <div class="icon">🔍</div>
                 <div class="count">{{ alerts.inspections_overdue|length }}</div>
                 <div class="label">Inspections Overdue</div>
@@ -523,6 +529,33 @@
             <p style="font-size: 16px; opacity: 0.9;">No active alerts at this time. Everything is in good shape.</p>
         </div>
         {% else %}
+
+        <!-- Failed Inspections -->
+        {% if alerts.inspections_failed %}
+        <div class="alert-section">
+            <div class="section-header">
+                <div class="section-icon">❌</div>
+                <div class="section-title">Failed Vehicle Inspections - NEEDS MAINTENANCE</div>
+                <div class="section-count">{{ alerts.inspections_failed|length }}</div>
+            </div>
+
+            {% for vehicle in alerts.inspections_failed %}
+            <div class="alert-card critical">
+                <div class="alert-title">🚨 {{ vehicle.name }} ({{ vehicle.code }})</div>
+                <div class="alert-details">
+                    📅 Failed Date: {{ vehicle.failed_date }}<br>
+                    📝 Issue: {{ vehicle.notes }}
+                </div>
+                <div class="alert-meta">
+                    <span class="badge badge-critical">FAILED INSPECTION</span>
+                    <a href="{{ url_for('maintenance_menu') }}" style="text-decoration: none;">
+                        <span class="badge badge-info">Add Maintenance Record →</span>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Overdue Inspections -->
         {% if alerts.inspections_overdue %}
