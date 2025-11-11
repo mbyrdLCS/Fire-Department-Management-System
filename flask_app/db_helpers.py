@@ -10,6 +10,14 @@ import os
 import shutil
 from db_init import get_db_connection, DATABASE_PATH
 
+# Optional Dropbox import
+try:
+    import dropbox
+    from dropbox.exceptions import ApiError, AuthError
+    DROPBOX_AVAILABLE = True
+except ImportError:
+    DROPBOX_AVAILABLE = False
+
 # Timezone
 CENTRAL = pytz.timezone('America/Chicago')
 
@@ -2734,5 +2742,189 @@ def get_backup_status():
     except Exception as e:
         return {
             'healthy': False,
+            'error': str(e)
+        }
+
+def get_dropbox_client():
+    """
+    Get authenticated Dropbox client using credentials from environment
+    Returns: Dropbox client or None if unavailable/failed
+    """
+    if not DROPBOX_AVAILABLE:
+        return None
+
+    try:
+        # Get credentials from environment
+        app_key = os.getenv('DROPBOX_APP_KEY')
+        app_secret = os.getenv('DROPBOX_APP_SECRET')
+        refresh_token = os.getenv('DROPBOX_REFRESH_TOKEN')
+
+        if not all([app_key, app_secret, refresh_token]):
+            return None
+
+        dbx = dropbox.Dropbox(
+            oauth2_refresh_token=refresh_token,
+            app_key=app_key,
+            app_secret=app_secret,
+            timeout=30
+        )
+
+        # Verify it works
+        dbx.users_get_current_account()
+        return dbx
+
+    except Exception as e:
+        print(f"Error connecting to Dropbox: {e}")
+        return None
+
+def list_dropbox_backups():
+    """
+    List all backups stored in Dropbox
+    Returns: list of Dropbox backup info dictionaries
+    """
+    try:
+        dbx = get_dropbox_client()
+        if not dbx:
+            return {
+                'success': False,
+                'error': 'Dropbox not configured or unavailable',
+                'backups': []
+            }
+
+        # List files in Dropbox root (where backups are stored)
+        result = dbx.files_list_folder('')
+
+        backups = []
+        for entry in result.entries:
+            if isinstance(entry, dropbox.files.FileMetadata):
+                # Only include database backup files
+                if entry.name.endswith('.db') or 'backup' in entry.name.lower():
+                    backups.append({
+                        'filename': entry.name,
+                        'size_kb': entry.size / 1024,
+                        'date': entry.client_modified,
+                        'date_formatted': entry.client_modified.strftime('%Y-%m-%d %H:%M:%S'),
+                        'path': entry.path_display
+                    })
+
+        # Sort by date, newest first
+        backups.sort(key=lambda x: x['date'], reverse=True)
+
+        return {
+            'success': True,
+            'backups': backups,
+            'total_count': len(backups)
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'backups': []
+        }
+
+def get_dropbox_backup_status():
+    """
+    Get Dropbox backup system status
+    Returns: dict with Dropbox backup health information
+    """
+    try:
+        dbx = get_dropbox_client()
+        if not dbx:
+            return {
+                'configured': False,
+                'healthy': False,
+                'error': 'Dropbox credentials not configured or SDK not installed'
+            }
+
+        # Get account info
+        account = dbx.users_get_current_account()
+
+        # List backups
+        backups_result = list_dropbox_backups()
+
+        if not backups_result['success']:
+            return {
+                'configured': True,
+                'healthy': False,
+                'error': backups_result['error']
+            }
+
+        backups = backups_result['backups']
+
+        if not backups:
+            return {
+                'configured': True,
+                'healthy': False,
+                'account_email': account.email,
+                'total_backups': 0,
+                'last_backup': None,
+                'warning': 'No backups found in Dropbox'
+            }
+
+        last_backup = backups[0]
+        hours_since_last = (datetime.now(pytz.UTC) - last_backup['date']).total_seconds() / 3600
+
+        # Check if backup is recent (within 2 hours = 2 backup cycles)
+        healthy = hours_since_last < 2
+
+        total_size_mb = sum(b['size_kb'] for b in backups) / 1024
+
+        return {
+            'configured': True,
+            'healthy': healthy,
+            'account_email': account.email,
+            'total_backups': len(backups),
+            'last_backup': last_backup,
+            'hours_since_last': hours_since_last,
+            'total_size_mb': total_size_mb,
+            'warning': None if healthy else f'Last Dropbox backup was {hours_since_last:.1f} hours ago. Expected hourly backups.'
+        }
+
+    except Exception as e:
+        return {
+            'configured': True,
+            'healthy': False,
+            'error': str(e)
+        }
+
+def upload_backup_to_dropbox(local_backup_path):
+    """
+    Upload a local backup file to Dropbox
+    Returns: dict with success status
+    """
+    try:
+        dbx = get_dropbox_client()
+        if not dbx:
+            return {
+                'success': False,
+                'error': 'Dropbox not configured'
+            }
+
+        if not os.path.exists(local_backup_path):
+            return {
+                'success': False,
+                'error': 'Backup file not found'
+            }
+
+        filename = os.path.basename(local_backup_path)
+        dropbox_path = f'/{filename}'
+
+        with open(local_backup_path, 'rb') as f:
+            dbx.files_upload(
+                f.read(),
+                dropbox_path,
+                mode=dropbox.files.WriteMode.overwrite
+            )
+
+        return {
+            'success': True,
+            'dropbox_path': dropbox_path,
+            'filename': filename
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
             'error': str(e)
         }

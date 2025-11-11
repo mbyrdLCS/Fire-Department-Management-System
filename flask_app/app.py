@@ -2460,11 +2460,20 @@ def backup_management():
         return redirect(url_for('admin'))
 
     try:
-        backup_status = db_helpers.get_backup_status()
-        backups = db_helpers.list_database_backups()
+        # Get local backup status
+        local_backup_status = db_helpers.get_backup_status()
+        local_backups = db_helpers.list_database_backups()
+
+        # Get Dropbox backup status
+        dropbox_status = db_helpers.get_dropbox_backup_status()
+        dropbox_backups_result = db_helpers.list_dropbox_backups()
+        dropbox_backups = dropbox_backups_result.get('backups', [])
+
         return render_template('backup_management.html',
-                             backup_status=backup_status,
-                             backups=backups)
+                             local_backup_status=local_backup_status,
+                             local_backups=local_backups,
+                             dropbox_status=dropbox_status,
+                             dropbox_backups=dropbox_backups)
     except Exception as e:
         logger.error(f"Error loading backup management: {str(e)}")
         flash('An error occurred while loading backup information.')
@@ -2472,16 +2481,35 @@ def backup_management():
 
 @app.route('/admin/backups/create', methods=['POST'])
 def create_backup():
-    """Create a new database backup"""
+    """Create a new database backup (and optionally upload to Dropbox)"""
     if not session.get('logged_in'):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     try:
+        # Get upload_to_dropbox parameter from form
+        upload_to_dropbox = request.form.get('upload_to_dropbox', 'false').lower() == 'true'
+
         result = db_helpers.create_database_backup()
 
         if result['success']:
             logger.info(f"Manual backup created: {result['backup_filename']}")
-            flash(f"Backup created successfully: {result['backup_filename']}")
+
+            # Optionally upload to Dropbox
+            if upload_to_dropbox:
+                dropbox_result = db_helpers.upload_backup_to_dropbox(result['backup_path'])
+                if dropbox_result['success']:
+                    result['dropbox_uploaded'] = True
+                    result['dropbox_path'] = dropbox_result['dropbox_path']
+                    logger.info(f"Backup uploaded to Dropbox: {dropbox_result['dropbox_path']}")
+                    flash(f"Backup created and uploaded to Dropbox: {result['backup_filename']}")
+                else:
+                    result['dropbox_uploaded'] = False
+                    result['dropbox_error'] = dropbox_result['error']
+                    logger.warning(f"Backup created but Dropbox upload failed: {dropbox_result['error']}")
+                    flash(f"Backup created locally but Dropbox upload failed: {result['backup_filename']}")
+            else:
+                flash(f"Backup created successfully: {result['backup_filename']}")
+
             return jsonify(result)
         else:
             logger.error(f"Backup creation failed: {result.get('error')}")
