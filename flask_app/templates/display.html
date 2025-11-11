@@ -73,7 +73,7 @@
         }
 
         /* QR Code - Maintenance on top-left (shows when inventory is off) */
-        .qr-corner-maintenance {
+        .qr-corner-maintenance-top {
             position: absolute;
             top: 0.5rem;
             left: 0.5rem;
@@ -84,15 +84,29 @@
             z-index: 1000;
         }
 
+        /* QR Code - Maintenance on bottom-left (shows when inventory is on) */
+        .qr-corner-maintenance-bottom {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            z-index: 1000;
+        }
+
         .qr-corner-left.hidden,
         .qr-corner-right.hidden,
-        .qr-corner-maintenance.hidden {
+        .qr-corner-maintenance-top.hidden,
+        .qr-corner-maintenance-bottom.hidden {
             display: none;
         }
 
         .qr-corner-left .qr-code,
         .qr-corner-right .qr-code,
-        .qr-corner-maintenance .qr-code {
+        .qr-corner-maintenance-top .qr-code,
+        .qr-corner-maintenance-bottom .qr-code {
             background: white;
             padding: 0.3rem;
             border-radius: 0.3rem;
@@ -466,11 +480,11 @@
                 <div class="qr-corner-label">📦 Inventory</div>
             </div>
 
-            <!-- Maintenance QR - TOP LEFT (shows when inventory is off), controlled by toggle or auto-show on failed inspections -->
+            <!-- Maintenance QR - TOP LEFT (shows when inventory is OFF) -->
             {% set show_maintenance = display_settings.get('show_maintenance_qr') == 'true' or alerts.inspections_failed|length > 0 %}
-            {% set show_maintenance_qr = show_maintenance and not show_inventory %}
-            <div class="qr-corner-maintenance {% if not show_maintenance_qr %}hidden{% endif %}" id="qrMaintenance">
-                <div class="qr-code" id="qr-maintenance"></div>
+            {% set show_maintenance_top = show_maintenance and not show_inventory %}
+            <div class="qr-corner-maintenance-top {% if not show_maintenance_top %}hidden{% endif %}" id="qrMaintenanceTop">
+                <div class="qr-code" id="qr-maintenance-top"></div>
                 <div class="qr-corner-label">🔧 Maintenance</div>
             </div>
 
@@ -480,6 +494,13 @@
                 <div class="qr-code" id="qr-inspect"></div>
                 <div class="qr-corner-label">🔍 Inspections</div>
             </div>
+        </div>
+
+        <!-- Maintenance QR - BOTTOM LEFT (shows when inventory is ON) -->
+        {% set show_maintenance_bottom = show_maintenance and show_inventory %}
+        <div class="qr-corner-maintenance-bottom {% if not show_maintenance_bottom %}hidden{% endif %}" id="qrMaintenanceBottom">
+            <div class="qr-code" id="qr-maintenance-bottom"></div>
+            <div class="qr-corner-label">🔧 Maintenance</div>
         </div>
 
         <!-- Alert Banner -->
@@ -830,10 +851,22 @@
                 });
             }
 
-            // Maintenance QR code
-            const qrMaintenanceElement = document.getElementById('qr-maintenance');
-            if (qrMaintenanceElement) {
-                new QRCode(qrMaintenanceElement, {
+            // Maintenance QR code - Top (when inventory is off)
+            const qrMaintenanceTopElement = document.getElementById('qr-maintenance-top');
+            if (qrMaintenanceTopElement) {
+                new QRCode(qrMaintenanceTopElement, {
+                    text: baseUrl + '/maintenance',
+                    width: 80,
+                    height: 80,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff'
+                });
+            }
+
+            // Maintenance QR code - Bottom (when inventory is on)
+            const qrMaintenanceBottomElement = document.getElementById('qr-maintenance-bottom');
+            if (qrMaintenanceBottomElement) {
+                new QRCode(qrMaintenanceBottomElement, {
                     text: baseUrl + '/maintenance',
                     width: 80,
                     height: 80,
