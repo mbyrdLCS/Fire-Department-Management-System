@@ -2825,11 +2825,16 @@ def list_dropbox_backups():
             if isinstance(entry, dropbox.files.FileMetadata):
                 # Only include database backup files
                 if entry.name.endswith('.db') or 'backup' in entry.name.lower():
+                    # Ensure date is timezone-aware
+                    date = entry.client_modified
+                    if date.tzinfo is None:
+                        date = pytz.UTC.localize(date)
+
                     backups.append({
                         'filename': entry.name,
                         'size_kb': entry.size / 1024,
-                        'date': entry.client_modified,
-                        'date_formatted': entry.client_modified.strftime('%Y-%m-%d %H:%M:%S'),
+                        'date': date,
+                        'date_formatted': date.strftime('%Y-%m-%d %H:%M:%S'),
                         'path': entry.path_display
                     })
 
