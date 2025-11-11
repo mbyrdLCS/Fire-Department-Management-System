@@ -203,7 +203,7 @@
         <div class="station-filter">
             <label for="station_filter">Filter by Station:</label>
             <select id="station_filter" onchange="filterByStation(this.value)">
-                <option value="">All Stations</option>
+                <option value="" {% if selected_station is none %}selected{% endif %}>All Stations</option>
                 {% for station in stations %}
                 <option value="{{ station.id }}" {% if selected_station == station.id %}selected{% endif %}>
                     {{ station.name }}

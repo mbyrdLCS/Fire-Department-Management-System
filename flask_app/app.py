@@ -1536,15 +1536,26 @@ def get_firefighter_logs(fireman_number):
 @app.route('/inspections')
 def inspections_menu():
     """Vehicle inspections menu - select a vehicle"""
-    # Get optional station filter from query parameters, default to station 1
-    station_id = request.args.get('station', type=int)
+    # Get optional station filter from query parameters
+    # Check if 'station' parameter exists in the URL at all
+    station_param = request.args.get('station')
 
     # Get all stations for the filter dropdown
     stations = db_helpers.get_all_stations()
 
-    # If no station specified and stations exist, default to first station (main station)
-    if station_id is None and stations:
-        station_id = stations[0]['id']
+    # Determine station_id for filtering
+    if station_param is None:
+        # First visit - no parameter, default to first station
+        if stations:
+            station_id = stations[0]['id']
+        else:
+            station_id = None
+    elif station_param == '':
+        # User selected "All Stations" - show all vehicles
+        station_id = None
+    else:
+        # User selected a specific station
+        station_id = int(station_param)
 
     # Get vehicles (filtered by station if specified)
     vehicles = db_helpers.get_vehicles_needing_inspection(station_id=station_id)
