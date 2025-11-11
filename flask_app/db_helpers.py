@@ -1639,7 +1639,6 @@ def generate_vehicle_code(name, vehicle_type=''):
         'ladder': 'L',
         'truck': 'T',
         'ambulance': 'A',
-        'brush': 'B',
         'squad': 'S'
     }
 
