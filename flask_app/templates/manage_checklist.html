@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Inspection Checklist</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+        }
+
+        .back-button {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .flash-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #28a745;
+        }
+
+        .add-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .add-section h2 {
+            margin-top: 0;
+            color: #1a237e;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .checklist-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .checklist-table h2 {
+            background: #1a237e;
+            color: white;
+            padding: 15px 20px;
+            margin: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f0f0f0;
+            font-weight: bold;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .status-active {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-edit:hover, .btn-delete:hover {
+            opacity: 0.8;
+        }
+
+        .edit-form {
+            display: none;
+            background: #f9f9f9;
+            padding: 10px;
+        }
+
+        .edit-form.show {
+            display: block;
+        }
+
+        .category-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('admin_panel') }}" class="back-button">← Back to Admin</a>
+        <h1>Manage Inspection Checklist</h1>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-message">
+            {{ messages[0] }}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Add New Item Section -->
+        <div class="add-section">
+            <h2>Add New Checklist Item</h2>
+            <form method="POST" action="{{ url_for('add_checklist_item') }}">
+                <div class="form-group">
+                    <label for="description">Description (Required):</label>
+                    <input type="text" id="description" name="description" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category (Optional):</label>
+                    <input type="text" id="category" name="category" placeholder="e.g., Safety, Engine, Exterior">
+                </div>
+
+                <div class="form-group">
+                    <label for="display_order">Display Order:</label>
+                    <input type="number" id="display_order" name="display_order" value="0" min="0">
+                </div>
+
+                <button type="submit" class="btn-primary">Add Checklist Item</button>
+            </form>
+        </div>
+
+        <!-- Existing Items Table -->
+        <div class="checklist-table">
+            <h2>Existing Checklist Items</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in checklist_items %}
+                    <tr>
+                        <td>{{ item.display_order }}</td>
+                        <td>{{ item.description }}</td>
+                        <td>
+                            {% if item.category %}
+                            <span class="category-badge">{{ item.category }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.is_active %}
+                            <span class="status-active">Active</span>
+                            {% else %}
+                            <span class="status-inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn-edit" onclick="toggleEdit({{ item.id }})">Edit</button>
+                            <form method="POST" action="{{ url_for('delete_checklist_item', item_id=item.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                                <button type="submit" class="btn-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5">
+                            <div class="edit-form" id="edit_{{ item.id }}">
+                                <form method="POST" action="{{ url_for('update_checklist_item', item_id=item.id) }}">
+                                    <div class="form-group">
+                                        <label>Description:</label>
+                                        <input type="text" name="description" value="{{ item.description }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Category:</label>
+                                        <input type="text" name="category" value="{{ item.category }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Display Order:</label>
+                                        <input type="number" name="display_order" value="{{ item.display_order }}" min="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" name="is_active" {% if item.is_active %}checked{% endif %}>
+                                            Active
+                                        </label>
+                                    </div>
+                                    <button type="submit" class="btn-primary">Save Changes</button>
+                                    <button type="button" class="btn-edit" onclick="toggleEdit({{ item.id }})">Cancel</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleEdit(itemId) {
+            const editForm = document.getElementById('edit_' + itemId);
+            if (editForm.classList.contains('show')) {
+                editForm.classList.remove('show');
+            } else {
+                // Hide all other edit forms
+                document.querySelectorAll('.edit-form').forEach(form => {
+                    form.classList.remove('show');
+                });
+                editForm.classList.add('show');
+            }
+        }
+    </script>
+</body>
+</html>

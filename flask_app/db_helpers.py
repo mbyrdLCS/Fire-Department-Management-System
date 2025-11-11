@@ -777,6 +777,27 @@ def create_checklist_item(description, category='', display_order=0):
         conn.close()
         return False, str(e)
 
+def update_checklist_item(item_id, description, category='', display_order=0, is_active=True):
+    """Update an existing checklist item"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE inspection_checklist_items
+            SET description = ?, category = ?, display_order = ?, is_active = ?
+            WHERE id = ?
+        ''', (description, category, display_order, 1 if is_active else 0, item_id))
+
+        conn.commit()
+        conn.close()
+        return True, item_id
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return False, str(e)
+
 def toggle_checklist_item(item_id):
     """Toggle active status of a checklist item"""
     conn = get_db_connection()
@@ -807,12 +828,12 @@ def delete_checklist_item(item_id):
         cursor.execute('DELETE FROM inspection_checklist_items WHERE id = ?', (item_id,))
         conn.commit()
         conn.close()
-        return True
+        return True, "Item deleted successfully"
 
     except Exception as e:
         conn.rollback()
         conn.close()
-        return False
+        return False, str(e)
 
 def update_checklist_item_order(item_id, display_order):
     """Update the display order of a checklist item"""
@@ -1513,11 +1534,12 @@ def get_vehicles_by_station(station_id):
     return vehicles
 
 def create_vehicle(vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes=''):
-    """Create a new vehicle"""
+    """Create a new vehicle and automatically assign all active checklist items"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
+        # Create the vehicle
         cursor.execute('''
             INSERT INTO vehicles
             (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
@@ -1526,8 +1548,15 @@ def create_vehicle(vehicle_code, name, vehicle_type='', station_id=None, year=No
         ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
               purchase_date, purchase_cost, current_value, notes))
 
-        conn.commit()
         vehicle_id = cursor.lastrowid
+
+        # Automatically assign all active checklist items to this vehicle
+        cursor.execute('''
+            INSERT INTO vehicle_checklist_assignments (vehicle_id, checklist_item_id)
+            SELECT ?, id FROM inspection_checklist_items WHERE is_active = 1
+        ''', (vehicle_id,))
+
+        conn.commit()
         conn.close()
         return True, vehicle_id
     except Exception as e:

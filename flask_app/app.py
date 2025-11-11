@@ -1608,6 +1608,91 @@ def inspection_history(vehicle_id):
                          vehicle=vehicle,
                          history=history)
 
+@app.route('/manage_checklist')
+def manage_checklist():
+    """Manage inspection checklist items"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    checklist_items = db_helpers.get_all_checklist_items()
+    return render_template('manage_checklist.html', checklist_items=checklist_items)
+
+@app.route('/add_checklist_item', methods=['POST'])
+def add_checklist_item():
+    """Add a new checklist item"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        description = request.form['description']
+        category = request.form.get('category', '')
+        display_order = request.form.get('display_order', 0)
+
+        success, result = db_helpers.create_checklist_item(description, category, display_order)
+
+        if success:
+            flash(f'Checklist item "{description}" added successfully!')
+            logger.info(f"Checklist item added: {description}")
+        else:
+            flash(f'Error adding checklist item: {result}')
+
+    except Exception as e:
+        logger.error(f"Add checklist item error: {str(e)}")
+        flash('An error occurred while adding the checklist item.')
+
+    return redirect(url_for('manage_checklist'))
+
+@app.route('/update_checklist_item/<int:item_id>', methods=['POST'])
+def update_checklist_item(item_id):
+    """Update an existing checklist item"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        description = request.form['description']
+        category = request.form.get('category', '')
+        display_order = request.form.get('display_order', 0)
+        is_active = request.form.get('is_active') == 'on'
+
+        success, result = db_helpers.update_checklist_item(item_id, description, category, display_order, is_active)
+
+        if success:
+            flash(f'Checklist item updated successfully!')
+            logger.info(f"Checklist item {item_id} updated")
+        else:
+            flash(f'Error updating checklist item: {result}')
+
+    except Exception as e:
+        logger.error(f"Update checklist item error: {str(e)}")
+        flash('An error occurred while updating the checklist item.')
+
+    return redirect(url_for('manage_checklist'))
+
+@app.route('/delete_checklist_item/<int:item_id>', methods=['POST'])
+def delete_checklist_item(item_id):
+    """Delete a checklist item"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        success, result = db_helpers.delete_checklist_item(item_id)
+
+        if success:
+            flash('Checklist item deleted successfully!')
+            logger.info(f"Checklist item {item_id} deleted")
+        else:
+            flash(f'Error deleting checklist item: {result}')
+
+    except Exception as e:
+        logger.error(f"Delete checklist item error: {str(e)}")
+        flash('An error occurred while deleting the checklist item.')
+
+    return redirect(url_for('manage_checklist'))
+
 # ========== MAINTENANCE ROUTES ==========
 
 @app.route('/maintenance')
