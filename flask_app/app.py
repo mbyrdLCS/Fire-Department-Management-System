@@ -2694,6 +2694,11 @@ def reports_menu():
     """Reports menu page"""
     return render_template('reports_menu.html')
 
+@app.route('/reports/vehicle-inspections')
+def vehicle_inspection_reports():
+    """Vehicle inspection reports page"""
+    return render_template('vehicle_inspection_reports.html')
+
 @app.route('/reports/hours', methods=['GET', 'POST'])
 def hours_report():
     """Firefighter hours report"""

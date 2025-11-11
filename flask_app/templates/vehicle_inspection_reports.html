@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vehicle Inspection Reports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 25px;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            color: #1e3c72;
+        }
+        .header p {
+            color: #666;
+            font-size: 16px;
+            margin: 0;
+        }
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .export-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s;
+        }
+        .export-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        .export-card .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .export-card h3 {
+            margin: 0 0 12px 0;
+            color: #333;
+            font-size: 20px;
+        }
+        .export-card p {
+            color: #666;
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .export-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+        .btn-csv {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-csv:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        .btn-pdf {
+            background: #f44336;
+            color: white;
+        }
+        .btn-pdf:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            width: fit-content;
+            margin: 0 auto;
+        }
+        .btn-back:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        .info-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #2196F3;
+        }
+        .info-section h3 {
+            margin: 0 0 10px 0;
+            color: #1976D2;
+            font-size: 18px;
+        }
+        .info-section p {
+            margin: 5px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        @media print {
+            .filters, .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Vehicle Inspection Reports</h1>
+            <p>Export vehicle inspection records in your preferred format</p>
+        </div>
+
+        <div class="info-section">
+            <h3>📋 About Inspection Reports</h3>
+            <p>Vehicle inspection reports contain detailed records of all vehicle inspections including:</p>
+            <p>• Inspection date and vehicle information</p>
+            <p>• Pass/fail status and inspector details</p>
+            <p>• Component checks and notes</p>
+            <p>• Mileage and odometer readings</p>
+        </div>
+
+        <div class="export-options">
+            <div class="export-card">
+                <div class="icon">📊</div>
+                <h3>All Inspections</h3>
+                <p>Export all vehicle inspection records from the database</p>
+                <div class="export-buttons">
+                    <a href="{{ url_for('export_inspections') }}" class="btn btn-csv">📥 Export CSV</a>
+                    <a href="{{ url_for('export_inspections_pdf') }}" class="btn btn-pdf">📄 Export PDF</a>
+                </div>
+            </div>
+
+            <div class="export-card">
+                <div class="icon">📅</div>
+                <h3>Current Week</h3>
+                <p>Export inspections from the current week only</p>
+                <div class="export-buttons">
+                    <a href="{{ url_for('export_inspections') }}?week=current" class="btn btn-csv">📥 Export CSV</a>
+                    <a href="{{ url_for('export_inspections_pdf') }}?week=current" class="btn btn-pdf">📄 Export PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('reports_menu') }}" class="btn btn-back">← Back to Reports</a>
+    </div>
+</body>
+</html>
