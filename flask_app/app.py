@@ -1953,7 +1953,8 @@ def manage_vehicles():
 def create_vehicle():
     """Create a new vehicle"""
     try:
-        vehicle_code = request.form['vehicle_code']
+        # Vehicle code is now optional - will be auto-generated if empty
+        vehicle_code = request.form.get('vehicle_code', '').strip()
         name = request.form['name']
         vehicle_type = request.form.get('vehicle_type', '')
         station_id = request.form.get('station_id', '')
@@ -1988,8 +1989,12 @@ def create_vehicle():
         )
 
         if success:
-            flash(f'Vehicle "{name}" created successfully!')
-            logger.info(f"Vehicle created: {name} ({vehicle_code})")
+            # Get the actual vehicle code that was used (auto-generated or provided)
+            vehicle_id = result
+            vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+            actual_code = vehicle['code'] if vehicle else vehicle_code
+            flash(f'Vehicle "{name}" created successfully with code {actual_code}!')
+            logger.info(f"Vehicle created: {name} ({actual_code})")
         else:
             flash(f'Error creating vehicle: {result}')
 

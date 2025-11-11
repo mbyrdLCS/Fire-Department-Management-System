@@ -257,12 +257,12 @@
             <form method="POST" action="{{ url_for('create_vehicle') }}">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="vehicle_code">Vehicle Code: *</label>
-                        <input type="text" name="vehicle_code" id="vehicle_code" placeholder="e.g., E1, L1, T1" required>
+                        <label for="vehicle_code">Vehicle Code (Optional - auto-generated if blank):</label>
+                        <input type="text" name="vehicle_code" id="vehicle_code" placeholder="Leave blank to auto-generate (e.g., E1, R2, T3)">
                     </div>
                     <div class="form-group">
                         <label for="name">Vehicle Name: *</label>
-                        <input type="text" name="name" id="name" placeholder="e.g., Engine 1" required>
+                        <input type="text" name="name" id="name" placeholder="e.g., Engine 1, Rescue 2" required>
                     </div>
                     <div class="form-group">
                         <label for="vehicle_type">Type:</label>

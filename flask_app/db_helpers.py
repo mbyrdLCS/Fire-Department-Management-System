@@ -1533,8 +1533,108 @@ def get_vehicles_by_station(station_id):
     conn.close()
     return vehicles
 
+def generate_vehicle_code(name, vehicle_type=''):
+    """Auto-generate a vehicle code from name and type
+
+    Examples:
+    - "Rescue 1" -> "R1"
+    - "Pumper 2" -> "P2"
+    - "Grass Truck 5" -> "G5"
+    - "Tanker 3" -> "T3"
+    - "Engine 4" -> "E4"
+    - "Ladder 1" -> "L1"
+    - "Custom Fire Truck" -> "CFT1" (uses initials + next number)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Common fire vehicle type abbreviations
+    type_map = {
+        'rescue': 'R',
+        'pumper': 'P',
+        'grass': 'G',
+        'tanker': 'T',
+        'engine': 'E',
+        'ladder': 'L',
+        'truck': 'T',
+        'ambulance': 'A',
+        'brush': 'B',
+        'squad': 'S'
+    }
+
+    # Try to extract vehicle type and number from name
+    name_lower = name.lower()
+    words = name_lower.split()
+
+    # Look for a number in the name
+    number = None
+    for word in words:
+        if word.isdigit():
+            number = word
+            break
+
+    # Try to find vehicle type from name or vehicle_type field
+    prefix = None
+    for type_name, abbrev in type_map.items():
+        if type_name in name_lower or type_name in vehicle_type.lower():
+            prefix = abbrev
+            break
+
+    # If no match found, use first letters of each word
+    if not prefix:
+        # Take first letter of each word (up to 3 letters)
+        prefix = ''.join([word[0].upper() for word in words if word[0].isalpha()])[:3]
+
+    # If no number found, get next available number for this prefix
+    if not number:
+        cursor.execute('''
+            SELECT vehicle_code FROM vehicles
+            WHERE vehicle_code LIKE ?
+            ORDER BY vehicle_code DESC
+            LIMIT 1
+        ''', (f'{prefix}%',))
+
+        result = cursor.fetchone()
+        if result:
+            # Extract number from existing code
+            existing_code = result[0]
+            existing_num = ''.join(filter(str.isdigit, existing_code))
+            number = str(int(existing_num) + 1) if existing_num else '1'
+        else:
+            number = '1'
+
+    vehicle_code = f'{prefix}{number}'
+
+    # Check if code already exists
+    cursor.execute('SELECT id FROM vehicles WHERE vehicle_code = ?', (vehicle_code,))
+    if cursor.fetchone():
+        # If exists, add next number
+        cursor.execute('''
+            SELECT vehicle_code FROM vehicles
+            WHERE vehicle_code LIKE ?
+            ORDER BY vehicle_code DESC
+            LIMIT 1
+        ''', (f'{prefix}%',))
+
+        result = cursor.fetchone()
+        if result:
+            existing_code = result[0]
+            existing_num = ''.join(filter(str.isdigit, existing_code))
+            next_num = int(existing_num) + 1 if existing_num else 1
+            vehicle_code = f'{prefix}{next_num}'
+
+    conn.close()
+    return vehicle_code
+
 def create_vehicle(vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes=''):
-    """Create a new vehicle and automatically assign all active checklist items"""
+    """Create a new vehicle and automatically assign all active checklist items
+
+    If vehicle_code is empty, it will be auto-generated from the name and type
+    """
+    # Auto-generate vehicle code if not provided
+    if not vehicle_code or vehicle_code.strip() == '':
+        vehicle_code = generate_vehicle_code(name, vehicle_type)
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
