@@ -1480,8 +1480,13 @@ def display():
                              base_url=base_url))
 
         # Allow this page to be embedded in iframes (for SignPresenter)
-        response.headers['X-Frame-Options'] = 'ALLOWALL'
-        response.headers['Content-Security-Policy'] = "frame-ancestors *"
+        # Remove X-Frame-Options entirely to allow embedding
+        if 'X-Frame-Options' in response.headers:
+            del response.headers['X-Frame-Options']
+
+        # Allow embedding from any origin
+        response.headers['Content-Security-Policy'] = "frame-ancestors *;"
+        response.headers['Access-Control-Allow-Origin'] = '*'
 
         return response
 
