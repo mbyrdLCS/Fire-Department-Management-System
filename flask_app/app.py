@@ -1458,14 +1458,23 @@ def logout():
 def display():
     """Display dashboard - active firefighters, alerts, and recent activity"""
     try:
+        # Get station parameter (optional)
+        station_id = request.args.get('station', type=int)
+
         # Auto-checkout stale logs (over 12 hours)
         db_helpers.auto_checkout_stale_logs()
 
         active_firefighters = db_helpers.get_active_firefighters()
         leaderboard = db_helpers.get_leaderboard()
-        vehicles_needing_inspection = db_helpers.get_vehicles_needing_inspection()
-        alerts = db_helpers.get_all_alerts()
+        vehicles_needing_inspection = db_helpers.get_vehicles_needing_inspection(station_id=station_id)
+        alerts = db_helpers.get_all_alerts(station_id=station_id)
         recent_activity = db_helpers.get_recent_activity(limit=15)
+
+        # Get station info if filtering by station
+        station = None
+        stations = db_helpers.get_all_stations()
+        if station_id:
+            station = db_helpers.get_station_by_id(station_id)
 
         # Get base URL for QR codes
         base_url = request.url_root.rstrip('/')
@@ -1473,7 +1482,7 @@ def display():
         # Get display settings from database (server-side, not localStorage)
         display_settings = db_helpers.get_all_display_settings()
 
-        logger.info("Display page loaded successfully")
+        logger.info(f"Display page loaded successfully (station_id={station_id})")
         response = make_response(render_template('display.html',
                              active_firefighters=active_firefighters,
                              leaderboard=leaderboard,
@@ -1481,7 +1490,10 @@ def display():
                              alerts=alerts,
                              recent_activity=recent_activity,
                              base_url=base_url,
-                             display_settings=display_settings))
+                             display_settings=display_settings,
+                             station=station,
+                             stations=stations,
+                             current_station_id=station_id))
 
         # Allow this page to be embedded in iframes (for SignPresenter)
         # Remove X-Frame-Options entirely to allow embedding

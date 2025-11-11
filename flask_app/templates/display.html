@@ -470,7 +470,7 @@
     <div class="display-container">
         <!-- Header -->
         <div class="header">
-            <h1>🚒 Spring Valley Volunteer Fire Department</h1>
+            <h1>🚒 Spring Valley Volunteer Fire Department{% if station %} - {{ station.name }}{% endif %}</h1>
             <div class="clock" id="clock"></div>
 
             <!-- Inventory QR - TOP LEFT, controlled by alerts page toggle -->
@@ -826,12 +826,14 @@
         // Generate QR codes
         function generateQRCode() {
             const baseUrl = '{{ base_url }}';
+            const stationId = {{ current_station_id if current_station_id else 'null' }};
+            const stationParam = stationId ? '?station=' + stationId : '';
 
             // Inspections QR code (if element exists)
             const qrInspectElement = document.getElementById('qr-inspect');
             if (qrInspectElement) {
                 new QRCode(qrInspectElement, {
-                    text: baseUrl + '/inspections',
+                    text: baseUrl + '/inspections' + stationParam,
                     width: 80,
                     height: 80,
                     colorDark: '#000000',

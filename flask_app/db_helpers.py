@@ -1237,6 +1237,30 @@ def get_all_stations():
     conn.close()
     return stations
 
+def get_station_by_id(station_id):
+    """Get a specific station by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT id, name, address, is_primary, notes
+        FROM stations
+        WHERE id = ?
+    ''', (station_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return {
+            'id': row[0],
+            'name': row[1],
+            'address': row[2],
+            'is_primary': row[3],
+            'notes': row[4]
+        }
+    return None
+
 def create_station(name, address='', is_primary=False, notes=''):
     """Create a new fire station"""
     conn = get_db_connection()
@@ -1775,8 +1799,8 @@ def delete_vehicle(vehicle_id):
 
 # ========== ALERTS AND NOTIFICATIONS FUNCTIONS ==========
 
-def get_all_alerts():
-    """Get all active alerts for the dashboard"""
+def get_all_alerts(station_id=None):
+    """Get all active alerts for the dashboard, optionally filtered by station"""
     alerts = {
         'inspections_overdue': [],
         'inspections_failed': [],
@@ -1785,24 +1809,38 @@ def get_all_alerts():
         'total_count': 0
     }
 
-    # Get overdue inspections
-    alerts['inspections_overdue'] = get_vehicles_needing_inspection()
+    # Get overdue inspections (filtered by station if specified)
+    alerts['inspections_overdue'] = get_vehicles_needing_inspection(station_id=station_id)
 
     # Get failed inspections (vehicles needing maintenance)
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
-        SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes
-        FROM vehicle_inspections vi
-        JOIN vehicles v ON vi.vehicle_id = v.id
-        WHERE vi.passed = 0
-        AND vi.id = (
-            SELECT MAX(id) FROM vehicle_inspections
-            WHERE vehicle_id = v.id
-        )
-        ORDER BY vi.inspection_date DESC
-    ''')
+    if station_id:
+        cursor.execute('''
+            SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes
+            FROM vehicle_inspections vi
+            JOIN vehicles v ON vi.vehicle_id = v.id
+            WHERE vi.passed = 0
+            AND v.station_id = ?
+            AND vi.id = (
+                SELECT MAX(id) FROM vehicle_inspections
+                WHERE vehicle_id = v.id
+            )
+            ORDER BY vi.inspection_date DESC
+        ''', (station_id,))
+    else:
+        cursor.execute('''
+            SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes
+            FROM vehicle_inspections vi
+            JOIN vehicles v ON vi.vehicle_id = v.id
+            WHERE vi.passed = 0
+            AND vi.id = (
+                SELECT MAX(id) FROM vehicle_inspections
+                WHERE vehicle_id = v.id
+            )
+            ORDER BY vi.inspection_date DESC
+        ''')
 
     for row in cursor.fetchall():
         alerts['inspections_failed'].append({
@@ -1813,16 +1851,26 @@ def get_all_alerts():
             'notes': row[4] or 'Maintenance required'
         })
 
-    # Get low inventory at stations
-
-    cursor.execute('''
-        SELECT s.name as station_name, ii.name as item_name, si.quantity, ii.min_quantity, ii.category
-        FROM station_inventory si
-        JOIN inventory_items ii ON si.item_id = ii.id
-        JOIN stations s ON si.station_id = s.id
-        WHERE ii.min_quantity > 0 AND si.quantity < ii.min_quantity
-        ORDER BY s.name, ii.name
-    ''')
+    # Get low inventory at stations (filtered by station if specified)
+    if station_id:
+        cursor.execute('''
+            SELECT s.name as station_name, ii.name as item_name, si.quantity, ii.min_quantity, ii.category
+            FROM station_inventory si
+            JOIN inventory_items ii ON si.item_id = ii.id
+            JOIN stations s ON si.station_id = s.id
+            WHERE ii.min_quantity > 0 AND si.quantity < ii.min_quantity
+            AND si.station_id = ?
+            ORDER BY s.name, ii.name
+        ''', (station_id,))
+    else:
+        cursor.execute('''
+            SELECT s.name as station_name, ii.name as item_name, si.quantity, ii.min_quantity, ii.category
+            FROM station_inventory si
+            JOIN inventory_items ii ON si.item_id = ii.id
+            JOIN stations s ON si.station_id = s.id
+            WHERE ii.min_quantity > 0 AND si.quantity < ii.min_quantity
+            ORDER BY s.name, ii.name
+        ''')
 
     for row in cursor.fetchall():
         alerts['low_inventory_station'].append({
@@ -1833,15 +1881,26 @@ def get_all_alerts():
             'category': row[4]
         })
 
-    # Get low inventory on vehicles
-    cursor.execute('''
-        SELECT v.name as vehicle_name, v.vehicle_code, ii.name as item_name, vi.quantity, ii.min_quantity, ii.category
-        FROM vehicle_inventory vi
-        JOIN inventory_items ii ON vi.item_id = ii.id
-        JOIN vehicles v ON vi.vehicle_id = v.id
-        WHERE ii.min_quantity > 0 AND vi.quantity < ii.min_quantity
-        ORDER BY v.name, ii.name
-    ''')
+    # Get low inventory on vehicles (filtered by station if specified)
+    if station_id:
+        cursor.execute('''
+            SELECT v.name as vehicle_name, v.vehicle_code, ii.name as item_name, vi.quantity, ii.min_quantity, ii.category
+            FROM vehicle_inventory vi
+            JOIN inventory_items ii ON vi.item_id = ii.id
+            JOIN vehicles v ON vi.vehicle_id = v.id
+            WHERE ii.min_quantity > 0 AND vi.quantity < ii.min_quantity
+            AND v.station_id = ?
+            ORDER BY v.name, ii.name
+        ''', (station_id,))
+    else:
+        cursor.execute('''
+            SELECT v.name as vehicle_name, v.vehicle_code, ii.name as item_name, vi.quantity, ii.min_quantity, ii.category
+            FROM vehicle_inventory vi
+            JOIN inventory_items ii ON vi.item_id = ii.id
+            JOIN vehicles v ON vi.vehicle_id = v.id
+            WHERE ii.min_quantity > 0 AND vi.quantity < ii.min_quantity
+            ORDER BY v.name, ii.name
+        ''')
 
     for row in cursor.fetchall():
         alerts['low_inventory_vehicle'].append({
