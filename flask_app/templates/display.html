@@ -488,8 +488,8 @@
                 <div class="qr-corner-label">🔧 Maintenance</div>
             </div>
 
-            <!-- Inspections QR - TOP RIGHT, controlled by toggle and/or when inspections are overdue -->
-            {% set show_inspections = display_settings.get('show_inspections_qr') == 'true' or alerts.inspections_overdue|length > 0 %}
+            <!-- Inspections QR - TOP RIGHT, controlled by toggle (respects manual off) -->
+            {% set show_inspections = display_settings.get('show_inspections_qr') == 'true' %}
             <div class="qr-corner-right {% if not show_inspections %}hidden{% endif %}" id="qrInspections">
                 <div class="qr-code" id="qr-inspect"></div>
                 <div class="qr-corner-label">🔍 Inspections</div>
