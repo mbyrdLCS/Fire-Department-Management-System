@@ -608,29 +608,69 @@ def get_recent_activity(limit=10):
 # ========== VEHICLE FUNCTIONS ==========
 
 def get_all_vehicles():
-    """Get all vehicles"""
+    """Get all vehicles with fluid specifications"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
-        SELECT id, vehicle_code, name, vehicle_type, status
-        FROM vehicles
-        WHERE status = 'active'
-        ORDER BY vehicle_code
-    ''')
+    # Try to get all columns including fluid specs
+    try:
+        cursor.execute('''
+            SELECT id, vehicle_code, name, vehicle_type, status,
+                   oil_type, antifreeze_type, brake_fluid_type,
+                   power_steering_fluid_type, transmission_fluid_type
+            FROM vehicles
+            WHERE status = 'active'
+            ORDER BY vehicle_code
+        ''')
 
-    vehicles = []
-    for row in cursor.fetchall():
-        vehicles.append({
-            'id': row[0],
-            'code': row[1],
-            'name': row[2],
-            'type': row[3],
-            'status': row[4]
-        })
+        vehicles = []
+        for row in cursor.fetchall():
+            vehicles.append({
+                'id': row[0],
+                'code': row[1],
+                'name': row[2],
+                'type': row[3],
+                'status': row[4],
+                'oil_type': row[5] or '',
+                'antifreeze_type': row[6] or '',
+                'brake_fluid_type': row[7] or '',
+                'power_steering_fluid_type': row[8] or '',
+                'transmission_fluid_type': row[9] or ''
+            })
 
-    conn.close()
-    return vehicles
+        conn.close()
+        return vehicles
+
+    except Exception as e:
+        # Fallback if fluid columns don't exist yet (for backwards compatibility)
+        conn.close()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, vehicle_code, name, vehicle_type, status
+            FROM vehicles
+            WHERE status = 'active'
+            ORDER BY vehicle_code
+        ''')
+
+        vehicles = []
+        for row in cursor.fetchall():
+            vehicles.append({
+                'id': row[0],
+                'code': row[1],
+                'name': row[2],
+                'type': row[3],
+                'status': row[4],
+                'oil_type': '',
+                'antifreeze_type': '',
+                'brake_fluid_type': '',
+                'power_steering_fluid_type': '',
+                'transmission_fluid_type': ''
+            })
+
+        conn.close()
+        return vehicles
 
 def get_vehicles_needing_inspection(station_id=None):
     """Get vehicles that need inspection (not inspected in last 6 days)
