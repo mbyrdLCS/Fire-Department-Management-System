@@ -20,9 +20,11 @@ A comprehensive web-based time tracking and management system designed specifica
 ### Equipment & Inventory Management
 - 📦 **Inventory System**: Track station and vehicle inventory with quantities, costs, and categories
 - 🔍 **Vehicle Inspections**: Schedule and track weekly vehicle inspections with detailed checklists
-- 🔧 **Maintenance Tracking**: Monitor vehicle maintenance needs and history
+- 🛢️ **Fluid Specifications**: Document required fluids (oil, coolant, brake fluid, etc.) for each vehicle
+- 🔧 **Maintenance Tracking**: Monitor vehicle maintenance needs with failed inspection alerts
 - 📱 **QR Code Access**: Generate QR codes for mobile access to inspections and inventory
 - 💰 **Value Reporting**: Track total inventory value by location
+- ⚠️ **Failed Inspection Alerts**: Automatic alerts on dashboard, display, and maintenance pages for vehicles needing attention
 
 ### Administration & Reporting
 - 🔐 **Admin Panel**: Comprehensive management interface for all system features
@@ -52,7 +54,10 @@ Comprehensive management interface with firefighter management, reports, and sys
 Track equipment across stations and vehicles with cost tracking
 
 ### Vehicle Inspections
-Mobile-friendly inspection checklists accessible via QR codes
+Mobile-friendly inspection checklists with inline fluid specifications - shows exactly what oil, coolant, and brake fluid each vehicle requires
+
+### Failed Inspection Alerts
+Prominent alerts throughout the system when vehicles fail inspection, with maintenance tracking integration
 
 *More screenshots available in the `/docs/screenshots` folder*
 
@@ -303,6 +308,16 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - Powered by [SignPresenter](https://www.signpresenter.com/) for digital signage displays
 - Thanks to all contributors and fire departments using this system
 
+## 📈 Recent Updates
+
+### January 2025
+- ✅ **Vehicle Fluid Specifications**: Track required oil, coolant, brake fluid, power steering fluid, and transmission fluid for each vehicle
+- ✅ **Inline Fluid Display**: During inspections, fluid requirements automatically appear next to relevant checklist items
+- ✅ **Failed Inspection System**: Comprehensive alerts across dashboard, display board, and maintenance pages
+- ✅ **Auto-Generated Vehicle Codes**: Smart vehicle code generation from vehicle name and type
+- ✅ **Station-Based Inspection Filtering**: Filter inspections by station with "All Stations" option
+- ✅ **Enhanced Maintenance Alerts**: Failed inspections now prominently highlighted at top of maintenance menu
+
 ## 📈 Roadmap
 
 - [ ] Mobile app for iOS/Android
@@ -311,6 +326,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - [ ] Grant reporting features
 - [ ] Multi-department support
 - [ ] API for third-party integrations
+- [ ] Work order system for maintenance tracking
 
 ---
 
