@@ -701,7 +701,7 @@ def export_inspections():
                 result = 'PASSED' if inspection['passed'] else 'FAILED'
 
                 cw.writerow([
-                    vehicle['code'],
+                    vehicle.get('vehicle_code', vehicle.get('code', 'N/A')),
                     vehicle['name'],
                     date_str,
                     inspection['inspector'],
@@ -881,7 +881,7 @@ def export_inspections_pdf():
                 result = 'PASSED' if insp['passed'] else 'FAILED'
                 notes = insp.get('notes', '')[:40] + '...' if len(insp.get('notes', '')) > 40 else insp.get('notes', '')
                 data.append([
-                    vehicle['code'],
+                    vehicle.get('vehicle_code', vehicle.get('code', 'N/A')),
                     vehicle['name'],
                     date_str,
                     insp.get('inspector', 'N/A'),
@@ -914,7 +914,9 @@ def export_inspections_pdf():
 
     except Exception as e:
         logger.error(f"Inspection PDF export error: {str(e)}")
-        flash('An error occurred during PDF export.')
+        import traceback
+        logger.error(traceback.format_exc())
+        flash(f'An error occurred during PDF export: {str(e)}')
         return redirect(url_for('admin_panel'))
 
 @app.route('/export_checklist_items')
