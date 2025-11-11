@@ -2040,7 +2040,14 @@ def create_vehicle():
 def update_vehicle(vehicle_id):
     """Update an existing vehicle"""
     try:
-        vehicle_code = request.form['vehicle_code']
+        vehicle_code = request.form.get('vehicle_code', '').strip()
+
+        # If vehicle code is empty, keep the existing one
+        if not vehicle_code:
+            existing_vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+            if existing_vehicle:
+                vehicle_code = existing_vehicle['code']
+
         name = request.form['name']
         vehicle_type = request.form.get('vehicle_type', '')
         station_id = request.form.get('station_id', '')
