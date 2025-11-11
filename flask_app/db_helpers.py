@@ -655,6 +655,11 @@ def get_all_vehicles():
 
     except Exception as e:
         # Fallback if fluid columns don't exist yet (for backwards compatibility)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"get_all_vehicles() exception (using fallback without fluids): {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+
         conn.close()
         conn = get_db_connection()
         cursor = conn.cursor()
