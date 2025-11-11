@@ -314,6 +314,30 @@
 
                 <div class="item-description">{{ item.description }}</div>
 
+                <!-- Show fluid specification if relevant to this checklist item -->
+                {% set desc_lower = item.description.lower() %}
+                {% if 'oil' in desc_lower and vehicle.oil_type %}
+                    <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-left: 4px solid #FF9800; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #E65100;">
+                        ⚙️ <strong>Use:</strong> {{ vehicle.oil_type }}
+                    </div>
+                {% elif 'antifreeze' in desc_lower or 'coolant' in desc_lower and vehicle.antifreeze_type %}
+                    <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-left: 4px solid #4CAF50; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #1B5E20;">
+                        ❄️ <strong>Use:</strong> {{ vehicle.antifreeze_type }}
+                    </div>
+                {% elif 'brake' in desc_lower and vehicle.brake_fluid_type %}
+                    <div style="background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); border-left: 4px solid #F44336; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #B71C1C;">
+                        🛑 <strong>Use:</strong> {{ vehicle.brake_fluid_type }}
+                    </div>
+                {% elif 'power steering' in desc_lower and vehicle.power_steering_fluid_type %}
+                    <div style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border-left: 4px solid #9C27B0; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #4A148C;">
+                        🔄 <strong>Use:</strong> {{ vehicle.power_steering_fluid_type }}
+                    </div>
+                {% elif 'transmission' in desc_lower and vehicle.transmission_fluid_type %}
+                    <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-left: 4px solid #FF9800; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #E65100;">
+                        ⚡ <strong>Use:</strong> {{ vehicle.transmission_fluid_type }}
+                    </div>
+                {% endif %}
+
                 <div class="pass-fail-buttons">
                     <button type="button"
                             class="pass-fail-button pass-button"
