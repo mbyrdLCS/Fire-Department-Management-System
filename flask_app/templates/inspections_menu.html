@@ -253,7 +253,7 @@
     <script>
         function filterByStation(stationId) {
             if (stationId === '') {
-                window.location.href = '{{ url_for("inspections_menu") }}';
+                window.location.href = '{{ url_for("inspections_menu") }}?station=all';
             } else {
                 window.location.href = '{{ url_for("inspections_menu") }}?station=' + stationId;
             }

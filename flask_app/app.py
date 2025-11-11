@@ -1537,7 +1537,6 @@ def get_firefighter_logs(fireman_number):
 def inspections_menu():
     """Vehicle inspections menu - select a vehicle"""
     # Get optional station filter from query parameters
-    # Check if 'station' parameter exists in the URL at all
     station_param = request.args.get('station')
 
     # Get all stations for the filter dropdown
@@ -1550,7 +1549,7 @@ def inspections_menu():
             station_id = stations[0]['id']
         else:
             station_id = None
-    elif station_param == '':
+    elif station_param == 'all' or station_param == '':
         # User selected "All Stations" - show all vehicles
         station_id = None
     else:
