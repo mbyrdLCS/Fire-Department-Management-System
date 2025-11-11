@@ -344,6 +344,26 @@ def admin_panel():
 
     return render_template('admin.html', user_data=user_data, categories=categories_list, all_logs=all_logs)
 
+@app.route('/merge_work_night_categories', methods=['POST'])
+def merge_work_night_categories():
+    """Merge duplicate 'Work night' categories into 'Work Night'"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        success, message = db_helpers.merge_duplicate_work_night()
+        if success:
+            flash(message)
+            logger.info("Work night categories merged successfully")
+        else:
+            flash(f'Error merging categories: {message}')
+    except Exception as e:
+        logger.error(f"Merge work night error: {str(e)}")
+        flash('An error occurred while merging categories.')
+
+    return redirect(url_for('admin_panel'))
+
 @app.route('/update_hours', methods=['POST'])
 def update_hours():
     """Manually add hours for a firefighter"""

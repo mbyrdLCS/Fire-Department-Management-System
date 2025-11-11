@@ -276,6 +276,16 @@
                                 </div>
                             </div>
                         </form>
+
+                        <form method="POST" action="{{ url_for('merge_work_night_categories') }}" class="admin-form" style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 15px;">
+                            <div class="form-group">
+                                <label>Fix Duplicate Categories:</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <span style="flex: 1; font-size: 13px; color: #666;">Merge duplicate "Work night" categories into one</span>
+                                    <button type="submit" class="action-button" style="background: #17a2b8; white-space: nowrap;">🔀 Merge Work Night</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
