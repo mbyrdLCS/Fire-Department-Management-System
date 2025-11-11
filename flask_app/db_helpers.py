@@ -608,14 +608,16 @@ def get_recent_activity(limit=10):
 # ========== VEHICLE FUNCTIONS ==========
 
 def get_all_vehicles():
-    """Get all vehicles with fluid specifications"""
+    """Get all vehicles with all fields including fluid specifications"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # Try to get all columns including fluid specs
     try:
         cursor.execute('''
-            SELECT id, vehicle_code, name, vehicle_type, status,
+            SELECT id, vehicle_code, name, vehicle_type, station_id, year, make, model,
+                   vin, license_plate, purchase_date, purchase_cost, current_value,
+                   status, notes,
                    oil_type, antifreeze_type, brake_fluid_type,
                    power_steering_fluid_type, transmission_fluid_type
             FROM vehicles
@@ -627,15 +629,25 @@ def get_all_vehicles():
         for row in cursor.fetchall():
             vehicles.append({
                 'id': row[0],
-                'code': row[1],
+                'vehicle_code': row[1],
                 'name': row[2],
-                'type': row[3],
-                'status': row[4],
-                'oil_type': row[5] or '',
-                'antifreeze_type': row[6] or '',
-                'brake_fluid_type': row[7] or '',
-                'power_steering_fluid_type': row[8] or '',
-                'transmission_fluid_type': row[9] or ''
+                'vehicle_type': row[3],
+                'station_id': row[4],
+                'year': row[5],
+                'make': row[6],
+                'model': row[7],
+                'vin': row[8],
+                'license_plate': row[9],
+                'purchase_date': row[10],
+                'purchase_cost': row[11],
+                'current_value': row[12],
+                'status': row[13],
+                'notes': row[14],
+                'oil_type': row[15] or '',
+                'antifreeze_type': row[16] or '',
+                'brake_fluid_type': row[17] or '',
+                'power_steering_fluid_type': row[18] or '',
+                'transmission_fluid_type': row[19] or ''
             })
 
         conn.close()
@@ -648,7 +660,9 @@ def get_all_vehicles():
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT id, vehicle_code, name, vehicle_type, status
+            SELECT id, vehicle_code, name, vehicle_type, station_id, year, make, model,
+                   vin, license_plate, purchase_date, purchase_cost, current_value,
+                   status, notes
             FROM vehicles
             WHERE status = 'active'
             ORDER BY vehicle_code
@@ -658,10 +672,20 @@ def get_all_vehicles():
         for row in cursor.fetchall():
             vehicles.append({
                 'id': row[0],
-                'code': row[1],
+                'vehicle_code': row[1],
                 'name': row[2],
-                'type': row[3],
-                'status': row[4],
+                'vehicle_type': row[3],
+                'station_id': row[4],
+                'year': row[5],
+                'make': row[6],
+                'model': row[7],
+                'vin': row[8],
+                'license_plate': row[9],
+                'purchase_date': row[10],
+                'purchase_cost': row[11],
+                'current_value': row[12],
+                'status': row[13],
+                'notes': row[14],
                 'oil_type': '',
                 'antifreeze_type': '',
                 'brake_fluid_type': '',
