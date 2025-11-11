@@ -310,6 +310,17 @@ def init_database():
     ''')
     print("✅ Created table: item_certifications")
 
+    # 16. Display settings table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS display_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        setting_key TEXT UNIQUE NOT NULL,
+        setting_value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    print("✅ Created table: display_settings")
+
     print("\n📊 Creating indexes for performance...")
 
     # Create indexes
@@ -362,14 +373,29 @@ def init_database():
         ''', (category_name, default_hours))
         print(f"✅ Added category: {category_name}")
 
+    # Insert default display settings
+    print("\n⚙️ Adding default display settings...")
+    default_settings = [
+        ('show_inventory_qr', 'true'),
+        ('show_maintenance_qr', 'true')
+    ]
+
+    for setting_key, setting_value in default_settings:
+        cursor.execute('''
+            INSERT OR IGNORE INTO display_settings (setting_key, setting_value)
+            VALUES (?, ?)
+        ''', (setting_key, setting_value))
+        print(f"✅ Added setting: {setting_key} = {setting_value}")
+
     conn.commit()
     conn.close()
 
     print("\n🎉 Database initialization complete!")
     print(f"📁 Database file: {DATABASE_NAME}")
-    print(f"📊 Total tables: 15")
+    print(f"📊 Total tables: 16")
     print(f"📈 Total indexes: {len(indexes)}")
     print(f"📂 Default categories: {len(default_categories)}")
+    print(f"⚙️ Default settings: {len(default_settings)}")
 
 if __name__ == '__main__':
     init_database()

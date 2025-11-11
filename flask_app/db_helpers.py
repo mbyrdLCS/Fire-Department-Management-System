@@ -2397,6 +2397,17 @@ def update_display_setting(setting_key, setting_value):
     cursor = conn.cursor()
 
     try:
+        # First ensure the table exists
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS display_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT UNIQUE NOT NULL,
+                setting_value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Then insert or update the setting
         cursor.execute('''
             INSERT INTO display_settings (setting_key, setting_value, updated_at)
             VALUES (?, ?, CURRENT_TIMESTAMP)
@@ -2409,6 +2420,8 @@ def update_display_setting(setting_key, setting_value):
     except Exception as e:
         conn.close()
         print(f"Error updating display setting: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def get_all_display_settings():
@@ -2417,6 +2430,26 @@ def get_all_display_settings():
     cursor = conn.cursor()
 
     try:
+        # First ensure the table exists
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS display_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT UNIQUE NOT NULL,
+                setting_value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Insert default values if they don't exist
+        cursor.execute('''
+            INSERT OR IGNORE INTO display_settings (setting_key, setting_value)
+            VALUES ('show_inventory_qr', 'true')
+        ''')
+        cursor.execute('''
+            INSERT OR IGNORE INTO display_settings (setting_key, setting_value)
+            VALUES ('show_maintenance_qr', 'true')
+        ''')
+
         cursor.execute('''
             SELECT setting_key, setting_value
             FROM display_settings
@@ -2428,8 +2461,9 @@ def get_all_display_settings():
 
         conn.close()
         return settings
-    except:
+    except Exception as e:
         # Table might not exist yet
+        print(f"Error getting display settings: {e}")
         conn.close()
         return {
             'show_inventory_qr': 'true',
