@@ -632,24 +632,40 @@ def get_all_vehicles():
     conn.close()
     return vehicles
 
-def get_vehicles_needing_inspection():
-    """Get vehicles that need inspection (not inspected in last 6 days)"""
+def get_vehicles_needing_inspection(station_id=None):
+    """Get vehicles that need inspection (not inspected in last 6 days)
+
+    Args:
+        station_id: Optional station ID to filter vehicles by station
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # Get current time minus 6 days
     six_days_ago = datetime.now(CENTRAL) - timedelta(days=6)
 
-    cursor.execute('''
+    # Build query with optional station filter
+    query = '''
         SELECT v.id, v.vehicle_code, v.name, v.vehicle_type, v.status,
-               MAX(vi.inspection_date) as last_inspection
+               MAX(vi.inspection_date) as last_inspection, v.station_id
         FROM vehicles v
         LEFT JOIN vehicle_inspections vi ON v.id = vi.vehicle_id
         WHERE v.status = 'active'
+    '''
+
+    params = []
+    if station_id is not None:
+        query += ' AND v.station_id = ?'
+        params.append(station_id)
+
+    query += '''
         GROUP BY v.id
         HAVING last_inspection IS NULL OR last_inspection < ?
         ORDER BY v.vehicle_code
-    ''', (six_days_ago.isoformat(),))
+    '''
+
+    params.append(six_days_ago.isoformat())
+    cursor.execute(query, params)
 
     vehicles = []
     for row in cursor.fetchall():
@@ -659,7 +675,8 @@ def get_vehicles_needing_inspection():
             'name': row[2],
             'type': row[3],
             'status': row[4],
-            'last_inspection': row[5]
+            'last_inspection': row[5],
+            'station_id': row[6]
         })
 
     conn.close()

@@ -235,8 +235,8 @@
 
             <!-- Inspector Selection -->
             <div class="inspector-section">
-                <label for="inspector_number">Your Firefighter Number (Optional):</label>
-                <select name="inspector_number" id="inspector_number">
+                <label for="inspector_number">Your Firefighter Number (Required):</label>
+                <select name="inspector_number" id="inspector_number" required>
                     <option value="">Select Inspector</option>
                     {% for ff in firefighters %}
                     <option value="{{ ff.fireman_number }}">{{ ff.full_name }} (#{{ ff.fireman_number }})</option>

@@ -1502,8 +1502,19 @@ def get_firefighter_logs(fireman_number):
 @app.route('/inspections')
 def inspections_menu():
     """Vehicle inspections menu - select a vehicle"""
-    vehicles = db_helpers.get_vehicles_needing_inspection()
-    return render_template('inspections_menu.html', vehicles=vehicles)
+    # Get optional station filter from query parameters
+    station_id = request.args.get('station', type=int)
+
+    # Get vehicles (filtered by station if specified)
+    vehicles = db_helpers.get_vehicles_needing_inspection(station_id=station_id)
+
+    # Get all stations for the filter dropdown
+    stations = db_helpers.get_all_stations()
+
+    return render_template('inspections_menu.html',
+                         vehicles=vehicles,
+                         stations=stations,
+                         selected_station=station_id)
 
 @app.route('/inspect/<int:vehicle_id>')
 def inspect_vehicle(vehicle_id):
@@ -1531,12 +1542,19 @@ def submit_inspection():
         inspector_number = request.form.get('inspector_number', '')
         additional_notes = request.form.get('additional_notes', '')
 
-        # Get inspector ID
-        inspector = None
-        if inspector_number:
-            inspector = db_helpers.get_firefighter_by_number(inspector_number)
+        # Validate that inspector number is provided
+        if not inspector_number:
+            flash('Please select your firefighter number before submitting.')
+            return redirect(url_for('inspect_vehicle', vehicle_id=vehicle_id))
 
-        inspector_id = inspector['id'] if inspector else None
+        # Get inspector ID
+        inspector = db_helpers.get_firefighter_by_number(inspector_number)
+
+        if not inspector:
+            flash('Invalid firefighter number selected.')
+            return redirect(url_for('inspect_vehicle', vehicle_id=vehicle_id))
+
+        inspector_id = inspector['id']
 
         # Collect inspection results
         inspection_results = []
