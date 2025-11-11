@@ -687,30 +687,61 @@ def get_vehicle_by_id(vehicle_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
-        SELECT id, vehicle_code, name, vehicle_type, status,
-               oil_type, antifreeze_type, brake_fluid_type,
-               power_steering_fluid_type, transmission_fluid_type
-        FROM vehicles
-        WHERE id = ?
-    ''', (vehicle_id,))
+    # Try to get all columns including fluid specs
+    try:
+        cursor.execute('''
+            SELECT id, vehicle_code, name, vehicle_type, status,
+                   oil_type, antifreeze_type, brake_fluid_type,
+                   power_steering_fluid_type, transmission_fluid_type
+            FROM vehicles
+            WHERE id = ?
+        ''', (vehicle_id,))
 
-    row = cursor.fetchone()
-    conn.close()
+        row = cursor.fetchone()
+        conn.close()
 
-    if row:
-        return {
-            'id': row[0],
-            'code': row[1],
-            'name': row[2],
-            'type': row[3],
-            'status': row[4],
-            'oil_type': row[5] or '',
-            'antifreeze_type': row[6] or '',
-            'brake_fluid_type': row[7] or '',
-            'power_steering_fluid_type': row[8] or '',
-            'transmission_fluid_type': row[9] or ''
-        }
+        if row:
+            return {
+                'id': row[0],
+                'code': row[1],
+                'name': row[2],
+                'type': row[3],
+                'status': row[4],
+                'oil_type': row[5] or '',
+                'antifreeze_type': row[6] or '',
+                'brake_fluid_type': row[7] or '',
+                'power_steering_fluid_type': row[8] or '',
+                'transmission_fluid_type': row[9] or ''
+            }
+    except Exception as e:
+        # Fallback if fluid columns don't exist yet (for backwards compatibility)
+        conn.close()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, vehicle_code, name, vehicle_type, status
+            FROM vehicles
+            WHERE id = ?
+        ''', (vehicle_id,))
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            return {
+                'id': row[0],
+                'code': row[1],
+                'name': row[2],
+                'type': row[3],
+                'status': row[4],
+                'oil_type': '',
+                'antifreeze_type': '',
+                'brake_fluid_type': '',
+                'power_steering_fluid_type': '',
+                'transmission_fluid_type': ''
+            }
+
     return None
 
 # ========== INSPECTION FUNCTIONS ==========
