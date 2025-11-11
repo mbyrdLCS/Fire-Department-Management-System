@@ -171,6 +171,85 @@
             margin-top: 8px;
         }
 
+        .station-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #1976D2;
+        }
+
+        .btn-delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #d32f2f;
+        }
+
+        .edit-form {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+
+        .edit-form.active {
+            display: block;
+        }
+
+        .edit-form input, .edit-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .edit-form-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-save, .btn-cancel {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-save {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #999;
+            color: white;
+        }
+
         .flash-message {
             background: #4CAF50;
             color: white;
@@ -249,7 +328,7 @@
             {% if stations %}
             <div class="stations-grid">
                 {% for station in stations %}
-                <div class="station-card {% if station.is_primary %}primary{% endif %}">
+                <div class="station-card {% if station.is_primary %}primary{% endif %}" id="station-{{ station.id }}">
                     <div class="station-name">{{ station.name }}</div>
                     {% if station.address %}
                     <div class="station-address">📍 {{ station.address }}</div>
@@ -260,6 +339,37 @@
                     {% if station.is_primary %}
                     <span class="station-badge">⭐ Primary Station</span>
                     {% endif %}
+
+                    <div class="station-actions">
+                        <button class="btn-edit" onclick="toggleEditForm({{ station.id }})">✏️ Edit</button>
+                        <form method="POST" action="{{ url_for('delete_station', station_id=station.id) }}" style="display: inline;" onsubmit="return confirm('Delete {{ station.name }}? This cannot be undone.');">
+                            <button type="submit" class="btn-delete">🗑️ Delete</button>
+                        </form>
+                    </div>
+
+                    <!-- Edit Form (hidden by default) -->
+                    <div class="edit-form" id="edit-form-{{ station.id }}">
+                        <form method="POST" action="{{ url_for('update_station', station_id=station.id) }}">
+                            <label>Station Name:</label>
+                            <input type="text" name="name" value="{{ station.name }}" required>
+
+                            <label>Address:</label>
+                            <input type="text" name="address" value="{{ station.address or '' }}">
+
+                            <label>Notes:</label>
+                            <textarea name="notes" rows="2">{{ station.notes or '' }}</textarea>
+
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <input type="checkbox" name="is_primary" {% if station.is_primary %}checked{% endif %}>
+                                <span>Mark as Primary Station</span>
+                            </label>
+
+                            <div class="edit-form-actions">
+                                <button type="submit" class="btn-save">💾 Save Changes</button>
+                                <button type="button" class="btn-cancel" onclick="toggleEditForm({{ station.id }})">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -268,5 +378,12 @@
             {% endif %}
         </div>
     </div>
+
+    <script>
+        function toggleEditForm(stationId) {
+            const editForm = document.getElementById('edit-form-' + stationId);
+            editForm.classList.toggle('active');
+        }
+    </script>
 </body>
 </html>

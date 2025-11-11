@@ -2302,6 +2302,58 @@ def create_station():
         flash('An error occurred while creating the station.')
         return redirect(url_for('manage_stations'))
 
+@app.route('/admin/station/update/<int:station_id>', methods=['POST'])
+def update_station(station_id):
+    """Update an existing fire station"""
+    try:
+        name = request.form['name']
+        address = request.form.get('address', '')
+        is_primary = request.form.get('is_primary') == 'on'
+        notes = request.form.get('notes', '')
+
+        success = db_helpers.update_station(
+            station_id=station_id,
+            name=name,
+            address=address,
+            is_primary=is_primary,
+            notes=notes
+        )
+
+        if success:
+            flash(f'Station "{name}" updated successfully!')
+            logger.info(f"Station updated: {name} (ID: {station_id})")
+        else:
+            flash('Error updating station.')
+
+        return redirect(url_for('manage_stations'))
+
+    except Exception as e:
+        logger.error(f"Update station error: {str(e)}")
+        flash('An error occurred while updating the station.')
+        return redirect(url_for('manage_stations'))
+
+@app.route('/admin/station/delete/<int:station_id>', methods=['POST'])
+def delete_station(station_id):
+    """Delete a fire station"""
+    try:
+        station = db_helpers.get_station_by_id(station_id)
+        if station:
+            success = db_helpers.delete_station(station_id)
+            if success:
+                flash(f'Station "{station["name"]}" deleted successfully!')
+                logger.info(f"Station deleted: {station['name']} (ID: {station_id})")
+            else:
+                flash('Error deleting station.')
+        else:
+            flash('Station not found.')
+
+        return redirect(url_for('manage_stations'))
+
+    except Exception as e:
+        logger.error(f"Delete station error: {str(e)}")
+        flash('An error occurred while deleting the station.')
+        return redirect(url_for('manage_stations'))
+
 # ========== INSPECTION CHECKLIST MANAGEMENT ROUTES ==========
 
 @app.route('/admin/checklist-items')

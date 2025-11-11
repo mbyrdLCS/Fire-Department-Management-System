@@ -1305,6 +1305,43 @@ def create_station(name, address='', is_primary=False, notes=''):
         conn.close()
         return False, str(e)
 
+def update_station(station_id, name, address='', is_primary=False, notes=''):
+    """Update an existing fire station"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            UPDATE stations
+            SET name = ?, address = ?, is_primary = ?, notes = ?
+            WHERE id = ?
+        ''', (name, address, is_primary, notes, station_id))
+
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print(f"Error updating station: {e}")
+        return False
+
+def delete_station(station_id):
+    """Delete a fire station"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM stations WHERE id = ?', (station_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print(f"Error deleting station: {e}")
+        return False
+
 # Inventory Item Functions
 def get_all_inventory_items():
     """Get all inventory items from master catalog"""
