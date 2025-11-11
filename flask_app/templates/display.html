@@ -840,11 +840,12 @@
 
         // Check localStorage and show/hide inventory QR
         function updateInventoryQRVisibility() {
-            const showInventoryQR = localStorage.getItem('showInventoryQR') === 'true';
+            const showInventoryQR = localStorage.getItem('showInventoryQR');
             const qrInventory = document.getElementById('qrInventory');
 
             if (qrInventory) {
-                if (showInventoryQR) {
+                // Default to visible if never set, otherwise respect the toggle
+                if (showInventoryQR === null || showInventoryQR === 'true') {
                     qrInventory.classList.remove('hidden');
                 } else {
                     qrInventory.classList.add('hidden');
