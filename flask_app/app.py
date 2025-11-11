@@ -723,7 +723,9 @@ def export_inspections():
 
     except Exception as e:
         logger.error(f"Inspection export error: {str(e)}")
-        flash('An error occurred during inspection export.')
+        import traceback
+        logger.error(traceback.format_exc())
+        flash(f'An error occurred during inspection export: {str(e)}')
         return redirect(url_for('admin_panel'))
 
 @app.route('/export_data_pdf')
@@ -2464,6 +2466,55 @@ def toggle_display_setting():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ========== BACKUP ROUTES ==========
+
+@app.route('/admin/env-check')
+def env_check():
+    """Diagnostic route to check environment variables (admin only)"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    import sys
+    env_info = {
+        'DROPBOX_APP_KEY': '✓ Set' if os.getenv('DROPBOX_APP_KEY') else '✗ Missing',
+        'DROPBOX_APP_SECRET': '✓ Set' if os.getenv('DROPBOX_APP_SECRET') else '✗ Missing',
+        'DROPBOX_REFRESH_TOKEN': '✓ Set' if os.getenv('DROPBOX_REFRESH_TOKEN') else '✗ Missing',
+        'FLASK_SECRET_KEY': '✓ Set' if os.getenv('FLASK_SECRET_KEY') else '✗ Missing',
+        'Python Path': sys.path,
+        'Current Working Dir': os.getcwd(),
+        'File Location': __file__,
+        'Dropbox SDK Available': db_helpers.DROPBOX_AVAILABLE,
+    }
+
+    # Check which .env files exist
+    env_files = []
+    test_paths = [
+        os.path.join(os.path.dirname(__file__), '..', '.env'),
+        os.path.join(os.path.dirname(__file__), '.env'),
+        '/home/michealhelps/Fire-Department-Management-System/.env',
+    ]
+    for path in test_paths:
+        exists = os.path.exists(path)
+        env_files.append(f"{path}: {'✓ EXISTS' if exists else '✗ NOT FOUND'}")
+
+    env_info['.env file checks'] = env_files
+
+    # Format as HTML
+    html = "<html><head><title>Environment Check</title></head><body>"
+    html += "<h1>Environment Variables Check</h1>"
+    html += "<pre>"
+    for key, value in env_info.items():
+        if isinstance(value, list):
+            html += f"\n{key}:\n"
+            for item in value:
+                html += f"  {item}\n"
+        else:
+            html += f"{key}: {value}\n"
+    html += "</pre>"
+    html += '<p><a href="/admin/backups">Back to Backup Management</a></p>'
+    html += "</body></html>"
+
+    return html
 
 @app.route('/admin/backups')
 def backup_management():
