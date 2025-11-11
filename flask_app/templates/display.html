@@ -855,11 +855,15 @@
 
         // Check localStorage and show/hide maintenance QR
         function updateMaintenanceQRVisibility() {
-            const showMaintenanceQR = localStorage.getItem('showMaintenanceQR') === 'true';
+            const showMaintenanceQR = localStorage.getItem('showMaintenanceQR');
             const qrMaintenance = document.getElementById('qrMaintenance');
 
             if (qrMaintenance) {
-                if (showMaintenanceQR) {
+                // Auto-show if there are failed inspections (maintenance needed)
+                const hasFailedInspections = {{ alerts.inspections_failed|length }} > 0;
+
+                // Default to visible if never set OR if there are maintenance alerts, otherwise respect the toggle
+                if (showMaintenanceQR === null || showMaintenanceQR === 'true' || hasFailedInspections) {
                     qrMaintenance.classList.remove('hidden');
                 } else {
                     qrMaintenance.classList.add('hidden');
