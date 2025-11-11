@@ -612,94 +612,44 @@ def get_all_vehicles():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Try to get all columns including fluid specs
-    try:
-        cursor.execute('''
-            SELECT id, vehicle_code, name, vehicle_type, station_id, year, make, model,
-                   vin, license_plate, purchase_date, purchase_cost, current_value,
-                   status, notes,
-                   oil_type, antifreeze_type, brake_fluid_type,
-                   power_steering_fluid_type, transmission_fluid_type
-            FROM vehicles
-            WHERE status = 'active'
-            ORDER BY vehicle_code
-        ''')
+    cursor.execute('''
+        SELECT id, vehicle_code, name, vehicle_type, station_id, year, make, model,
+               vin, license_plate, purchase_date, purchase_cost, current_value,
+               status, notes,
+               oil_type, antifreeze_type, brake_fluid_type,
+               power_steering_fluid_type, transmission_fluid_type
+        FROM vehicles
+        WHERE status = 'active'
+        ORDER BY vehicle_code
+    ''')
 
-        vehicles = []
-        for row in cursor.fetchall():
-            vehicles.append({
-                'id': row[0],
-                'vehicle_code': row[1],
-                'name': row[2],
-                'vehicle_type': row[3],
-                'station_id': row[4],
-                'year': row[5],
-                'make': row[6],
-                'model': row[7],
-                'vin': row[8],
-                'license_plate': row[9],
-                'purchase_date': row[10],
-                'purchase_cost': row[11],
-                'current_value': row[12],
-                'status': row[13],
-                'notes': row[14],
-                'oil_type': row[15] if row[15] else '',
-                'antifreeze_type': row[16] if row[16] else '',
-                'brake_fluid_type': row[17] if row[17] else '',
-                'power_steering_fluid_type': row[18] if row[18] else '',
-                'transmission_fluid_type': row[19] if row[19] else ''
-            })
+    vehicles = []
+    for row in cursor.fetchall():
+        vehicles.append({
+            'id': row[0],
+            'vehicle_code': row[1],
+            'name': row[2],
+            'vehicle_type': row[3],
+            'station_id': row[4],
+            'year': row[5],
+            'make': row[6],
+            'model': row[7],
+            'vin': row[8],
+            'license_plate': row[9],
+            'purchase_date': row[10],
+            'purchase_cost': row[11],
+            'current_value': row[12],
+            'status': row[13],
+            'notes': row[14],
+            'oil_type': row[15] if row[15] else '',
+            'antifreeze_type': row[16] if row[16] else '',
+            'brake_fluid_type': row[17] if row[17] else '',
+            'power_steering_fluid_type': row[18] if row[18] else '',
+            'transmission_fluid_type': row[19] if row[19] else ''
+        })
 
-        conn.close()
-        return vehicles
-
-    except Exception as e:
-        # Fallback if fluid columns don't exist yet (for backwards compatibility)
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"get_all_vehicles() exception (using fallback without fluids): {str(e)}")
-        logger.error(f"Exception type: {type(e).__name__}")
-
-        conn.close()
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            SELECT id, vehicle_code, name, vehicle_type, station_id, year, make, model,
-                   vin, license_plate, purchase_date, purchase_cost, current_value,
-                   status, notes
-            FROM vehicles
-            WHERE status = 'active'
-            ORDER BY vehicle_code
-        ''')
-
-        vehicles = []
-        for row in cursor.fetchall():
-            vehicles.append({
-                'id': row[0],
-                'vehicle_code': row[1],
-                'name': row[2],
-                'vehicle_type': row[3],
-                'station_id': row[4],
-                'year': row[5],
-                'make': row[6],
-                'model': row[7],
-                'vin': row[8],
-                'license_plate': row[9],
-                'purchase_date': row[10],
-                'purchase_cost': row[11],
-                'current_value': row[12],
-                'status': row[13],
-                'notes': row[14],
-                'oil_type': '',
-                'antifreeze_type': '',
-                'brake_fluid_type': '',
-                'power_steering_fluid_type': '',
-                'transmission_fluid_type': ''
-            })
-
-        conn.close()
-        return vehicles
+    conn.close()
+    return vehicles
 
 def get_vehicles_needing_inspection(station_id=None):
     """Get vehicles that need inspection (not inspected in last 6 days)
