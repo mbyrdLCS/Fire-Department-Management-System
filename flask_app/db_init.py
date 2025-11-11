@@ -16,10 +16,12 @@ def get_db_connection():
     """Create and return a database connection"""
     # Ensure database directory exists
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
-    conn = sqlite3.connect(DATABASE_PATH)
+    conn = sqlite3.connect(DATABASE_PATH, isolation_level=None)  # Auto-commit mode
     conn.row_factory = sqlite3.Row
     # Enable foreign keys
     conn.execute('PRAGMA foreign_keys = ON')
+    # Disable WAL mode to prevent caching issues
+    conn.execute('PRAGMA journal_mode = DELETE')
     return conn
 
 def init_database():
