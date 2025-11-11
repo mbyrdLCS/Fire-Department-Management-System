@@ -457,7 +457,7 @@
             <div class="clock" id="clock"></div>
 
             <!-- Inventory QR - LEFT top, controlled by alerts page toggle -->
-            <div class="qr-corner-left hidden" id="qrInventory">
+            <div class="qr-corner-left {% if display_settings.get('show_inventory_qr') != 'true' %}hidden{% endif %}" id="qrInventory">
                 <div class="qr-code" id="qr-inventory"></div>
                 <div class="qr-corner-label">📦 Inventory</div>
             </div>
@@ -472,7 +472,8 @@
         </div>
 
         <!-- Maintenance QR - BOTTOM LEFT of entire page, controlled by alerts page toggle -->
-        <div class="qr-corner-left-bottom hidden" id="qrMaintenance">
+        {% set show_maintenance = display_settings.get('show_maintenance_qr') == 'true' or alerts.inspections_failed|length > 0 %}
+        <div class="qr-corner-left-bottom {% if not show_maintenance %}hidden{% endif %}" id="qrMaintenance">
             <div class="qr-code" id="qr-maintenance"></div>
             <div class="qr-corner-label">🔧 Maintenance</div>
         </div>
@@ -838,41 +839,8 @@
             }
         }
 
-        // Check localStorage and show/hide inventory QR
-        function updateInventoryQRVisibility() {
-            const showInventoryQR = localStorage.getItem('showInventoryQR');
-            const qrInventory = document.getElementById('qrInventory');
-
-            if (qrInventory) {
-                // If user has explicitly set it (not null), respect that choice
-                // Otherwise default to visible
-                if (showInventoryQR === 'false') {
-                    qrInventory.classList.add('hidden');
-                } else {
-                    qrInventory.classList.remove('hidden');
-                }
-            }
-        }
-
-        // Check localStorage and show/hide maintenance QR
-        function updateMaintenanceQRVisibility() {
-            const showMaintenanceQR = localStorage.getItem('showMaintenanceQR');
-            const qrMaintenance = document.getElementById('qrMaintenance');
-
-            if (qrMaintenance) {
-                // If user has explicitly turned it OFF, respect that choice
-                // Otherwise show it (default visible, or if there are maintenance alerts)
-                if (showMaintenanceQR === 'false') {
-                    qrMaintenance.classList.add('hidden');
-                } else {
-                    // Auto-show if there are failed inspections (maintenance needed) OR default visible
-                    const hasFailedInspections = {{ alerts.inspections_failed|length }} > 0;
-                    if (showMaintenanceQR === 'true' || showMaintenanceQR === null || hasFailedInspections) {
-                        qrMaintenance.classList.remove('hidden');
-                    }
-                }
-            }
-        }
+        // QR visibility is now controlled server-side via database settings
+        // No need for localStorage - settings apply to ALL displays including SignPresenter
 
         // Initialize
         updateClock();
@@ -891,10 +859,8 @@
             setInterval(rotateActivity, 8000); // Rotate activity feed every 8 seconds
         }
 
-        // Generate QR codes and update visibility after page load
+        // Generate QR codes after page load
         window.addEventListener('load', function() {
-            updateInventoryQRVisibility();
-            updateMaintenanceQRVisibility();
             generateQRCode();
         });
 

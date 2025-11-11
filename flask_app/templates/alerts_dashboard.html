@@ -640,55 +640,95 @@
     </div>
 
     <script>
-        // Toggle inventory QR on display page
+        // Toggle inventory QR on display page (server-side via API)
         function toggleInventoryQR() {
             const toggle = document.getElementById('inventoryQrToggle');
             const status = document.getElementById('inventoryQrStatus');
 
-            // Get current state
-            const currentState = localStorage.getItem('showInventoryQR') === 'true';
+            // Get current state from toggle UI
+            const currentState = toggle.classList.contains('active');
             const newState = !currentState;
 
-            // Save new state
-            localStorage.setItem('showInventoryQR', newState);
-
-            // Update UI
-            if (newState) {
-                toggle.classList.add('active');
-                status.textContent = 'Currently visible on display';
-            } else {
-                toggle.classList.remove('active');
-                status.textContent = 'Currently hidden on display';
-            }
+            // Save to database via API
+            fetch('/api/display-settings/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    setting_key: 'show_inventory_qr',
+                    value: newState ? 'true' : 'false'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI
+                    if (newState) {
+                        toggle.classList.add('active');
+                        status.textContent = 'Currently visible on display';
+                    } else {
+                        toggle.classList.remove('active');
+                        status.textContent = 'Currently hidden on display';
+                    }
+                } else {
+                    alert('Failed to update setting: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update setting');
+            });
         }
 
         function toggleMaintenanceQR() {
             const toggle = document.getElementById('maintenanceQrToggle');
             const status = document.getElementById('maintenanceQrStatus');
 
-            // Get current state
-            const currentState = localStorage.getItem('showMaintenanceQR') === 'true';
+            // Get current state from toggle UI
+            const currentState = toggle.classList.contains('active');
             const newState = !currentState;
 
-            // Save new state
-            localStorage.setItem('showMaintenanceQR', newState);
-
-            // Update UI
-            if (newState) {
-                toggle.classList.add('active');
-                status.textContent = 'Currently visible on display';
-            } else {
-                toggle.classList.remove('active');
-                status.textContent = 'Currently hidden on display';
-            }
+            // Save to database via API
+            fetch('/api/display-settings/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    setting_key: 'show_maintenance_qr',
+                    value: newState ? 'true' : 'false'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI
+                    if (newState) {
+                        toggle.classList.add('active');
+                        status.textContent = 'Currently visible on display';
+                    } else {
+                        toggle.classList.remove('active');
+                        status.textContent = 'Currently hidden on display';
+                    }
+                } else {
+                    alert('Failed to update setting: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update setting');
+            });
         }
 
-        // Initialize toggle state on page load
+        // Initialize toggle state on page load from server-side settings
         function initializeToggle() {
+            const displaySettings = {{ display_settings | tojson }};
+
             // Initialize Inventory QR toggle
             const inventoryToggle = document.getElementById('inventoryQrToggle');
             const inventoryStatus = document.getElementById('inventoryQrStatus');
-            const showInventoryQR = localStorage.getItem('showInventoryQR') === 'true';
+            const showInventoryQR = displaySettings.show_inventory_qr === 'true';
 
             if (showInventoryQR) {
                 inventoryToggle.classList.add('active');
@@ -700,7 +740,7 @@
             // Initialize Maintenance QR toggle
             const maintenanceToggle = document.getElementById('maintenanceQrToggle');
             const maintenanceStatus = document.getElementById('maintenanceQrStatus');
-            const showMaintenanceQR = localStorage.getItem('showMaintenanceQR') === 'true';
+            const showMaintenanceQR = displaySettings.show_maintenance_qr === 'true';
 
             if (showMaintenanceQR) {
                 maintenanceToggle.classList.add('active');

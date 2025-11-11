@@ -2365,3 +2365,73 @@ def get_inventory_value_report():
         'vehicle_total': round(vehicle_total, 2),
         'grand_total': round(station_total + vehicle_total, 2)
     }
+
+# ========== DISPLAY SETTINGS FUNCTIONS ==========
+
+def get_display_setting(setting_key, default_value='true'):
+    """Get a display setting value from database"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            SELECT setting_value
+            FROM display_settings
+            WHERE setting_key = ?
+        ''', (setting_key,))
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            return row[0]
+        return default_value
+    except:
+        # Table might not exist yet
+        conn.close()
+        return default_value
+
+def update_display_setting(setting_key, setting_value):
+    """Update a display setting value in database"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO display_settings (setting_key, setting_value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(setting_key)
+            DO UPDATE SET setting_value = ?, updated_at = CURRENT_TIMESTAMP
+        ''', (setting_key, setting_value, setting_value))
+
+        conn.close()
+        return True
+    except Exception as e:
+        conn.close()
+        print(f"Error updating display setting: {e}")
+        return False
+
+def get_all_display_settings():
+    """Get all display settings"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            SELECT setting_key, setting_value
+            FROM display_settings
+        ''')
+
+        settings = {}
+        for row in cursor.fetchall():
+            settings[row[0]] = row[1]
+
+        conn.close()
+        return settings
+    except:
+        # Table might not exist yet
+        conn.close()
+        return {
+            'show_inventory_qr': 'true',
+            'show_maintenance_qr': 'true'
+        }

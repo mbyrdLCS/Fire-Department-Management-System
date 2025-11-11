@@ -1470,6 +1470,9 @@ def display():
         # Get base URL for QR codes
         base_url = request.url_root.rstrip('/')
 
+        # Get display settings from database (server-side, not localStorage)
+        display_settings = db_helpers.get_all_display_settings()
+
         logger.info("Display page loaded successfully")
         response = make_response(render_template('display.html',
                              active_firefighters=active_firefighters,
@@ -1477,7 +1480,8 @@ def display():
                              vehicles_needing_inspection=vehicles_needing_inspection,
                              alerts=alerts,
                              recent_activity=recent_activity,
-                             base_url=base_url))
+                             base_url=base_url,
+                             display_settings=display_settings))
 
         # Allow this page to be embedded in iframes (for SignPresenter)
         # Remove X-Frame-Options entirely to allow embedding
@@ -2377,7 +2381,33 @@ def dashboard():
 def alerts_dashboard():
     """Alerts dashboard showing all warnings and notifications"""
     alerts = db_helpers.get_all_alerts()
-    return render_template('alerts_dashboard.html', alerts=alerts)
+    display_settings = db_helpers.get_all_display_settings()
+    return render_template('alerts_dashboard.html', alerts=alerts, display_settings=display_settings)
+
+@app.route('/api/display-settings/toggle', methods=['POST'])
+def toggle_display_setting():
+    """API endpoint to toggle display settings (inventory/maintenance QR codes)"""
+    try:
+        data = request.get_json()
+        setting_key = data.get('setting_key')
+        new_value = data.get('value')
+
+        if setting_key not in ['show_inventory_qr', 'show_maintenance_qr']:
+            return jsonify({'success': False, 'error': 'Invalid setting key'}), 400
+
+        if new_value not in ['true', 'false']:
+            return jsonify({'success': False, 'error': 'Invalid value'}), 400
+
+        success = db_helpers.update_display_setting(setting_key, new_value)
+
+        if success:
+            return jsonify({'success': True, 'setting_key': setting_key, 'value': new_value})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to update setting'}), 500
+
+    except Exception as e:
+        logger.error(f"Error toggling display setting: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ========== REPORTS ROUTES ==========
 
