@@ -254,6 +254,42 @@
     </div>
 
     <div class="container">
+        <!-- Fluid Specifications Banner -->
+        {% if vehicle.oil_type or vehicle.antifreeze_type or vehicle.brake_fluid_type or vehicle.power_steering_fluid_type or vehicle.transmission_fluid_type %}
+        <div style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h2 style="margin: 0 0 15px 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                🛢️ Required Fluids for this Vehicle
+            </h2>
+            <div style="display: grid; gap: 10px; font-size: 16px;">
+                {% if vehicle.oil_type %}
+                <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; font-weight: 600;">
+                    <strong style="color: #FFEB3B;">⚙️ Engine Oil:</strong> {{ vehicle.oil_type }}
+                </div>
+                {% endif %}
+                {% if vehicle.antifreeze_type %}
+                <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; font-weight: 600;">
+                    <strong style="color: #4CAF50;">❄️ Antifreeze/Coolant:</strong> {{ vehicle.antifreeze_type }}
+                </div>
+                {% endif %}
+                {% if vehicle.brake_fluid_type %}
+                <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; font-weight: 600;">
+                    <strong style="color: #F44336;">🛑 Brake Fluid:</strong> {{ vehicle.brake_fluid_type }}
+                </div>
+                {% endif %}
+                {% if vehicle.power_steering_fluid_type %}
+                <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; font-weight: 600;">
+                    <strong style="color: #9C27B0;">🔄 Power Steering Fluid:</strong> {{ vehicle.power_steering_fluid_type }}
+                </div>
+                {% endif %}
+                {% if vehicle.transmission_fluid_type %}
+                <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; font-weight: 600;">
+                    <strong style="color: #FF9800;">⚡ Transmission Fluid:</strong> {{ vehicle.transmission_fluid_type }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <form method="POST" action="{{ url_for('submit_inspection') }}" id="inspectionForm">
             <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
 

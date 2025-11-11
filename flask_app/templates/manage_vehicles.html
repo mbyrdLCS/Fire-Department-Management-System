@@ -319,6 +319,32 @@
                         <label for="notes">Notes:</label>
                         <textarea name="notes" id="notes" rows="3" placeholder="Additional notes..."></textarea>
                     </div>
+
+                    <!-- Fluid Specifications Section -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <h3 style="margin: 20px 0 10px 0; color: #1a237e; border-bottom: 2px solid #1976d2; padding-bottom: 5px;">🛢️ Fluid Specifications</h3>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Specify the correct fluids for this vehicle. This information will be displayed during inspections.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="oil_type">Engine Oil Type:</label>
+                        <input type="text" name="oil_type" id="oil_type" placeholder="e.g., 10W-30, 5W-20, 15W-40">
+                    </div>
+                    <div class="form-group">
+                        <label for="antifreeze_type">Antifreeze/Coolant Type:</label>
+                        <input type="text" name="antifreeze_type" id="antifreeze_type" placeholder="e.g., Dex-Cool, Universal Green">
+                    </div>
+                    <div class="form-group">
+                        <label for="brake_fluid_type">Brake Fluid Type:</label>
+                        <input type="text" name="brake_fluid_type" id="brake_fluid_type" placeholder="e.g., DOT 3, DOT 4, DOT 5.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="power_steering_fluid_type">Power Steering Fluid Type:</label>
+                        <input type="text" name="power_steering_fluid_type" id="power_steering_fluid_type" placeholder="e.g., ATF, CHF 11S, OEM Spec">
+                    </div>
+                    <div class="form-group">
+                        <label for="transmission_fluid_type">Transmission Fluid Type:</label>
+                        <input type="text" name="transmission_fluid_type" id="transmission_fluid_type" placeholder="e.g., Dexron III, Mercon V, ATF+4">
+                    </div>
                 </div>
                 <button type="submit" class="btn-submit">Add Vehicle</button>
             </form>
@@ -443,6 +469,31 @@
                                                     <option value="inactive" {% if vehicle.status == 'inactive' %}selected{% endif %}>Inactive</option>
                                                     <option value="out_of_service" {% if vehicle.status == 'out_of_service' %}selected{% endif %}>Out of Service</option>
                                                 </select>
+                                            </div>
+
+                                            <!-- Fluid Specifications Section -->
+                                            <div class="form-group" style="grid-column: 1 / -1;">
+                                                <h4 style="margin: 15px 0 10px 0; color: #1a237e; border-bottom: 2px solid #1976d2; padding-bottom: 5px;">🛢️ Fluid Specifications</h4>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Engine Oil Type:</label>
+                                                <input type="text" name="oil_type" value="{{ vehicle.oil_type or '' }}" placeholder="e.g., 10W-30">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Antifreeze/Coolant Type:</label>
+                                                <input type="text" name="antifreeze_type" value="{{ vehicle.antifreeze_type or '' }}" placeholder="e.g., Dex-Cool">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Brake Fluid Type:</label>
+                                                <input type="text" name="brake_fluid_type" value="{{ vehicle.brake_fluid_type or '' }}" placeholder="e.g., DOT 3">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Power Steering Fluid:</label>
+                                                <input type="text" name="power_steering_fluid_type" value="{{ vehicle.power_steering_fluid_type or '' }}" placeholder="e.g., ATF">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Transmission Fluid:</label>
+                                                <input type="text" name="transmission_fluid_type" value="{{ vehicle.transmission_fluid_type or '' }}" placeholder="e.g., Dexron III">
                                             </div>
                                         </div>
                                         <div style="display: flex; gap: 10px; margin-top: 15px;">

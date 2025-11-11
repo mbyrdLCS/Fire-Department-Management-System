@@ -103,6 +103,11 @@ def init_database():
         current_value REAL,
         status TEXT DEFAULT 'active',
         notes TEXT,
+        oil_type TEXT,
+        antifreeze_type TEXT,
+        brake_fluid_type TEXT,
+        power_steering_fluid_type TEXT,
+        transmission_fluid_type TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (station_id) REFERENCES stations(id)

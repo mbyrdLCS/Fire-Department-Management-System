@@ -1986,6 +1986,13 @@ def create_vehicle():
         current_value = request.form.get('current_value', '')
         notes = request.form.get('notes', '')
 
+        # Fluid specifications
+        oil_type = request.form.get('oil_type', '')
+        antifreeze_type = request.form.get('antifreeze_type', '')
+        brake_fluid_type = request.form.get('brake_fluid_type', '')
+        power_steering_fluid_type = request.form.get('power_steering_fluid_type', '')
+        transmission_fluid_type = request.form.get('transmission_fluid_type', '')
+
         # Convert empty strings to None for optional fields
         station_id = int(station_id) if station_id else None
         year = int(year) if year else None
@@ -2004,7 +2011,12 @@ def create_vehicle():
             license_plate=license_plate,
             purchase_cost=purchase_cost,
             current_value=current_value,
-            notes=notes
+            notes=notes,
+            oil_type=oil_type,
+            antifreeze_type=antifreeze_type,
+            brake_fluid_type=brake_fluid_type,
+            power_steering_fluid_type=power_steering_fluid_type,
+            transmission_fluid_type=transmission_fluid_type
         )
 
         if success:
@@ -2042,6 +2054,13 @@ def update_vehicle(vehicle_id):
         notes = request.form.get('notes', '')
         status = request.form.get('status', 'active')
 
+        # Fluid specifications
+        oil_type = request.form.get('oil_type', '')
+        antifreeze_type = request.form.get('antifreeze_type', '')
+        brake_fluid_type = request.form.get('brake_fluid_type', '')
+        power_steering_fluid_type = request.form.get('power_steering_fluid_type', '')
+        transmission_fluid_type = request.form.get('transmission_fluid_type', '')
+
         # Convert empty strings to None for optional fields
         station_id = int(station_id) if station_id else None
         year = int(year) if year else None
@@ -2062,7 +2081,12 @@ def update_vehicle(vehicle_id):
             purchase_cost=purchase_cost,
             current_value=current_value,
             notes=notes,
-            status=status
+            status=status,
+            oil_type=oil_type,
+            antifreeze_type=antifreeze_type,
+            brake_fluid_type=brake_fluid_type,
+            power_steering_fluid_type=power_steering_fluid_type,
+            transmission_fluid_type=transmission_fluid_type
         )
 
         if success:
