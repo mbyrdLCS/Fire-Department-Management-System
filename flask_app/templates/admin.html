@@ -121,10 +121,11 @@
         <div style="background: rgba(255,255,255,0.9); padding: 25px; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             <h2 style="color: #333; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: 600;">📋 Management & Tools</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                <a href="{{ url_for('dashboard') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
+                <a href="{{ url_for('dashboard') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
                     <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                    <div style="font-weight: 600; font-size: 16px;">Dashboard</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Statistics & analytics</div>
+                    <div style="font-weight: 600; font-size: 16px;">Dashboard & Reports</div>
+                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Statistics, analytics & exports</div>
+                    <a href="{{ url_for('reports_menu') }}" onclick="event.stopPropagation();" style="position: absolute; bottom: 8px; right: 8px; background: rgba(255,255,255,0.2); color: white; padding: 5px 12px; border-radius: 6px; font-size: 11px; text-decoration: none; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">📄 Reports</a>
                 </a>
                 <a href="{{ url_for('inspections_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
                     <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
@@ -145,11 +146,6 @@
                     <div style="font-size: 32px; margin-bottom: 10px;">📦</div>
                     <div style="font-weight: 600; font-size: 16px;">Inventory</div>
                     <div style="font-size: 13px; color: #666; margin-top: 5px;">Equipment & supplies</div>
-                </a>
-                <a href="{{ url_for('reports_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                    <div style="font-weight: 600; font-size: 16px;">Reports</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Generate & export reports</div>
                 </a>
                 <a href="{{ url_for('alerts_dashboard') }}" style="display: block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
                     <div style="font-size: 32px; margin-bottom: 10px;">🚨</div>
