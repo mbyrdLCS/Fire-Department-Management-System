@@ -486,6 +486,46 @@
             </div>
         </div>
 
+        <!-- Reports Section -->
+        <div class="chart-card" style="margin-bottom: 30px;">
+            <div class="chart-title">
+                <span>📊</span>
+                <span>Reports & Exports</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <a href="{{ url_for('hours_report') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">⏱️</div>
+                    <div style="font-weight: 600; font-size: 15px;">Firefighter Hours</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Detailed hours log</div>
+                </a>
+                <a href="{{ url_for('firefighter_summary_report') }}" style="display: block; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">👥</div>
+                    <div style="font-weight: 600; font-size: 15px;">Firefighter Summary</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Hours by firefighter</div>
+                </a>
+                <a href="{{ url_for('activity_report') }}" style="display: block; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">📋</div>
+                    <div style="font-weight: 600; font-size: 15px;">Activity Breakdown</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Hours by activity</div>
+                </a>
+                <a href="{{ url_for('maintenance_costs_report') }}" style="display: block; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">💰</div>
+                    <div style="font-weight: 600; font-size: 15px;">Maintenance Costs</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Work order costs</div>
+                </a>
+                <a href="{{ url_for('vehicle_inspection_reports') }}" style="display: block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">🔍</div>
+                    <div style="font-weight: 600; font-size: 15px;">Vehicle Inspections</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Inspection records</div>
+                </a>
+                <a href="{{ url_for('inventory_value_report') }}" style="display: block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">📦</div>
+                    <div style="font-weight: 600; font-size: 15px;">Inventory Value</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Total inventory value</div>
+                </a>
+            </div>
+        </div>
+
         <!-- Content Grid -->
         <div class="content-grid">
             <!-- Top Performers -->
