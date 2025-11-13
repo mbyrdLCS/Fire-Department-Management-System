@@ -22,6 +22,15 @@
             padding: 20px;
         }
 
+        /* Orientation-specific layouts */
+        body.horizontal {
+            padding: 15px 40px;
+        }
+
+        body.vertical {
+            padding: 30px 20px;
+        }
+
         .welcome-container {
             background: white;
             border-radius: 20px;
@@ -168,26 +177,25 @@
         }
     </style>
 </head>
-<body>
+<body class="{{ kiosk_settings.kiosk_orientation }}">
     <div class="welcome-container">
         <div class="welcome-icon">👋</div>
         <div class="welcome-title">Welcome Back,</div>
         <div class="welcome-name">{{ firefighter_name }}</div>
 
-        {% if show_inspection_qr %}
         <div class="welcome-message">
-            ⚠️ Vehicles need inspection!<br>
-            Use your phone to scan the QR code below and start inspecting trucks.
+            {% if show_qr %}
+                {{ kiosk_settings.kiosk_message }}
+            {% else %}
+                You're all checked in for {{ activity }}!
+            {% endif %}
         </div>
 
+        {% if show_qr %}
         <div class="qr-section">
             <div class="qr-title">📱 Scan with Your Phone</div>
-            <div class="qr-code" id="qr-inspect"></div>
+            <div class="qr-code" id="qr-code"></div>
             <div class="qr-instruction">Open your camera app and point it at this QR code</div>
-        </div>
-        {% else %}
-        <div class="welcome-message">
-            You're all checked in for {{ activity }}!
         </div>
         {% endif %}
 
@@ -201,16 +209,15 @@
         </div>
 
         <div class="countdown">
-            Returning to kiosk in <span class="countdown-number" id="countdown">15</span> seconds...
+            Returning to kiosk in <span class="countdown-number" id="countdown">{{ kiosk_settings.kiosk_timeout_seconds }}</span> seconds...
         </div>
     </div>
 
     <script>
-        {% if show_inspection_qr %}
+        {% if show_qr %}
         // Generate QR code
-        const baseUrl = '{{ base_url }}';
-        new QRCode(document.getElementById('qr-inspect'), {
-            text: baseUrl + '/inspections',
+        new QRCode(document.getElementById('qr-code'), {
+            text: '{{ qr_url }}',
             width: 200,
             height: 200,
             colorDark: '#000000',
@@ -219,7 +226,7 @@
         {% endif %}
 
         // Countdown and auto-redirect
-        let timeLeft = 15;
+        let timeLeft = {{ kiosk_settings.kiosk_timeout_seconds }};
         const countdownElement = document.getElementById('countdown');
 
         const countdown = setInterval(() => {

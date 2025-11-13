@@ -2594,6 +2594,72 @@ def get_all_display_settings():
             'show_inspections_qr': 'true'
         }
 
+# ========== KIOSK SETTINGS FUNCTIONS ==========
+
+def get_kiosk_settings():
+    """Get all kiosk settings with defaults"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    defaults = {
+        'kiosk_timeout_seconds': '20',
+        'kiosk_orientation': 'horizontal',
+        'kiosk_qr_code': 'inventory',
+        'kiosk_message': 'Use your phone to scan the QR code below and start inspecting trucks.'
+    }
+
+    try:
+        # Ensure default values exist
+        for key, value in defaults.items():
+            cursor.execute('''
+                INSERT OR IGNORE INTO display_settings (setting_key, setting_value)
+                VALUES (?, ?)
+            ''', (key, value))
+
+        # Get all kiosk settings
+        cursor.execute('''
+            SELECT setting_key, setting_value
+            FROM display_settings
+            WHERE setting_key LIKE 'kiosk_%'
+        ''')
+
+        settings = {}
+        for row in cursor.fetchall():
+            settings[row[0]] = row[1]
+
+        conn.close()
+
+        # Fill in any missing defaults
+        for key, value in defaults.items():
+            if key not in settings:
+                settings[key] = value
+
+        return settings
+    except Exception as e:
+        print(f"Error getting kiosk settings: {e}")
+        import traceback
+        traceback.print_exc()
+        conn.close()
+        return defaults
+
+def update_kiosk_setting(setting_key, setting_value):
+    """Update a specific kiosk setting"""
+    return update_display_setting(setting_key, setting_value)
+
+def update_all_kiosk_settings(timeout_seconds, orientation, qr_code, message):
+    """Update all kiosk settings at once"""
+    try:
+        update_display_setting('kiosk_timeout_seconds', str(timeout_seconds))
+        update_display_setting('kiosk_orientation', orientation)
+        update_display_setting('kiosk_qr_code', qr_code)
+        update_display_setting('kiosk_message', message)
+        return True
+    except Exception as e:
+        print(f"Error updating kiosk settings: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 # ========== BACKUP FUNCTIONS ==========
 
 def create_database_backup():

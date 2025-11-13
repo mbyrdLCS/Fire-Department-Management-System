@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosk Settings</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 15px;
+        }
+
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .help-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn-submit {
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+
+        .flash-message {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .preview-section {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .preview-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .preview-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .preview-orientation {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .preview-timeout {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .preview-qr {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .preview-message {
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .info-card {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+            margin-bottom: 20px;
+        }
+
+        .info-card h3 {
+            margin: 0 0 8px 0;
+            color: #1976D2;
+            font-size: 16px;
+        }
+
+        .info-card p {
+            margin: 5px 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('admin') }}" class="back-btn">← Back to Admin</a>
+
+        <div class="header">
+            <h1>⚙️ Kiosk Display Settings</h1>
+            <div class="subtitle">Configure how the kiosk welcome screen appears to firefighters</div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    ✓ {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="info-card">
+            <h3>📱 About Kiosk Settings</h3>
+            <p>These settings control the welcome screen shown to firefighters after they check in at the kiosk.</p>
+            <p>The welcome screen displays for a set time before automatically returning to the main kiosk page.</p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🎛️ Configure Welcome Screen</div>
+            <form method="POST" action="{{ url_for('update_kiosk_settings') }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="timeout">Display Timeout (seconds):</label>
+                        <input type="number"
+                               name="timeout"
+                               id="timeout"
+                               min="5"
+                               max="60"
+                               value="{{ settings.kiosk_timeout_seconds }}"
+                               required>
+                        <div class="help-text">How long the welcome screen shows before returning to kiosk (5-60 seconds)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="orientation">iPad Orientation:</label>
+                        <select name="orientation" id="orientation" required>
+                            <option value="vertical" {% if settings.kiosk_orientation == 'vertical' %}selected{% endif %}>📱 Vertical (Portrait)</option>
+                            <option value="horizontal" {% if settings.kiosk_orientation == 'horizontal' %}selected{% endif %}>📺 Horizontal (Landscape)</option>
+                        </select>
+                        <div class="help-text">Choose how your iPad is physically positioned</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="qr_code">QR Code to Display:</label>
+                        <select name="qr_code" id="qr_code" required>
+                            <option value="inventory" {% if settings.kiosk_qr_code == 'inventory' %}selected{% endif %}>📦 Inventory Management</option>
+                            <option value="inspections" {% if settings.kiosk_qr_code == 'inspections' %}selected{% endif %}>🔍 Vehicle Inspections</option>
+                            <option value="maintenance" {% if settings.kiosk_qr_code == 'maintenance' %}selected{% endif %}>🔧 Maintenance/Work Orders</option>
+                            <option value="none" {% if settings.kiosk_qr_code == 'none' %}selected{% endif %}>🚫 No QR Code</option>
+                        </select>
+                        <div class="help-text">Which QR code should firefighters scan after checking in</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Welcome Message:</label>
+                        <textarea name="message" id="message" required>{{ settings.kiosk_message }}</textarea>
+                        <div class="help-text">Custom message shown to firefighters on the welcome screen</div>
+                    </div>
+                </div>
+
+                <div class="preview-section">
+                    <h3>👁️ Preview</h3>
+                    <div class="preview-box">
+                        <div class="preview-orientation"><strong>Orientation:</strong> <span id="preview-orientation-text">{{ settings.kiosk_orientation|title }}</span></div>
+                        <div class="preview-timeout"><strong>Timeout:</strong> <span id="preview-timeout-text">{{ settings.kiosk_timeout_seconds }}</span> seconds</div>
+                        <div class="preview-qr"><strong>QR Code:</strong> <span id="preview-qr-text">{{ settings.kiosk_qr_code|title }}</span></div>
+                        <div class="preview-message" id="preview-message-text">{{ settings.kiosk_message }}</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">💾 Save Settings</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Live preview updates
+        document.getElementById('timeout').addEventListener('input', function() {
+            document.getElementById('preview-timeout-text').textContent = this.value;
+        });
+
+        document.getElementById('orientation').addEventListener('change', function() {
+            document.getElementById('preview-orientation-text').textContent =
+                this.options[this.selectedIndex].text.split(' ')[1];
+        });
+
+        document.getElementById('qr_code').addEventListener('change', function() {
+            document.getElementById('preview-qr-text').textContent =
+                this.options[this.selectedIndex].text.split(' ')[1];
+        });
+
+        document.getElementById('message').addEventListener('input', function() {
+            document.getElementById('preview-message-text').textContent = this.value;
+        });
+    </script>
+</body>
+</html>

@@ -173,21 +173,36 @@ def register():
 
 @app.route('/welcome')
 def welcome():
-    """Welcome screen after check-in with optional inspection QR"""
+    """Welcome screen after check-in with optional QR based on kiosk settings"""
     firefighter_name = request.args.get('name', 'Firefighter')
     activity = request.args.get('activity', 'your shift')
 
-    # Check if vehicles need inspection
-    alerts = db_helpers.get_all_alerts()
-    show_inspection_qr = len(alerts.get('inspections_overdue', [])) > 0
+    # Get kiosk settings
+    kiosk_settings = db_helpers.get_kiosk_settings()
+
+    # Determine which QR code to show based on settings
+    qr_code_type = kiosk_settings.get('kiosk_qr_code', 'inventory')
+    show_qr = qr_code_type != 'none'
 
     # Get base URL for QR code
     base_url = request.url_root.rstrip('/')
 
+    # Determine QR URL based on type
+    qr_url = ''
+    if qr_code_type == 'inventory':
+        qr_url = f'{base_url}/inventory'
+    elif qr_code_type == 'inspections':
+        qr_url = f'{base_url}/inspections'
+    elif qr_code_type == 'maintenance':
+        qr_url = f'{base_url}/maintenance'
+
     return render_template('welcome.html',
                          firefighter_name=firefighter_name,
                          activity=activity,
-                         show_inspection_qr=show_inspection_qr,
+                         show_qr=show_qr,
+                         qr_url=qr_url,
+                         qr_type=qr_code_type,
+                         kiosk_settings=kiosk_settings,
                          base_url=base_url)
 
 @app.route('/clock_in', methods=['POST'])
@@ -317,6 +332,60 @@ def kiosk_register():
     except Exception as e:
         logger.error(f"Kiosk registration error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'An error occurred during registration'})
+
+@app.route('/admin/kiosk-settings')
+def kiosk_settings():
+    """Kiosk settings management page"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    settings = db_helpers.get_kiosk_settings()
+    return render_template('kiosk_settings.html', settings=settings)
+
+@app.route('/admin/kiosk-settings/update', methods=['POST'])
+def update_kiosk_settings():
+    """Update kiosk settings"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        timeout = int(request.form['timeout'])
+        orientation = request.form['orientation']
+        qr_code = request.form['qr_code']
+        message = request.form['message']
+
+        # Validate timeout range
+        if timeout < 5 or timeout > 60:
+            flash('Timeout must be between 5 and 60 seconds')
+            return redirect(url_for('kiosk_settings'))
+
+        # Validate orientation
+        if orientation not in ['vertical', 'horizontal']:
+            flash('Invalid orientation value')
+            return redirect(url_for('kiosk_settings'))
+
+        # Validate QR code option
+        if qr_code not in ['inventory', 'inspections', 'maintenance', 'none']:
+            flash('Invalid QR code option')
+            return redirect(url_for('kiosk_settings'))
+
+        # Update settings
+        success = db_helpers.update_all_kiosk_settings(timeout, orientation, qr_code, message)
+
+        if success:
+            flash('Kiosk settings updated successfully!')
+            logger.info(f"Kiosk settings updated: timeout={timeout}, orientation={orientation}, qr_code={qr_code}")
+        else:
+            flash('Error updating kiosk settings')
+
+        return redirect(url_for('kiosk_settings'))
+
+    except Exception as e:
+        logger.error(f"Error updating kiosk settings: {str(e)}")
+        flash('An error occurred while updating settings')
+        return redirect(url_for('kiosk_settings'))
 
 # ========== ADMIN ROUTES ==========
 
