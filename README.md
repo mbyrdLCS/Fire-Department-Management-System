@@ -311,6 +311,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ## 📈 Recent Updates
 
 ### January 2025
+- ✅ **Detailed Inspection Reports**: Export comprehensive reports showing every individual checklist item inspected with pass/fail status
 - ✅ **Vehicle Fluid Specifications**: Track required oil, coolant, brake fluid, power steering fluid, and transmission fluid for each vehicle
 - ✅ **Inline Fluid Display**: During inspections, fluid requirements automatically appear next to relevant checklist items
 - ✅ **Failed Inspection System**: Comprehensive alerts across dashboard, display board, and maintenance pages

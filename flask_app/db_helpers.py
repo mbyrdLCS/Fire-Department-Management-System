@@ -1114,6 +1114,32 @@ def get_vehicle_inspection_history(vehicle_id, limit=10):
     conn.close()
     return history
 
+def get_inspection_details(inspection_id):
+    """Get detailed inspection results including all checklist items"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT ir.id, ici.description, ici.category, ir.status, ir.notes
+        FROM inspection_results ir
+        JOIN inspection_checklist_items ici ON ir.checklist_item_id = ici.id
+        WHERE ir.inspection_id = ?
+        ORDER BY ici.category, ici.display_order
+    ''', (inspection_id,))
+
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'id': row[0],
+            'description': row[1],
+            'category': row[2],
+            'status': row[3],
+            'notes': row[4]
+        })
+
+    conn.close()
+    return results
+
 # ========== MAINTENANCE FUNCTIONS ==========
 
 def create_maintenance_record(vehicle_id, work_type, performed_by, performed_date, cost=None, parts_used='', notes='', firefighter_id=None):

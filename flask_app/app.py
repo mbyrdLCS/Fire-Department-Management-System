@@ -2784,6 +2784,295 @@ def vehicle_inspection_reports():
     """Vehicle inspection reports page"""
     return render_template('vehicle_inspection_reports.html')
 
+@app.route('/reports/vehicle-inspections/detailed-export')
+def export_detailed_inspections():
+    """Export detailed vehicle inspection logs with all checklist items to CSV"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        # Get query parameters
+        month_param = request.args.get('month')  # Format: YYYY-MM from HTML month input
+        month = request.args.get('month') if not month_param or '-' in month_param else request.args.get('month')
+        year = request.args.get('year')
+        week = request.args.get('week')  # 'current' for current week
+
+        output = StringIO()
+        cw = csv.writer(output)
+
+        # Determine date range for filtering
+        start_date = None
+        end_date = None
+        title_suffix = 'ALL TIME'
+        filename_suffix = 'all_time'
+
+        if week == 'current':
+            # Get current week (Sunday to Saturday)
+            now = datetime.now(central)
+            days_since_sunday = (now.weekday() + 1) % 7
+            start_date = (now - timedelta(days=days_since_sunday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            title_suffix = f'WEEK OF {start_date.strftime("%B %d, %Y")}'
+            filename_suffix = f'week_{start_date.strftime("%Y_%m_%d")}'
+        elif month_param and '-' in month_param:
+            # Handle YYYY-MM format from HTML month input
+            year_val, month_val = month_param.split('-')
+            title_suffix = datetime(int(year_val), int(month_val), 1).strftime('%B %Y')
+            filename_suffix = f'{year_val}_{month_val}'
+            month = month_val
+            year = year_val
+        elif month and year:
+            title_suffix = datetime(int(year), int(month), 1).strftime('%B %Y')
+            filename_suffix = f'{year}_{int(month):02d}'
+
+        # Header row
+        cw.writerow([f'DETAILED VEHICLE INSPECTION REPORT - {title_suffix}'])
+        cw.writerow([])
+        cw.writerow(['Vehicle Code', 'Vehicle Name', 'Inspection Date', 'Inspector', 'Overall Result',
+                     'Checklist Item Category', 'Checklist Item', 'Item Status', 'Item Notes', 'Additional Notes'])
+
+        vehicles = db_helpers.get_all_vehicles()
+
+        for vehicle in vehicles:
+            history = db_helpers.get_vehicle_inspection_history(vehicle['id'], limit=1000)
+
+            for inspection in history:
+                inspection_date = datetime.fromisoformat(inspection['date'])
+
+                # Filter by date range
+                if week == 'current':
+                    if not (start_date <= inspection_date <= end_date):
+                        continue
+                elif month and year:
+                    if inspection_date.month != int(month) or inspection_date.year != int(year):
+                        continue
+
+                date_str = inspection_date.strftime('%Y-%m-%d %I:%M %p')
+                result = 'PASSED' if inspection['passed'] else 'FAILED'
+                vehicle_code = vehicle.get('vehicle_code', vehicle.get('code', 'N/A'))
+                vehicle_name = vehicle['name']
+                inspector = inspection['inspector']
+                additional_notes = inspection.get('notes', '')
+
+                # Get detailed inspection results
+                details = db_helpers.get_inspection_details(inspection['id'])
+
+                if details:
+                    # Write one row for each checklist item
+                    for detail in details:
+                        item_status = detail['status'].upper()
+                        cw.writerow([
+                            vehicle_code,
+                            vehicle_name,
+                            date_str,
+                            inspector,
+                            result,
+                            detail.get('category', 'N/A'),
+                            detail['description'],
+                            item_status,
+                            detail.get('notes', ''),
+                            additional_notes
+                        ])
+                else:
+                    # If no details, write just the inspection summary
+                    cw.writerow([
+                        vehicle_code,
+                        vehicle_name,
+                        date_str,
+                        inspector,
+                        result,
+                        'N/A',
+                        'No detailed items recorded',
+                        'N/A',
+                        '',
+                        additional_notes
+                    ])
+
+        output.seek(0)
+
+        # Generate filename
+        filename = f'detailed_inspections_{filename_suffix}.csv'
+
+        return send_file(
+            BytesIO(output.getvalue().encode('utf-8')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        print(f"Error exporting detailed inspections: {str(e)}")
+        flash(f'Error exporting detailed inspections: {str(e)}')
+        return redirect(url_for('vehicle_inspection_reports'))
+
+@app.route('/reports/vehicle-inspections/detailed-export-pdf')
+def export_detailed_inspections_pdf():
+    """Export detailed vehicle inspection logs with all checklist items to PDF"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        month_param = request.args.get('month')  # Format: YYYY-MM from HTML month input
+        month = request.args.get('month') if not month_param or '-' in month_param else request.args.get('month')
+        year = request.args.get('year')
+        week = request.args.get('week')  # 'current' for current week
+
+        # Determine date range for filtering
+        start_date = None
+        end_date = None
+        title_suffix = 'ALL TIME'
+        filename_suffix = 'all_time'
+
+        if week == 'current':
+            now = datetime.now(central)
+            days_since_sunday = (now.weekday() + 1) % 7
+            start_date = (now - timedelta(days=days_since_sunday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            title_suffix = f'Week of {start_date.strftime("%B %d, %Y")}'
+            filename_suffix = f'week_{start_date.strftime("%Y_%m_%d")}'
+        elif month_param and '-' in month_param:
+            year_val, month_val = month_param.split('-')
+            title_suffix = datetime(int(year_val), int(month_val), 1).strftime('%B %Y')
+            filename_suffix = f'{year_val}_{month_val}'
+            month = month_val
+            year = year_val
+        elif month and year:
+            title_suffix = datetime(int(year), int(month), 1).strftime('%B %Y')
+            filename_suffix = f'{year}_{int(month):02d}'
+
+        # Build table data
+        data = [['Vehicle', 'Date', 'Inspector', 'Result', 'Category', 'Item', 'Status', 'Notes']]
+
+        vehicles = db_helpers.get_all_vehicles()
+        for vehicle in vehicles:
+            history = db_helpers.get_vehicle_inspection_history(vehicle['id'], limit=1000)
+            for insp in history:
+                insp_date = datetime.fromisoformat(insp['date'])
+
+                # Filter by date range
+                if week == 'current':
+                    if not (start_date <= insp_date <= end_date):
+                        continue
+                elif month and year:
+                    if insp_date.month != int(month) or insp_date.year != int(year):
+                        continue
+
+                date_str = insp_date.strftime('%m/%d/%y %I:%M%p')
+                result = 'PASS' if insp['passed'] else 'FAIL'
+                vehicle_name = vehicle['name']
+                inspector = insp['inspector']
+
+                # Get detailed inspection results
+                details = db_helpers.get_inspection_details(insp['id'])
+
+                if details:
+                    for detail in details:
+                        item_status = detail['status'].upper()
+                        item_notes = detail.get('notes', '')
+                        # Truncate long notes for PDF display
+                        if len(item_notes) > 40:
+                            item_notes = item_notes[:37] + '...'
+
+                        data.append([
+                            vehicle_name,
+                            date_str,
+                            inspector,
+                            result,
+                            detail.get('category', 'N/A'),
+                            detail['description'],
+                            item_status,
+                            item_notes
+                        ])
+                else:
+                    data.append([
+                        vehicle_name,
+                        date_str,
+                        inspector,
+                        result,
+                        'N/A',
+                        'No items recorded',
+                        'N/A',
+                        ''
+                    ])
+
+        # Create PDF
+        pdf = SimpleDocTemplate(
+            BytesIO(),
+            pagesize=landscape(letter),
+            topMargin=0.5*inch,
+            bottomMargin=0.5*inch,
+            leftMargin=0.5*inch,
+            rightMargin=0.5*inch
+        )
+
+        # Build elements
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.HexColor('#1e3c72'),
+            spaceAfter=20,
+            alignment=1  # Center
+        )
+        elements.append(Paragraph(f'Detailed Vehicle Inspection Report', title_style))
+        elements.append(Paragraph(f'{title_suffix}', title_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+        # Table style
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3c72')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 1), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
+        ])
+
+        # Column widths for landscape orientation
+        col_widths = [1.2*inch, 1*inch, 1*inch, 0.6*inch, 0.8*inch, 2*inch, 0.6*inch, 1.3*inch]
+
+        table = Table(data, colWidths=col_widths, repeatRows=1)
+        table.setStyle(table_style)
+        elements.append(table)
+
+        # Generate PDF
+        buffer = BytesIO()
+        pdf_obj = SimpleDocTemplate(
+            buffer,
+            pagesize=landscape(letter),
+            topMargin=0.5*inch,
+            bottomMargin=0.5*inch,
+            leftMargin=0.5*inch,
+            rightMargin=0.5*inch
+        )
+        pdf_obj.build(elements)
+        buffer.seek(0)
+
+        filename = f'detailed_inspections_{filename_suffix}.pdf'
+
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        print(f"Error exporting detailed inspections PDF: {str(e)}")
+        flash(f'Error exporting detailed inspections PDF: {str(e)}')
+        return redirect(url_for('vehicle_inspection_reports'))
+
 @app.route('/reports/hours', methods=['GET', 'POST'])
 def hours_report():
     """Firefighter hours report"""

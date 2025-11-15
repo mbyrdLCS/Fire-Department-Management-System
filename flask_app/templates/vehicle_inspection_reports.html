@@ -184,12 +184,52 @@
             </div>
         </div>
 
+        <div class="info-section" style="background: #fff3cd; border-left-color: #ffc107; margin-top: 30px;">
+            <h3 style="color: #856404;">📝 Detailed Inspection Reports</h3>
+            <p style="color: #856404;">Need to see every checklist item? Export detailed reports that show the status of each individual inspection item.</p>
+        </div>
+
+        <div class="export-options">
+            <div class="export-card" style="background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%); border: 2px solid #ffc107;">
+                <div class="icon">📋</div>
+                <h3>Detailed Report - Current Week</h3>
+                <p>Export with all checklist items for the current week</p>
+                <div class="export-buttons">
+                    <a href="{{ url_for('export_detailed_inspections') }}?week=current" class="btn btn-csv">📥 Export Detailed CSV</a>
+                    <a href="{{ url_for('export_detailed_inspections_pdf') }}?week=current" class="btn btn-pdf">📄 Export Detailed PDF</a>
+                </div>
+            </div>
+
+            <div class="export-card" style="background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%); border: 2px solid #ffc107;">
+                <div class="icon">📑</div>
+                <h3>Detailed Report - Select Month</h3>
+                <p>Export with all checklist items for a specific month</p>
+                <div class="export-buttons">
+                    <label for="month-picker-detailed" style="font-size: 13px; color: #555; margin-bottom: 8px; display: block;">Select Month:</label>
+                    <input type="month" id="month-picker-detailed" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; margin-bottom: 12px; font-size: 14px;">
+                    <button onclick="exportMonthDetailed('csv')" class="btn btn-csv">📥 Export Detailed CSV</button>
+                    <button onclick="exportMonthDetailed('pdf')" class="btn btn-pdf">📄 Export Detailed PDF</button>
+                </div>
+            </div>
+
+            <div class="export-card" style="background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%); border: 2px solid #ffc107;">
+                <div class="icon">📚</div>
+                <h3>Detailed Report - All Inspections</h3>
+                <p>Export all inspections with every checklist item (may be large)</p>
+                <div class="export-buttons">
+                    <a href="{{ url_for('export_detailed_inspections') }}" class="btn btn-csv">📥 Export Detailed CSV</a>
+                    <a href="{{ url_for('export_detailed_inspections_pdf') }}" class="btn btn-pdf">📄 Export Detailed PDF</a>
+                </div>
+            </div>
+        </div>
+
         <a href="{{ url_for('reports_menu') }}" class="btn btn-back">← Back to Reports</a>
     </div>
 
     <script>
-        // Set default to current month
+        // Set default to current month for both pickers
         document.getElementById('month-picker').valueAsDate = new Date();
+        document.getElementById('month-picker-detailed').valueAsDate = new Date();
 
         function exportMonth(format) {
             const monthInput = document.getElementById('month-picker');
@@ -201,6 +241,20 @@
             const url = format === 'pdf'
                 ? '{{ url_for("export_inspections_pdf") }}?month=' + monthInput.value
                 : '{{ url_for("export_inspections") }}?month=' + monthInput.value;
+
+            window.location.href = url;
+        }
+
+        function exportMonthDetailed(format) {
+            const monthInput = document.getElementById('month-picker-detailed');
+            if (!monthInput.value) {
+                alert('Please select a month');
+                return;
+            }
+
+            const url = format === 'pdf'
+                ? '{{ url_for("export_detailed_inspections_pdf") }}?month=' + monthInput.value
+                : '{{ url_for("export_detailed_inspections") }}?month=' + monthInput.value;
 
             window.location.href = url;
         }
