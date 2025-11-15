@@ -777,13 +777,30 @@ def export_inspections():
                 date_str = inspection_date.strftime('%Y-%m-%d %I:%M %p')
                 result = 'PASSED' if inspection['passed'] else 'FAILED'
 
+                # Compile all notes: additional notes + any item-specific notes
+                all_notes = []
+                if inspection.get('notes'):
+                    all_notes.append(inspection['notes'])
+
+                # Get detailed inspection results to find any item notes
+                details = db_helpers.get_inspection_details(inspection['id'])
+                item_notes = []
+                for detail in details:
+                    if detail.get('notes'):
+                        item_notes.append(f"{detail['description']}: {detail['notes']}")
+
+                if item_notes:
+                    all_notes.extend(item_notes)
+
+                combined_notes = '; '.join(all_notes) if all_notes else ''
+
                 cw.writerow([
                     vehicle.get('vehicle_code', vehicle.get('code', 'N/A')),
                     vehicle['name'],
                     date_str,
                     inspection['inspector'],
                     result,
-                    inspection.get('notes', '')
+                    combined_notes
                 ])
 
         output.seek(0)
@@ -964,7 +981,27 @@ def export_inspections_pdf():
 
                 date_str = insp_date.strftime('%Y-%m-%d %I:%M %p')
                 result = 'PASSED' if insp['passed'] else 'FAILED'
-                notes = insp.get('notes', '')[:40] + '...' if len(insp.get('notes', '')) > 40 else insp.get('notes', '')
+
+                # Compile all notes: additional notes + any item-specific notes
+                all_notes = []
+                if insp.get('notes'):
+                    all_notes.append(insp['notes'])
+
+                # Get detailed inspection results to find any item notes
+                details = db_helpers.get_inspection_details(insp['id'])
+                item_notes = []
+                for detail in details:
+                    if detail.get('notes'):
+                        item_notes.append(f"{detail['description']}: {detail['notes']}")
+
+                if item_notes:
+                    all_notes.extend(item_notes)
+
+                combined_notes = '; '.join(all_notes) if all_notes else ''
+
+                # Truncate if too long for PDF display
+                notes = combined_notes[:60] + '...' if len(combined_notes) > 60 else combined_notes
+
                 data.append([
                     vehicle.get('vehicle_code', vehicle.get('code', 'N/A')),
                     vehicle['name'],
