@@ -1904,7 +1904,7 @@ def get_all_alerts(station_id=None):
 
     if station_id:
         cursor.execute('''
-            SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes
+            SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes, vi.id as inspection_id
             FROM vehicle_inspections vi
             JOIN vehicles v ON vi.vehicle_id = v.id
             WHERE vi.passed = 0
@@ -1917,7 +1917,7 @@ def get_all_alerts(station_id=None):
         ''', (station_id,))
     else:
         cursor.execute('''
-            SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes
+            SELECT v.id, v.name, v.vehicle_code, vi.inspection_date, vi.additional_notes, vi.id as inspection_id
             FROM vehicle_inspections vi
             JOIN vehicles v ON vi.vehicle_id = v.id
             WHERE vi.passed = 0
@@ -1929,12 +1929,36 @@ def get_all_alerts(station_id=None):
         ''')
 
     for row in cursor.fetchall():
+        vehicle_id = row[0]
+        inspection_id = row[5]
+        additional_notes = row[4]
+
+        # Compile all notes: additional notes + any item-specific notes
+        all_notes = []
+        if additional_notes:
+            all_notes.append(additional_notes)
+
+        # Get detailed inspection results to find failed items and their notes
+        details = get_inspection_details(inspection_id)
+        failed_items = []
+        for detail in details:
+            if detail['status'] != 'pass':
+                if detail.get('notes'):
+                    failed_items.append(f"{detail['description']}: {detail['notes']}")
+                else:
+                    failed_items.append(f"{detail['description']}: Failed")
+
+        if failed_items:
+            all_notes.extend(failed_items)
+
+        combined_notes = '; '.join(all_notes) if all_notes else 'Maintenance required'
+
         alerts['inspections_failed'].append({
             'id': row[0],
             'name': row[1],
             'code': row[2],
             'failed_date': row[3],
-            'notes': row[4] or 'Maintenance required'
+            'notes': combined_notes
         })
 
     # Get low inventory at stations (filtered by station if specified)
