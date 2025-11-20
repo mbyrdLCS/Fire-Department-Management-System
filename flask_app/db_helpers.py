@@ -3122,3 +3122,71 @@ def upload_backup_to_dropbox(local_backup_path):
             'success': False,
             'error': str(e)
         }
+
+def cleanup_old_dropbox_backups(keep_count=20):
+    """
+    Remove old Dropbox backups, keeping only the N most recent
+    Returns: dict with success status and number deleted
+    """
+    try:
+        if not DROPBOX_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Dropbox not available'
+            }
+
+        dbx = get_dropbox_client()
+        if not dbx:
+            return {
+                'success': False,
+                'error': 'Dropbox not configured'
+            }
+
+        # List all backup files in Dropbox
+        result = dbx.files_list_folder('')
+        backup_files = [
+            entry for entry in result.entries
+            if isinstance(entry, dropbox.files.FileMetadata) and entry.name.startswith('fire_dept_backup_')
+        ]
+
+        # Sort by client_modified time, newest first
+        backup_files.sort(key=lambda x: x.client_modified, reverse=True)
+
+        if len(backup_files) <= keep_count:
+            return {
+                'success': True,
+                'deleted_count': 0,
+                'message': f'Only {len(backup_files)} Dropbox backup(s) exist. No cleanup needed.'
+            }
+
+        # Delete old backups
+        backups_to_delete = backup_files[keep_count:]
+        deleted_count = 0
+        errors = []
+
+        for entry in backups_to_delete:
+            try:
+                dbx.files_delete_v2(entry.path_display)
+                deleted_count += 1
+            except Exception as e:
+                errors.append(f"{entry.name}: {str(e)}")
+
+        if errors:
+            return {
+                'success': False,
+                'deleted_count': deleted_count,
+                'error': f'Some backups could not be deleted: {"; ".join(errors)}'
+            }
+
+        return {
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'Cleanup complete. {keep_count} Dropbox backup(s) retained, {deleted_count} deleted.'
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'deleted_count': 0,
+            'error': str(e)
+        }

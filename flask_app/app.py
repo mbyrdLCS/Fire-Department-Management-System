@@ -102,6 +102,9 @@ class AutomaticBackupScheduler:
 
                 if result['success']:
                     logger.info(f"Automatic local backup created: {result['backup_filename']}")
+
+                    # Cleanup old local backups
+                    self._cleanup_old_backups()
                 else:
                     logger.error(f"Automatic local backup failed: {result.get('error')}")
 
@@ -119,6 +122,9 @@ class AutomaticBackupScheduler:
 
                     if dropbox_result['success']:
                         logger.info(f"Automatic Dropbox backup uploaded successfully")
+
+                        # Cleanup old Dropbox backups
+                        self._cleanup_old_dropbox_backups()
                     else:
                         logger.warning(f"Dropbox upload failed: {dropbox_result.get('error')}")
                 else:
@@ -170,6 +176,28 @@ class AutomaticBackupScheduler:
         logger.info(f"Restarting {self.backup_type} backup scheduler with updated interval...")
         self.stop()
         self.start()
+
+    def _cleanup_old_backups(self):
+        """Cleanup old local backups based on settings"""
+        try:
+            keep_count = int(db_helpers.get_setting('max_local_backups', '10'))
+            result = db_helpers.cleanup_old_backups(keep_count)
+
+            if result['success'] and result['deleted_count'] > 0:
+                logger.info(f"Cleaned up {result['deleted_count']} old local backup(s), keeping {keep_count} most recent")
+        except Exception as e:
+            logger.error(f"Error cleaning up local backups: {str(e)}")
+
+    def _cleanup_old_dropbox_backups(self):
+        """Cleanup old Dropbox backups based on settings"""
+        try:
+            keep_count = int(db_helpers.get_setting('max_dropbox_backups', '20'))
+            result = db_helpers.cleanup_old_dropbox_backups(keep_count)
+
+            if result.get('success') and result.get('deleted_count', 0) > 0:
+                logger.info(f"Cleaned up {result['deleted_count']} old Dropbox backup(s), keeping {keep_count} most recent")
+        except Exception as e:
+            logger.error(f"Error cleaning up Dropbox backups: {str(e)}")
 
 # Initialize automatic backup schedulers
 local_backup_scheduler = AutomaticBackupScheduler('local', 'local_backup_interval_hours', default_interval_hours=1)
@@ -2945,10 +2973,14 @@ def get_backup_settings():
     try:
         local_interval = db_helpers.get_setting('local_backup_interval_hours', '1')
         dropbox_interval = db_helpers.get_setting('dropbox_backup_interval_hours', '1')
+        max_local = db_helpers.get_setting('max_local_backups', '10')
+        max_dropbox = db_helpers.get_setting('max_dropbox_backups', '20')
         return jsonify({
             'success': True,
             'local_interval_hours': local_interval,
-            'dropbox_interval_hours': dropbox_interval
+            'dropbox_interval_hours': dropbox_interval,
+            'max_local_backups': max_local,
+            'max_dropbox_backups': max_dropbox
         })
     except Exception as e:
         logger.error(f"Error getting backup settings: {str(e)}")
@@ -2963,31 +2995,42 @@ def update_backup_settings():
     try:
         local_interval = request.form.get('local_interval_hours', '1')
         dropbox_interval = request.form.get('dropbox_interval_hours', '1')
+        max_local = request.form.get('max_local_backups', '10')
+        max_dropbox = request.form.get('max_dropbox_backups', '20')
 
         # Validate the intervals
         try:
             local_float = float(local_interval)
             dropbox_float = float(dropbox_interval)
+            max_local_int = int(max_local)
+            max_dropbox_int = int(max_dropbox)
+
             if local_float < 0 or local_float > 24:
                 return jsonify({'success': False, 'error': 'Local interval must be between 0 and 24 hours'}), 400
             if dropbox_float < 0 or dropbox_float > 24:
                 return jsonify({'success': False, 'error': 'Dropbox interval must be between 0 and 24 hours'}), 400
+            if max_local_int < 1 or max_local_int > 100:
+                return jsonify({'success': False, 'error': 'Max local backups must be between 1 and 100'}), 400
+            if max_dropbox_int < 1 or max_dropbox_int > 200:
+                return jsonify({'success': False, 'error': 'Max Dropbox backups must be between 1 and 200'}), 400
         except ValueError:
-            return jsonify({'success': False, 'error': 'Invalid interval value'}), 400
+            return jsonify({'success': False, 'error': 'Invalid setting value'}), 400
 
         # Save the settings
         db_helpers.set_setting('local_backup_interval_hours', local_interval)
         db_helpers.set_setting('dropbox_backup_interval_hours', dropbox_interval)
+        db_helpers.set_setting('max_local_backups', max_local)
+        db_helpers.set_setting('max_dropbox_backups', max_dropbox)
 
         # Restart both backup schedulers with the new intervals
         local_backup_scheduler.restart()
         dropbox_backup_scheduler.restart()
 
-        logger.info(f"Backup intervals updated - Local: {local_interval}h, Dropbox: {dropbox_interval}h")
+        logger.info(f"Backup settings updated - Local: {local_interval}h (keep {max_local}), Dropbox: {dropbox_interval}h (keep {max_dropbox})")
 
         return jsonify({
             'success': True,
-            'message': f'Backup intervals updated successfully'
+            'message': f'Backup settings updated successfully'
         })
 
     except Exception as e:

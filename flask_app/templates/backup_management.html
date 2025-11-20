@@ -486,6 +486,20 @@
                                 Creates local database backups to the server's backup folder.
                             </small>
                         </div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label for="maxLocalBackups">Keep Last</label>
+                            <select id="maxLocalBackups" class="form-control">
+                                <option value="5">5 backups</option>
+                                <option value="10" selected>10 backups (recommended)</option>
+                                <option value="15">15 backups</option>
+                                <option value="20">20 backups</option>
+                                <option value="30">30 backups</option>
+                                <option value="50">50 backups</option>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                Old backups are automatically deleted after each backup.
+                            </small>
+                        </div>
                     </div>
 
                     <!-- Dropbox Backup Settings -->
@@ -505,6 +519,19 @@
                             </select>
                             <small style="color: #666; display: block; margin-top: 5px;">
                                 Creates and uploads backups to your Dropbox account.
+                            </small>
+                        </div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label for="maxDropboxBackups">Keep Last</label>
+                            <select id="maxDropboxBackups" class="form-control">
+                                <option value="10">10 backups</option>
+                                <option value="20" selected>20 backups (recommended)</option>
+                                <option value="30">30 backups</option>
+                                <option value="50">50 backups</option>
+                                <option value="100">100 backups</option>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                Old cloud backups are automatically deleted after upload.
                             </small>
                         </div>
                     </div>
@@ -673,10 +700,14 @@
         function saveBackupSettings() {
             const localInterval = document.getElementById('localBackupInterval').value;
             const dropboxInterval = document.getElementById('dropboxBackupInterval').value;
+            const maxLocalBackups = document.getElementById('maxLocalBackups').value;
+            const maxDropboxBackups = document.getElementById('maxDropboxBackups').value;
 
             const formData = new FormData();
             formData.append('local_interval_hours', localInterval);
             formData.append('dropbox_interval_hours', dropboxInterval);
+            formData.append('max_local_backups', maxLocalBackups);
+            formData.append('max_dropbox_backups', maxDropboxBackups);
 
             fetch('{{ url_for("update_backup_settings") }}', {
                 method: 'POST',
@@ -690,13 +721,13 @@
                     if (localInterval == '0') {
                         message += '📁 Local backups: Disabled\n';
                     } else {
-                        message += '📁 Local backups: Every ' + localInterval + ' hour(s)\n';
+                        message += '📁 Local backups: Every ' + localInterval + ' hour(s), keep ' + maxLocalBackups + '\n';
                     }
 
                     if (dropboxInterval == '0') {
                         message += '☁️ Dropbox backups: Disabled';
                     } else {
-                        message += '☁️ Dropbox backups: Every ' + dropboxInterval + ' hour(s)';
+                        message += '☁️ Dropbox backups: Every ' + dropboxInterval + ' hour(s), keep ' + maxDropboxBackups;
                     }
 
                     alert(message);
@@ -719,6 +750,12 @@
                 }
                 if (data.dropbox_interval_hours !== undefined) {
                     document.getElementById('dropboxBackupInterval').value = data.dropbox_interval_hours;
+                }
+                if (data.max_local_backups !== undefined) {
+                    document.getElementById('maxLocalBackups').value = data.max_local_backups;
+                }
+                if (data.max_dropbox_backups !== undefined) {
+                    document.getElementById('maxDropboxBackups').value = data.max_dropbox_backups;
                 }
             })
             .catch(error => {
