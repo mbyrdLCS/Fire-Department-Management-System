@@ -2644,6 +2644,16 @@ def get_all_display_settings():
             'show_inspections_qr': 'true'
         }
 
+# ========== GENERAL SETTINGS FUNCTIONS ==========
+
+def get_setting(setting_key, default_value=None):
+    """Get a setting value from database (generic wrapper)"""
+    return get_display_setting(setting_key, default_value)
+
+def set_setting(setting_key, setting_value):
+    """Set a setting value in database (generic wrapper)"""
+    return update_display_setting(setting_key, setting_value)
+
 # ========== KIOSK SETTINGS FUNCTIONS ==========
 
 def get_kiosk_settings():

@@ -293,6 +293,35 @@
             color: #2e7d32;
         }
 
+        .settings-form {
+            margin-top: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         @media (max-width: 768px) {
             .status-grid {
                 grid-template-columns: 1fr;
@@ -427,6 +456,35 @@
                         <strong>✗ Not Configured:</strong> Dropbox credentials not found or invalid. Please configure DROPBOX_APP_KEY, DROPBOX_APP_SECRET, and DROPBOX_REFRESH_TOKEN in your .env file.
                     </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Backup Settings -->
+        <div class="status-card" style="margin-bottom: 20px;">
+            <div class="status-header">
+                <h2>⚙️ Automatic Backup Settings</h2>
+            </div>
+
+            <div class="settings-form">
+                <div class="form-group">
+                    <label for="backupInterval">Automatic Backup Interval</label>
+                    <select id="backupInterval" class="form-control">
+                        <option value="0.5">Every 30 minutes</option>
+                        <option value="1" selected>Every hour (recommended)</option>
+                        <option value="2">Every 2 hours</option>
+                        <option value="4">Every 4 hours</option>
+                        <option value="6">Every 6 hours</option>
+                        <option value="12">Every 12 hours</option>
+                        <option value="24">Daily</option>
+                    </select>
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Automatic backups will be created and uploaded to Dropbox at this interval while the application is running.
+                    </small>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveBackupSettings()" style="margin-top: 10px;">
+                    💾 Save Settings
+                </button>
             </div>
         </div>
 
@@ -583,6 +641,43 @@
                 alert('Error during cleanup: ' + error);
             });
         }
+
+        function saveBackupSettings() {
+            const interval = document.getElementById('backupInterval').value;
+
+            const formData = new FormData();
+            formData.append('interval_hours', interval);
+
+            fetch('{{ url_for("update_backup_settings") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Backup settings saved successfully!\n\nAutomatic backups will now run every ' + interval + ' hour(s).');
+                } else {
+                    alert('Failed to save settings: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error saving settings: ' + error);
+            });
+        }
+
+        // Load current backup interval setting on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            fetch('{{ url_for("get_backup_settings") }}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.interval_hours) {
+                    document.getElementById('backupInterval').value = data.interval_hours;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading backup settings:', error);
+            });
+        });
     </script>
 </body>
 </html>
