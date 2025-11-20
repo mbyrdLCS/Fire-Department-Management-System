@@ -68,49 +68,64 @@ central = pytz.timezone('America/Chicago')
 # ========== AUTOMATIC BACKUP SCHEDULER ==========
 
 class AutomaticBackupScheduler:
-    """Handles automatic configurable backups to Dropbox"""
+    """Handles automatic configurable backups (local or Dropbox)"""
 
-    def __init__(self, interval_seconds=3600):
-        self.interval_seconds = interval_seconds
+    def __init__(self, backup_type, setting_key, default_interval_hours=1):
+        self.backup_type = backup_type  # 'local' or 'dropbox'
+        self.setting_key = setting_key
+        self.default_interval_hours = default_interval_hours
+        self.interval_seconds = default_interval_hours * 3600
         self.timer = None
         self.is_running = False
 
     def _get_backup_interval(self):
         """Get the backup interval from database settings"""
         try:
-            setting = db_helpers.get_setting('backup_interval_hours')
-            if setting:
-                hours = float(setting)
-                return int(hours * 3600)  # Convert hours to seconds
-        except Exception as e:
-            logger.error(f"Error getting backup interval from settings: {str(e)}")
+            setting = db_helpers.get_setting(self.setting_key, str(self.default_interval_hours))
+            hours = float(setting)
 
-        # Default to 1 hour if setting not found
-        return 3600
+            # If interval is 0, backup is disabled
+            if hours == 0:
+                return 0
+
+            return int(hours * 3600)  # Convert hours to seconds
+        except Exception as e:
+            logger.error(f"Error getting {self.backup_type} backup interval from settings: {str(e)}")
+            return self.default_interval_hours * 3600
 
     def _perform_backup(self):
         """Perform the backup and schedule the next one"""
         try:
-            logger.info("Starting automatic backup...")
+            if self.backup_type == 'local':
+                logger.info("Starting automatic local backup...")
+                result = db_helpers.create_database_backup()
 
-            # Create local backup
-            result = db_helpers.create_database_backup()
-
-            if result['success']:
-                logger.info(f"Automatic backup created: {result['backup_filename']}")
-
-                # Upload to Dropbox
-                dropbox_result = db_helpers.upload_backup_to_dropbox(result['backup_path'])
-
-                if dropbox_result['success']:
-                    logger.info(f"Automatic backup uploaded to Dropbox successfully")
+                if result['success']:
+                    logger.info(f"Automatic local backup created: {result['backup_filename']}")
                 else:
-                    logger.warning(f"Automatic backup created but Dropbox upload failed: {dropbox_result.get('error')}")
-            else:
-                logger.error(f"Automatic backup failed: {result.get('error')}")
+                    logger.error(f"Automatic local backup failed: {result.get('error')}")
+
+            elif self.backup_type == 'dropbox':
+                logger.info("Starting automatic Dropbox backup...")
+
+                # Create local backup first
+                result = db_helpers.create_database_backup()
+
+                if result['success']:
+                    logger.info(f"Local backup created for Dropbox upload: {result['backup_filename']}")
+
+                    # Upload to Dropbox
+                    dropbox_result = db_helpers.upload_backup_to_dropbox(result['backup_path'])
+
+                    if dropbox_result['success']:
+                        logger.info(f"Automatic Dropbox backup uploaded successfully")
+                    else:
+                        logger.warning(f"Dropbox upload failed: {dropbox_result.get('error')}")
+                else:
+                    logger.error(f"Automatic Dropbox backup failed (local creation): {result.get('error')}")
 
         except Exception as e:
-            logger.error(f"Automatic backup error: {str(e)}")
+            logger.error(f"Automatic {self.backup_type} backup error: {str(e)}")
 
         finally:
             # Schedule the next backup with updated interval
@@ -120,6 +135,12 @@ class AutomaticBackupScheduler:
     def _schedule_next(self):
         """Schedule the next backup with current interval setting"""
         self.interval_seconds = self._get_backup_interval()
+
+        # If interval is 0, don't schedule (disabled)
+        if self.interval_seconds == 0:
+            logger.info(f"{self.backup_type.capitalize()} automatic backups are disabled")
+            return
+
         self.timer = Timer(self.interval_seconds, self._perform_backup)
         self.timer.daemon = True
         self.timer.start()
@@ -129,8 +150,12 @@ class AutomaticBackupScheduler:
         if not self.is_running:
             self.is_running = True
             self.interval_seconds = self._get_backup_interval()
-            logger.info(f"Automatic backup scheduler started (interval: {self.interval_seconds}s / {self.interval_seconds/3600}h)")
-            self._schedule_next()
+
+            if self.interval_seconds == 0:
+                logger.info(f"{self.backup_type.capitalize()} automatic backups are disabled (interval: 0)")
+            else:
+                logger.info(f"{self.backup_type.capitalize()} automatic backup scheduler started (interval: {self.interval_seconds}s / {self.interval_seconds/3600}h)")
+                self._schedule_next()
 
     def stop(self):
         """Stop the automatic backup scheduler"""
@@ -138,22 +163,25 @@ class AutomaticBackupScheduler:
         if self.timer:
             self.timer.cancel()
             self.timer = None
-            logger.info("Automatic backup scheduler stopped")
+            logger.info(f"{self.backup_type.capitalize()} automatic backup scheduler stopped")
 
     def restart(self):
         """Restart the scheduler with new interval (useful when settings change)"""
-        logger.info("Restarting backup scheduler with updated interval...")
+        logger.info(f"Restarting {self.backup_type} backup scheduler with updated interval...")
         self.stop()
         self.start()
 
-# Initialize automatic backup scheduler
-backup_scheduler = AutomaticBackupScheduler()
+# Initialize automatic backup schedulers
+local_backup_scheduler = AutomaticBackupScheduler('local', 'local_backup_interval_hours', default_interval_hours=1)
+dropbox_backup_scheduler = AutomaticBackupScheduler('dropbox', 'dropbox_backup_interval_hours', default_interval_hours=1)
 
 # Start automatic backups when the app starts
-backup_scheduler.start()
+local_backup_scheduler.start()
+dropbox_backup_scheduler.start()
 
 # Stop automatic backups when the app shuts down
-atexit.register(backup_scheduler.stop)
+atexit.register(local_backup_scheduler.stop)
+atexit.register(dropbox_backup_scheduler.stop)
 
 # Template filters
 @app.template_filter('fromisoformat')
@@ -2915,10 +2943,12 @@ def get_backup_settings():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     try:
-        interval_hours = db_helpers.get_setting('backup_interval_hours', '1')
+        local_interval = db_helpers.get_setting('local_backup_interval_hours', '1')
+        dropbox_interval = db_helpers.get_setting('dropbox_backup_interval_hours', '1')
         return jsonify({
             'success': True,
-            'interval_hours': interval_hours
+            'local_interval_hours': local_interval,
+            'dropbox_interval_hours': dropbox_interval
         })
     except Exception as e:
         logger.error(f"Error getting backup settings: {str(e)}")
@@ -2931,27 +2961,33 @@ def update_backup_settings():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     try:
-        interval_hours = request.form.get('interval_hours', '1')
+        local_interval = request.form.get('local_interval_hours', '1')
+        dropbox_interval = request.form.get('dropbox_interval_hours', '1')
 
-        # Validate the interval
+        # Validate the intervals
         try:
-            interval_float = float(interval_hours)
-            if interval_float <= 0 or interval_float > 24:
-                return jsonify({'success': False, 'error': 'Interval must be between 0 and 24 hours'}), 400
+            local_float = float(local_interval)
+            dropbox_float = float(dropbox_interval)
+            if local_float < 0 or local_float > 24:
+                return jsonify({'success': False, 'error': 'Local interval must be between 0 and 24 hours'}), 400
+            if dropbox_float < 0 or dropbox_float > 24:
+                return jsonify({'success': False, 'error': 'Dropbox interval must be between 0 and 24 hours'}), 400
         except ValueError:
             return jsonify({'success': False, 'error': 'Invalid interval value'}), 400
 
-        # Save the setting
-        db_helpers.set_setting('backup_interval_hours', interval_hours)
+        # Save the settings
+        db_helpers.set_setting('local_backup_interval_hours', local_interval)
+        db_helpers.set_setting('dropbox_backup_interval_hours', dropbox_interval)
 
-        # Restart the backup scheduler with the new interval
-        backup_scheduler.restart()
+        # Restart both backup schedulers with the new intervals
+        local_backup_scheduler.restart()
+        dropbox_backup_scheduler.restart()
 
-        logger.info(f"Backup interval updated to {interval_hours} hours")
+        logger.info(f"Backup intervals updated - Local: {local_interval}h, Dropbox: {dropbox_interval}h")
 
         return jsonify({
             'success': True,
-            'message': f'Backup interval updated to {interval_hours} hours'
+            'message': f'Backup intervals updated successfully'
         })
 
     except Exception as e:

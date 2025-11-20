@@ -466,20 +466,48 @@
             </div>
 
             <div class="settings-form">
-                <div class="form-group">
-                    <label for="backupInterval">Automatic Backup Interval</label>
-                    <select id="backupInterval" class="form-control">
-                        <option value="0.5">Every 30 minutes</option>
-                        <option value="1" selected>Every hour (recommended)</option>
-                        <option value="2">Every 2 hours</option>
-                        <option value="4">Every 4 hours</option>
-                        <option value="6">Every 6 hours</option>
-                        <option value="12">Every 12 hours</option>
-                        <option value="24">Daily</option>
-                    </select>
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        Automatic backups will be created and uploaded to Dropbox at this interval while the application is running.
-                    </small>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <!-- Local Backup Settings -->
+                    <div>
+                        <h3 style="color: #333; font-size: 16px; margin-bottom: 10px;">📁 Local Backups</h3>
+                        <div class="form-group">
+                            <label for="localBackupInterval">Automatic Interval</label>
+                            <select id="localBackupInterval" class="form-control">
+                                <option value="0">Disabled</option>
+                                <option value="0.5">Every 30 minutes</option>
+                                <option value="1" selected>Every hour (recommended)</option>
+                                <option value="2">Every 2 hours</option>
+                                <option value="4">Every 4 hours</option>
+                                <option value="6">Every 6 hours</option>
+                                <option value="12">Every 12 hours</option>
+                                <option value="24">Daily</option>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                Creates local database backups to the server's backup folder.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Dropbox Backup Settings -->
+                    <div>
+                        <h3 style="color: #333; font-size: 16px; margin-bottom: 10px;">☁️ Dropbox Backups</h3>
+                        <div class="form-group">
+                            <label for="dropboxBackupInterval">Automatic Interval</label>
+                            <select id="dropboxBackupInterval" class="form-control">
+                                <option value="0">Disabled</option>
+                                <option value="0.5">Every 30 minutes</option>
+                                <option value="1" selected>Every hour (recommended)</option>
+                                <option value="2">Every 2 hours</option>
+                                <option value="4">Every 4 hours</option>
+                                <option value="6">Every 6 hours</option>
+                                <option value="12">Every 12 hours</option>
+                                <option value="24">Daily</option>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                Creates and uploads backups to your Dropbox account.
+                            </small>
+                        </div>
+                    </div>
                 </div>
 
                 <button class="btn btn-primary" onclick="saveBackupSettings()" style="margin-top: 10px;">
@@ -643,10 +671,12 @@
         }
 
         function saveBackupSettings() {
-            const interval = document.getElementById('backupInterval').value;
+            const localInterval = document.getElementById('localBackupInterval').value;
+            const dropboxInterval = document.getElementById('dropboxBackupInterval').value;
 
             const formData = new FormData();
-            formData.append('interval_hours', interval);
+            formData.append('local_interval_hours', localInterval);
+            formData.append('dropbox_interval_hours', dropboxInterval);
 
             fetch('{{ url_for("update_backup_settings") }}', {
                 method: 'POST',
@@ -655,7 +685,21 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Backup settings saved successfully!\n\nAutomatic backups will now run every ' + interval + ' hour(s).');
+                    let message = 'Backup settings saved successfully!\n\n';
+
+                    if (localInterval == '0') {
+                        message += '📁 Local backups: Disabled\n';
+                    } else {
+                        message += '📁 Local backups: Every ' + localInterval + ' hour(s)\n';
+                    }
+
+                    if (dropboxInterval == '0') {
+                        message += '☁️ Dropbox backups: Disabled';
+                    } else {
+                        message += '☁️ Dropbox backups: Every ' + dropboxInterval + ' hour(s)';
+                    }
+
+                    alert(message);
                 } else {
                     alert('Failed to save settings: ' + data.error);
                 }
@@ -665,13 +709,16 @@
             });
         }
 
-        // Load current backup interval setting on page load
+        // Load current backup interval settings on page load
         window.addEventListener('DOMContentLoaded', function() {
             fetch('{{ url_for("get_backup_settings") }}')
             .then(response => response.json())
             .then(data => {
-                if (data.interval_hours) {
-                    document.getElementById('backupInterval').value = data.interval_hours;
+                if (data.local_interval_hours !== undefined) {
+                    document.getElementById('localBackupInterval').value = data.local_interval_hours;
+                }
+                if (data.dropbox_interval_hours !== undefined) {
+                    document.getElementById('dropboxBackupInterval').value = data.dropbox_interval_hours;
                 }
             })
             .catch(error => {
