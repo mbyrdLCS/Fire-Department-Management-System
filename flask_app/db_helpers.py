@@ -3190,3 +3190,206 @@ def cleanup_old_dropbox_backups(keep_count=20):
             'deleted_count': 0,
             'error': str(e)
         }
+
+# ========== ISO HOSE TESTING FUNCTIONS ==========
+
+def get_all_hoses():
+    """Get all hoses from inventory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            i.id,
+            i.item_code,
+            i.name,
+            i.diameter,
+            i.hose_type,
+            i.notes,
+            v.vehicle_code,
+            v.name as vehicle_name,
+            v.id as vehicle_id
+        FROM inventory_items i
+        LEFT JOIN vehicle_inventory vi ON i.id = vi.item_id
+        LEFT JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE i.category = 'Hose'
+        ORDER BY i.item_code
+    ''')
+
+    hoses = []
+    for row in cursor.fetchall():
+        hoses.append({
+            'id': row[0],
+            'item_code': row[1],
+            'name': row[2],
+            'diameter': row[3],
+            'hose_type': row[4],
+            'notes': row[5],
+            'vehicle_code': row[6],
+            'vehicle_name': row[7],
+            'vehicle_id': row[8]
+        })
+
+    conn.close()
+    return hoses
+
+def get_hoses_on_vehicles():
+    """Get only hoses that are assigned to vehicles (in service)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            i.id,
+            i.item_code,
+            i.name,
+            i.diameter,
+            i.hose_type,
+            v.id as vehicle_id,
+            v.vehicle_code,
+            v.name as vehicle_name,
+            v.vehicle_type
+        FROM inventory_items i
+        JOIN vehicle_inventory vi ON i.id = vi.item_id
+        JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE i.category = 'Hose'
+        AND v.status = 'active'
+        ORDER BY v.vehicle_code, i.item_code
+    ''')
+
+    hoses = []
+    for row in cursor.fetchall():
+        hoses.append({
+            'id': row[0],
+            'item_code': row[1],
+            'name': row[2],
+            'diameter': row[3],
+            'hose_type': row[4],
+            'vehicle_id': row[5],
+            'vehicle_code': row[6],
+            'vehicle_name': row[7],
+            'vehicle_type': row[8]
+        })
+
+    conn.close()
+    return hoses
+
+def get_hose_test_history(item_id, years=3):
+    """Get test history for a specific hose for the last N years"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            test_year,
+            test_date,
+            test_result,
+            test_pressure,
+            tested_by,
+            failure_reason,
+            repair_status
+        FROM iso_hose_tests
+        WHERE item_id = ?
+        ORDER BY test_year DESC
+        LIMIT ?
+    ''', (item_id, years))
+
+    tests = []
+    for row in cursor.fetchall():
+        tests.append({
+            'test_year': row[0],
+            'test_date': row[1],
+            'test_result': row[2],
+            'test_pressure': row[3],
+            'tested_by': row[4],
+            'failure_reason': row[5],
+            'repair_status': row[6]
+        })
+
+    conn.close()
+    return tests
+
+def save_hose_test(item_id, test_year, test_date, test_result, test_pressure=None,
+                   tested_by=None, failure_reason=None, repair_status=None,
+                   repair_cost=None, repair_notes=None):
+    """Save or update a hose test result"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO iso_hose_tests
+            (item_id, test_year, test_date, test_result, test_pressure, tested_by,
+             failure_reason, repair_status, repair_cost, repair_notes, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(item_id, test_year)
+            DO UPDATE SET
+                test_date = ?,
+                test_result = ?,
+                test_pressure = ?,
+                tested_by = ?,
+                failure_reason = ?,
+                repair_status = ?,
+                repair_cost = ?,
+                repair_notes = ?,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (item_id, test_year, test_date, test_result, test_pressure, tested_by,
+              failure_reason, repair_status, repair_cost, repair_notes,
+              test_date, test_result, test_pressure, tested_by,
+              failure_reason, repair_status, repair_cost, repair_notes))
+
+        conn.commit()
+        conn.close()
+        return True, "Test saved successfully"
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+
+def get_hose_testing_summary(test_year):
+    """Get summary of hose testing for a specific year"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Get all hoses on vehicles
+    cursor.execute('''
+        SELECT COUNT(DISTINCT i.id)
+        FROM inventory_items i
+        JOIN vehicle_inventory vi ON i.id = vi.item_id
+        JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE i.category = 'Hose'
+        AND v.status = 'active'
+    ''')
+    total_hoses = cursor.fetchone()[0]
+
+    # Get tested hoses for the year
+    cursor.execute('''
+        SELECT COUNT(DISTINCT t.item_id)
+        FROM iso_hose_tests t
+        JOIN inventory_items i ON t.item_id = i.id
+        JOIN vehicle_inventory vi ON i.id = vi.item_id
+        WHERE t.test_year = ?
+    ''', (test_year,))
+    tested_count = cursor.fetchone()[0]
+
+    # Get pass/fail counts
+    cursor.execute('''
+        SELECT test_result, COUNT(*)
+        FROM iso_hose_tests
+        WHERE test_year = ?
+        GROUP BY test_result
+    ''', (test_year,))
+
+    results = {'PASS': 0, 'FAIL': 0, 'REPAIR': 0}
+    for row in cursor.fetchall():
+        results[row[0]] = row[1]
+
+    conn.close()
+
+    return {
+        'total_hoses': total_hoses,
+        'tested_count': tested_count,
+        'untested_count': total_hoses - tested_count,
+        'pass_count': results['PASS'],
+        'fail_count': results['FAIL'],
+        'repair_count': results['REPAIR']
+    }

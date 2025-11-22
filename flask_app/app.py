@@ -3682,6 +3682,81 @@ def inventory_value_report():
         flash('An error occurred while generating the report.')
         return redirect(url_for('reports_menu'))
 
+# ========== ISO HOSE TESTING ROUTES ==========
+
+@app.route('/iso-hose-testing')
+def iso_hose_testing():
+    """Main ISO hose testing page"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    hoses = db_helpers.get_hoses_on_vehicles()
+    current_year = datetime.now().year
+    summary = db_helpers.get_hose_testing_summary(current_year)
+
+    return render_template('iso_hose_testing.html',
+                         hoses=hoses,
+                         current_year=current_year,
+                         summary=summary)
+
+@app.route('/iso-hose-testing/annual-test/<int:test_year>')
+def annual_hose_test(test_year):
+    """Annual testing interface for a specific year"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    hoses = db_helpers.get_hoses_on_vehicles()
+
+    # Get existing tests for this year
+    for hose in hoses:
+        tests = db_helpers.get_hose_test_history(hose['id'], years=1)
+        hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
+
+    summary = db_helpers.get_hose_testing_summary(test_year)
+
+    return render_template('annual_hose_test.html',
+                         hoses=hoses,
+                         test_year=test_year,
+                         summary=summary)
+
+@app.route('/iso-hose-testing/save-test', methods=['POST'])
+def save_hose_test():
+    """Save a hose test result"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    try:
+        item_id = int(request.form['item_id'])
+        test_year = int(request.form['test_year'])
+        test_date = request.form['test_date']
+        test_result = request.form['test_result']
+        test_pressure = request.form.get('test_pressure')
+        tested_by = request.form.get('tested_by', '')
+        failure_reason = request.form.get('failure_reason', '')
+        repair_status = request.form.get('repair_status', '')
+
+        success, message = db_helpers.save_hose_test(
+            item_id=item_id,
+            test_year=test_year,
+            test_date=test_date,
+            test_result=test_result,
+            test_pressure=int(test_pressure) if test_pressure else None,
+            tested_by=tested_by,
+            failure_reason=failure_reason if failure_reason else None,
+            repair_status=repair_status if repair_status else None
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'error': message}), 500
+
+    except Exception as e:
+        logger.error(f"Error saving hose test: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
