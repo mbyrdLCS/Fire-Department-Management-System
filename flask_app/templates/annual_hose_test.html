@@ -201,7 +201,7 @@
                                     <option value="">--</option>
                                     {% for vehicle in vehicles %}
                                         <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
-                                            {{ vehicle.vehicle_code }}
+                                            {{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}
                                         </option>
                                     {% endfor %}
                                 </select>

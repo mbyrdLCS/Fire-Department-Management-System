@@ -3771,16 +3771,20 @@ def move_hose():
         item_id = int(request.form['item_id'])
         new_vehicle_id = int(request.form['vehicle_id'])
 
-        # Remove from old vehicle
-        db_helpers.remove_item_from_vehicle(item_id)
+        # First, find and delete the current vehicle_inventory entry for this item
+        conn = db_helpers.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM vehicle_inventory WHERE item_id = ?', (item_id,))
+        conn.commit()
+        conn.close()
 
-        # Assign to new vehicle
-        success = db_helpers.assign_item_to_vehicle(item_id, new_vehicle_id)
+        # Add to new vehicle (quantity=1 for hoses)
+        success, message = db_helpers.add_item_to_vehicle(new_vehicle_id, item_id, quantity=1)
 
         if success:
             return jsonify({'success': True, 'message': 'Hose moved successfully'})
         else:
-            return jsonify({'success': False, 'error': 'Failed to move hose'}), 500
+            return jsonify({'success': False, 'error': message}), 500
 
     except Exception as e:
         logger.error(f"Error moving hose: {str(e)}")
@@ -3799,17 +3803,26 @@ def add_hose():
         hose_type = request.form.get('hose_type', 'Fire Hose')
 
         # Create the hose in inventory
-        item_id = db_helpers.create_inventory_item(
-            item_code=item_code,
-            category='Hose',
-            diameter=diameter,
-            hose_type=hose_type
-        )
+        conn = db_helpers.get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO inventory_items
+            (name, item_code, category, diameter, hose_type, unit_of_measure)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (f'{diameter}" Hose', item_code, 'Hose', diameter, hose_type, 'each'))
+
+        conn.commit()
+        item_id = cursor.lastrowid
+        conn.close()
 
         if item_id:
-            # Assign to vehicle
-            db_helpers.assign_item_to_vehicle(item_id, vehicle_id)
-            return jsonify({'success': True, 'message': 'Hose added successfully'})
+            # Assign to vehicle (quantity=1 for hoses)
+            success, message = db_helpers.add_item_to_vehicle(vehicle_id, item_id, quantity=1)
+            if success:
+                return jsonify({'success': True, 'message': 'Hose added successfully'})
+            else:
+                return jsonify({'success': False, 'error': message}), 500
         else:
             return jsonify({'success': False, 'error': 'Failed to create hose'}), 500
 
