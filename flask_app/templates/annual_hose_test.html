@@ -187,18 +187,54 @@
         </div>
 
         <div class="testing-table">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h2 style="margin: 0;">Hose Testing Form</h2>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
-                           style="padding: 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
-                           onkeyup="searchHoses()">
-                    <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
+            <!-- Tabs and Controls -->
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;">Hose Testing Form</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
+                               style="padding: 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
+                               onkeyup="searchHoses()">
+                        <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px;">
+                    <button onclick="filterHoses('all')" id="tab-all" class="filter-tab active-tab" style="padding: 10px 20px; border: none; background: #667eea; color: white; border-radius: 5px 5px 0 0; cursor: pointer; font-weight: bold;">
+                        All Hoses
+                    </button>
+                    <button onclick="filterHoses('untested')" id="tab-untested" class="filter-tab" style="padding: 10px 20px; border: none; background: #e0e0e0; color: #333; border-radius: 5px 5px 0 0; cursor: pointer;">
+                        Untested
+                    </button>
+                    <button onclick="filterHoses('tested')" id="tab-tested" class="filter-tab" style="padding: 10px 20px; border: none; background: #e0e0e0; color: #333; border-radius: 5px 5px 0 0; cursor: pointer;">
+                        Tested
+                    </button>
+                </div>
+
+                <!-- Batch Testing Mode -->
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="batchMode" onchange="toggleBatchMode()" style="width: 20px; height: 20px;">
+                        <span style="font-weight: bold; color: #1976d2;">Batch Testing Mode - Select 4 hoses to test together</span>
+                    </label>
+                    <div id="batchControls" style="display: none; margin-top: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <span id="batchInfo" style="color: #1976d2; font-weight: bold;">Select up to 4 hoses using checkboxes</span>
+                        </div>
+                        <button onclick="applyBatchTest()" id="applyBatchBtn" disabled style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+                            ✓ Apply Test to Selected (0)
+                        </button>
+                        <button onclick="clearSelection()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Clear Selection
+                        </button>
+                    </div>
                 </div>
             </div>
             <table>
                 <thead>
                     <tr>
+                        <th class="batch-checkbox-col" style="display: none; width: 50px;">Select</th>
                         <th>ID</th>
                         <th>Size</th>
                         <th>Move To Vehicle</th>
@@ -216,10 +252,13 @@
                         {% if hose.vehicle_code != current_vehicle %}
                             {% set current_vehicle = hose.vehicle_code %}
                             <tr class="vehicle-group">
-                                <td colspan="10">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
+                                <td colspan="11">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
                             </tr>
                         {% endif %}
                         <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}">
+                            <td class="batch-checkbox-col" style="display: none;">
+                                <input type="checkbox" class="batch-select" onchange="updateBatchSelection()">
+                            </td>
                             <td><strong>{{ hose.item_code }}</strong></td>
                             <td>{{ hose.diameter }}"</td>
                             <td>
@@ -240,6 +279,7 @@
                             </td>
                             <td>
                                 <select class="test-result" onchange="autoFillDate(this)">
+                                    <option value="">--</option>
                                     <option value="PASS" {% if hose.test and hose.test.test_result == 'PASS' %}selected{% endif %}>PASS</option>
                                     <option value="FAIL" {% if hose.test and hose.test.test_result == 'FAIL' %}selected{% endif %}>FAIL</option>
                                     <option value="REPAIR" {% if hose.test and hose.test.test_result == 'REPAIR' %}selected{% endif %}>@ REPAIR</option>
@@ -309,13 +349,147 @@
     </div>
 
     <script>
+        let currentFilter = 'all';
+        let batchModeActive = false;
+
+        function filterHoses(filter) {
+            currentFilter = filter;
+            const table = document.querySelector('table tbody');
+            const rows = table.getElementsByTagName('tr');
+
+            // Update tab styling
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.style.background = '#e0e0e0';
+                tab.style.color = '#333';
+                tab.classList.remove('active-tab');
+            });
+            document.getElementById(`tab-${filter}`).style.background = '#667eea';
+            document.getElementById(`tab-${filter}`).style.color = 'white';
+            document.getElementById(`tab-${filter}`).classList.add('active-tab');
+
+            // Filter rows
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+
+                // Skip vehicle group headers
+                if (row.classList.contains('vehicle-group')) {
+                    continue;
+                }
+
+                const testDateInput = row.querySelector('.test-date');
+                const isTested = testDateInput && testDateInput.value !== '';
+
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else if (filter === 'tested' && isTested) {
+                    row.style.display = '';
+                } else if (filter === 'untested' && !isTested) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+
+            // Show/hide vehicle group headers
+            updateVehicleGroupHeaders();
+        }
+
+        function updateVehicleGroupHeaders() {
+            const table = document.querySelector('table tbody');
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+
+                if (row.classList.contains('vehicle-group')) {
+                    let hasVisibleHoses = false;
+                    let j = i + 1;
+                    while (j < rows.length && !rows[j].classList.contains('vehicle-group')) {
+                        if (rows[j].style.display !== 'none') {
+                            hasVisibleHoses = true;
+                            break;
+                        }
+                        j++;
+                    }
+                    row.style.display = hasVisibleHoses ? '' : 'none';
+                }
+            }
+        }
+
+        function toggleBatchMode() {
+            batchModeActive = document.getElementById('batchMode').checked;
+            const batchControls = document.getElementById('batchControls');
+            const checkboxCols = document.querySelectorAll('.batch-checkbox-col');
+
+            batchControls.style.display = batchModeActive ? 'block' : 'none';
+
+            // Show/hide checkbox column
+            checkboxCols.forEach(col => {
+                col.style.display = batchModeActive ? '' : 'none';
+            });
+
+            if (!batchModeActive) {
+                // Clear all selections
+                clearSelection();
+            }
+        }
+
+        function updateBatchSelection() {
+            const selected = document.querySelectorAll('.batch-select:checked');
+            const count = selected.length;
+            const btn = document.getElementById('applyBatchBtn');
+
+            btn.textContent = `✓ Apply Test to Selected (${count})`;
+            btn.disabled = count === 0;
+
+            if (count > 4) {
+                alert('You can only select up to 4 hoses at a time');
+                // Uncheck the last one
+                selected[selected.length - 1].checked = false;
+                updateBatchSelection();
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.batch-select').forEach(cb => cb.checked = false);
+            updateBatchSelection();
+        }
+
+        function applyBatchTest() {
+            const selected = document.querySelectorAll('.batch-select:checked');
+            if (selected.length === 0) return;
+
+            // Get test values from user
+            const testDate = prompt('Enter test date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!testDate) return;
+
+            const testResult = prompt('Enter result (PASS, FAIL, or REPAIR):')?.toUpperCase();
+            if (!['PASS', 'FAIL', 'REPAIR'].includes(testResult)) {
+                alert('Invalid result. Must be PASS, FAIL, or REPAIR');
+                return;
+            }
+
+            const testPsi = prompt('Enter test PSI:', '250');
+
+            // Apply to all selected rows
+            selected.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                row.querySelector('.test-date').value = testDate;
+                row.querySelector('.test-result').value = testResult;
+                row.querySelector('.test-psi').value = testPsi || 250;
+            });
+
+            alert(`Test data applied to ${selected.length} hose${selected.length > 1 ? 's' : ''}!\n\nRemember to click Save for each hose.`);
+            clearSelection();
+        }
+
         function autoFillDate(selectElement) {
             // Get the row
             const row = selectElement.closest('tr');
             const dateInput = row.querySelector('.test-date');
 
-            // Only auto-fill if date is empty
-            if (!dateInput.value) {
+            // Auto-fill date if a result is selected (PASS, FAIL, or REPAIR)
+            if (selectElement.value && selectElement.value !== '' && !dateInput.value) {
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = String(today.getMonth() + 1).padStart(2, '0');
