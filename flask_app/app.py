@@ -3805,7 +3805,7 @@ def add_hose():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     try:
-        item_code = request.form['item_code'].strip()
+        hose_id = request.form['item_code'].strip()  # This is the physical ID on the hose
         diameter = float(request.form['diameter'])
         vehicle_id = int(request.form['vehicle_id'])
         hose_type = request.form.get('hose_type', 'Fire Hose')
@@ -3814,22 +3814,22 @@ def add_hose():
         conn = db_helpers.get_db_connection()
         cursor = conn.cursor()
 
-        # Check if item_code already exists
-        cursor.execute('SELECT id, category FROM inventory_items WHERE item_code = ?', (item_code,))
+        # Use HOSE- prefix for internal item_code to prevent conflicts with other inventory
+        internal_code = f'HOSE-{hose_id}'
+
+        # Check if this hose ID already exists
+        cursor.execute('SELECT id FROM inventory_items WHERE item_code = ?', (internal_code,))
         existing = cursor.fetchone()
 
         if existing:
             conn.close()
-            if existing[1] == 'Hose':
-                return jsonify({'success': False, 'error': f'Hose "{item_code}" already exists in inventory'}), 400
-            else:
-                return jsonify({'success': False, 'error': f'Item code "{item_code}" is already used by a {existing[1]} item. Please use a different code.'}), 400
+            return jsonify({'success': False, 'error': f'Hose "{hose_id}" already exists in inventory'}), 400
 
         cursor.execute('''
             INSERT INTO inventory_items
             (name, item_code, category, diameter, hose_type, unit_of_measure)
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (f'{diameter}" Hose', item_code, 'Hose', diameter, hose_type, 'each'))
+        ''', (hose_id, internal_code, 'Hose', diameter, hose_type, 'each'))
 
         conn.commit()
         item_id = cursor.lastrowid
@@ -3839,7 +3839,7 @@ def add_hose():
             # Assign to vehicle (quantity=1 for hoses)
             success, message = db_helpers.add_item_to_vehicle(vehicle_id, item_id, quantity=1)
             if success:
-                return jsonify({'success': True, 'message': 'Hose added successfully', 'item_id': item_id, 'item_code': item_code})
+                return jsonify({'success': True, 'message': 'Hose added successfully', 'item_id': item_id, 'item_code': hose_id})
             else:
                 return jsonify({'success': False, 'error': message}), 500
         else:

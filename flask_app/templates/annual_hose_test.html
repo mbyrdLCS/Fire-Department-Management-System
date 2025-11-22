@@ -259,7 +259,7 @@
                             <td class="batch-checkbox-col" style="display: none;">
                                 <input type="checkbox" class="batch-select" onchange="updateBatchSelection()">
                             </td>
-                            <td><strong>{{ hose.item_code }}</strong></td>
+                            <td><strong>{{ hose.name }}</strong></td>
                             <td>{{ hose.diameter }}"</td>
                             <td>
                                 <select class="move-vehicle" onchange="moveHose({{ hose.id }}, this.value)">
@@ -298,7 +298,7 @@
                             </td>
                             <td>
                                 <button class="btn-save" onclick="saveTest({{ hose.id }})" style="margin-right: 5px;">Save</button>
-                                <button onclick="deleteHose({{ hose.id }}, '{{ hose.item_code }}')"
+                                <button onclick="deleteHose({{ hose.id }}, '{{ hose.name }}')"
                                         style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
                                     Delete
                                 </button>
