@@ -95,6 +95,59 @@
             font-weight: bold;
             transition: width 0.3s;
         }
+        .btn-add-hose {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .btn-add-hose:hover { background: #0056b3; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: #000; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -112,13 +165,16 @@
         </div>
 
         <div class="testing-table">
-            <h2>Hose Testing Form</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">Hose Testing Form</h2>
+                <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
+            </div>
             <table>
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Size</th>
-                        <th>Vehicle</th>
+                        <th>Move To Vehicle</th>
                         <th>Test Date</th>
                         <th>Test PSI</th>
                         <th>Result</th>
@@ -134,13 +190,22 @@
                         {% if hose.vehicle_code != current_vehicle %}
                             {% set current_vehicle = hose.vehicle_code %}
                             <tr class="vehicle-group">
-                                <td colspan="10">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
+                                <td colspan="11">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
                             </tr>
                         {% endif %}
-                        <tr data-item-id="{{ hose.id }}">
+                        <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}">
                             <td><strong>{{ hose.item_code }}</strong></td>
                             <td>{{ hose.diameter }}"</td>
-                            <td>{{ hose.vehicle_code }}</td>
+                            <td>
+                                <select class="move-vehicle" onchange="moveHose({{ hose.id }}, this.value)">
+                                    <option value="">--</option>
+                                    {% for vehicle in vehicles %}
+                                        <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
+                                            {{ vehicle.vehicle_code }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
                             <td>
                                 <input type="date" class="test-date" value="{{ hose.test.test_date if hose.test else '' }}">
                             </td>
@@ -178,7 +243,112 @@
         </div>
     </div>
 
+    <!-- Add New Hose Modal -->
+    <div id="addHoseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddHoseModal()">&times;</span>
+            <h2>Add New Hose</h2>
+            <form id="addHoseForm" onsubmit="addNewHose(event)">
+                <div class="form-group">
+                    <label for="new_item_code">Hose ID Number:</label>
+                    <input type="text" id="new_item_code" name="item_code" required placeholder="e.g. 25-01">
+                </div>
+                <div class="form-group">
+                    <label for="new_diameter">Diameter (inches):</label>
+                    <select id="new_diameter" name="diameter" required>
+                        <option value="1.5">1.5"</option>
+                        <option value="2.5" selected>2.5"</option>
+                        <option value="3.0">3.0"</option>
+                        <option value="4.0">4.0"</option>
+                        <option value="5.0">5.0"</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="new_vehicle">Assign to Vehicle:</label>
+                    <select id="new_vehicle" name="vehicle_id" required>
+                        <option value="">Select Vehicle...</option>
+                        {% for vehicle in vehicles %}
+                            <option value="{{ vehicle.id }}">{{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="new_hose_type">Hose Type:</label>
+                    <input type="text" id="new_hose_type" name="hose_type" value="Fire Hose" placeholder="Fire Hose">
+                </div>
+                <button type="submit" class="btn-save" style="width: 100%; padding: 12px;">Add Hose</button>
+            </form>
+        </div>
+    </div>
+
     <script>
+        function showAddHoseModal() {
+            document.getElementById('addHoseModal').style.display = 'block';
+        }
+
+        function closeAddHoseModal() {
+            document.getElementById('addHoseModal').style.display = 'none';
+            document.getElementById('addHoseForm').reset();
+        }
+
+        function addNewHose(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            fetch('{{ url_for("add_hose") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Hose added successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error adding hose: ' + error);
+            });
+        }
+
+        function moveHose(itemId, newVehicleId) {
+            if (!newVehicleId) return;
+
+            const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+            const currentVehicleId = row.getAttribute('data-vehicle-id');
+
+            if (newVehicleId == currentVehicleId) return;
+
+            if (!confirm('Move this hose to the selected vehicle?')) {
+                // Reset dropdown
+                row.querySelector('.move-vehicle').value = currentVehicleId;
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('item_id', itemId);
+            formData.append('vehicle_id', newVehicleId);
+
+            fetch('{{ url_for("move_hose") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Hose moved successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error moving hose: ' + error);
+            });
+        }
+
         function saveTest(itemId) {
             const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
             const testDate = row.querySelector('.test-date').value;

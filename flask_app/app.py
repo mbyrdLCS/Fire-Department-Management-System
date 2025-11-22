@@ -3716,10 +3716,14 @@ def annual_hose_test(test_year):
 
     summary = db_helpers.get_hose_testing_summary(test_year)
 
+    # Get all active vehicles for the dropdown
+    vehicles = db_helpers.get_all_vehicles()
+
     return render_template('annual_hose_test.html',
                          hoses=hoses,
                          test_year=test_year,
-                         summary=summary)
+                         summary=summary,
+                         vehicles=vehicles)
 
 @app.route('/iso-hose-testing/save-test', methods=['POST'])
 def save_hose_test():
@@ -3755,6 +3759,62 @@ def save_hose_test():
 
     except Exception as e:
         logger.error(f"Error saving hose test: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/iso-hose-testing/move-hose', methods=['POST'])
+def move_hose():
+    """Move a hose to a different vehicle"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    try:
+        item_id = int(request.form['item_id'])
+        new_vehicle_id = int(request.form['vehicle_id'])
+
+        # Remove from old vehicle
+        db_helpers.remove_item_from_vehicle(item_id)
+
+        # Assign to new vehicle
+        success = db_helpers.assign_item_to_vehicle(item_id, new_vehicle_id)
+
+        if success:
+            return jsonify({'success': True, 'message': 'Hose moved successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to move hose'}), 500
+
+    except Exception as e:
+        logger.error(f"Error moving hose: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/iso-hose-testing/add-hose', methods=['POST'])
+def add_hose():
+    """Add a new hose to inventory"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    try:
+        item_code = request.form['item_code']
+        diameter = float(request.form['diameter'])
+        vehicle_id = int(request.form['vehicle_id'])
+        hose_type = request.form.get('hose_type', 'Fire Hose')
+
+        # Create the hose in inventory
+        item_id = db_helpers.create_inventory_item(
+            item_code=item_code,
+            category='Hose',
+            diameter=diameter,
+            hose_type=hose_type
+        )
+
+        if item_id:
+            # Assign to vehicle
+            db_helpers.assign_item_to_vehicle(item_id, vehicle_id)
+            return jsonify({'success': True, 'message': 'Hose added successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to create hose'}), 500
+
+    except Exception as e:
+        logger.error(f"Error adding hose: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
