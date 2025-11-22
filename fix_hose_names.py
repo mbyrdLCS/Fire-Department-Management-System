@@ -64,11 +64,25 @@ def fix_hose_names():
             cursor.execute('UPDATE inventory_items SET name = ? WHERE id = ?', (new_name, hose_id))
             updated_count += 1
         elif name and ('" Hose' in name or '"Hose' in name):
-            # Handle bad data like '1.5" Hose' - these need manual review
-            print(f"WARNING: Hose {hose_id} has invalid name '{name}' - needs manual correction")
-            print(f"  item_code: '{item_code}'")
+            # Handle bad data like '1.5" Hose' - use item_code as the name
+            if item_code and not item_code.startswith('HOSE-'):
+                # item_code has the real hose ID, use it as the name
+                new_name = item_code.strip()
+                new_item_code = f'HOSE-{new_name}'
+                print(f"Fixing hose {hose_id}: name '{name}' -> '{new_name}', item_code '{item_code}' -> '{new_item_code}'")
+                cursor.execute('UPDATE inventory_items SET name = ?, item_code = ? WHERE id = ?',
+                             (new_name, new_item_code, hose_id))
+                updated_count += 1
+            else:
+                print(f"WARNING: Hose {hose_id} has invalid name '{name}' and item_code '{item_code}' - needs manual correction")
+        elif item_code and not item_code.startswith('HOSE-'):
+            # item_code doesn't have HOSE- prefix, add it
+            new_item_code = f'HOSE-{item_code}'
+            print(f"Adding HOSE- prefix to hose {hose_id}: item_code '{item_code}' -> '{new_item_code}'")
+            cursor.execute('UPDATE inventory_items SET item_code = ? WHERE id = ?', (new_item_code, hose_id))
+            updated_count += 1
         else:
-            print(f"Hose {hose_id}: name='{name}', item_code='{item_code}'")
+            print(f"Hose {hose_id}: name='{name}', item_code='{item_code}' - OK")
 
     conn.commit()
     conn.close()
