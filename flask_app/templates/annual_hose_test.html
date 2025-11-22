@@ -179,9 +179,14 @@
         </div>
 
         <div class="testing-table">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h2 style="margin: 0;">Hose Testing Form</h2>
-                <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
+                           style="padding: 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
+                           onkeyup="searchHoses()">
+                    <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
+                </div>
             </div>
             <table>
                 <thead>
@@ -192,7 +197,6 @@
                         <th>Test Date</th>
                         <th>Test PSI</th>
                         <th>Result</th>
-                        <th>Tested By</th>
                         <th>Failure Reason</th>
                         <th>Repair Status</th>
                         <th>Action</th>
@@ -204,7 +208,7 @@
                         {% if hose.vehicle_code != current_vehicle %}
                             {% set current_vehicle = hose.vehicle_code %}
                             <tr class="vehicle-group">
-                                <td colspan="11">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
+                                <td colspan="10">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
                             </tr>
                         {% endif %}
                         <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}">
@@ -232,9 +236,6 @@
                                     <option value="FAIL" {% if hose.test and hose.test.test_result == 'FAIL' %}selected{% endif %}>FAIL</option>
                                     <option value="REPAIR" {% if hose.test and hose.test.test_result == 'REPAIR' %}selected{% endif %}>@ REPAIR</option>
                                 </select>
-                            </td>
-                            <td>
-                                <input type="text" class="tested-by" value="{{ hose.test.tested_by if hose.test else '' }}" placeholder="Name">
                             </td>
                             <td>
                                 <input type="text" class="failure-reason" value="{{ hose.test.failure_reason if hose.test else '' }}" placeholder="If failed...">
@@ -296,6 +297,50 @@
     </div>
 
     <script>
+        function searchHoses() {
+            const searchTerm = document.getElementById('searchBox').value.toUpperCase();
+            const table = document.querySelector('table tbody');
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+
+                // Skip vehicle group headers
+                if (row.classList.contains('vehicle-group')) {
+                    continue;
+                }
+
+                const hoseId = row.querySelector('td strong');
+                if (hoseId) {
+                    const textValue = hoseId.textContent || hoseId.innerText;
+                    if (textValue.toUpperCase().indexOf(searchTerm) > -1) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+
+            // Show/hide vehicle group headers based on visible hoses
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+
+                if (row.classList.contains('vehicle-group')) {
+                    // Check if next rows (until next vehicle group) have any visible hoses
+                    let hasVisibleHoses = false;
+                    let j = i + 1;
+                    while (j < rows.length && !rows[j].classList.contains('vehicle-group')) {
+                        if (rows[j].style.display !== 'none') {
+                            hasVisibleHoses = true;
+                            break;
+                        }
+                        j++;
+                    }
+                    row.style.display = hasVisibleHoses ? '' : 'none';
+                }
+            }
+        }
+
         function showAddHoseModal() {
             document.getElementById('addHoseModal').style.display = 'block';
         }
@@ -368,7 +413,6 @@
             const testDate = row.querySelector('.test-date').value;
             const testPsi = row.querySelector('.test-psi').value;
             const testResult = row.querySelector('.test-result').value;
-            const testedBy = row.querySelector('.tested-by').value;
             const failureReason = row.querySelector('.failure-reason').value;
             const repairStatus = row.querySelector('.repair-status').value;
 
@@ -377,13 +421,19 @@
                 return;
             }
 
+            // Warn if marking as complete loss
+            if (repairStatus === 'Complete Loss') {
+                if (!confirm('Marking this hose as Complete Loss will remove it from the vehicle. Continue?')) {
+                    return;
+                }
+            }
+
             const formData = new FormData();
             formData.append('item_id', itemId);
             formData.append('test_year', {{ test_year }});
             formData.append('test_date', testDate);
             formData.append('test_result', testResult);
             formData.append('test_pressure', testPsi);
-            formData.append('tested_by', testedBy);
             formData.append('failure_reason', failureReason);
             formData.append('repair_status', repairStatus);
 
@@ -394,7 +444,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Test saved!');
+                    if (repairStatus === 'Complete Loss') {
+                        alert('Test saved and hose removed from vehicle (Complete Loss)');
+                    } else {
+                        alert('Test saved!');
+                    }
                     window.location.reload();
                 } else {
                     alert('Error: ' + data.error);

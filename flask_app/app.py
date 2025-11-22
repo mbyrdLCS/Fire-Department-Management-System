@@ -3737,7 +3737,6 @@ def save_hose_test():
         test_date = request.form['test_date']
         test_result = request.form['test_result']
         test_pressure = request.form.get('test_pressure')
-        tested_by = request.form.get('tested_by', '')
         failure_reason = request.form.get('failure_reason', '')
         repair_status = request.form.get('repair_status', '')
 
@@ -3747,12 +3746,21 @@ def save_hose_test():
             test_date=test_date,
             test_result=test_result,
             test_pressure=int(test_pressure) if test_pressure else None,
-            tested_by=tested_by,
+            tested_by=None,  # No longer using tested_by field
             failure_reason=failure_reason if failure_reason else None,
             repair_status=repair_status if repair_status else None
         )
 
         if success:
+            # If marked as Complete Loss, remove from vehicle
+            if repair_status == 'Complete Loss':
+                conn = db_helpers.get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM vehicle_inventory WHERE item_id = ?', (item_id,))
+                conn.commit()
+                conn.close()
+                logger.info(f"Hose {item_id} marked as Complete Loss and removed from vehicle")
+
             return jsonify({'success': True, 'message': message})
         else:
             return jsonify({'success': False, 'error': message}), 500
