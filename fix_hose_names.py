@@ -78,9 +78,18 @@ def fix_hose_names():
         elif item_code and not item_code.startswith('HOSE-'):
             # item_code doesn't have HOSE- prefix, add it
             new_item_code = f'HOSE-{item_code}'
-            print(f"Adding HOSE- prefix to hose {hose_id}: item_code '{item_code}' -> '{new_item_code}'")
-            cursor.execute('UPDATE inventory_items SET item_code = ? WHERE id = ?', (new_item_code, hose_id))
-            updated_count += 1
+
+            # Check if this item_code already exists
+            cursor.execute('SELECT id FROM inventory_items WHERE item_code = ? AND id != ?', (new_item_code, hose_id))
+            existing = cursor.fetchone()
+
+            if existing:
+                print(f"WARNING: Hose {hose_id} has item_code '{item_code}' but '{new_item_code}' already exists (hose {existing[0]}) - DUPLICATE!")
+                print(f"  This hose needs manual review - might need to be deleted")
+            else:
+                print(f"Adding HOSE- prefix to hose {hose_id}: item_code '{item_code}' -> '{new_item_code}'")
+                cursor.execute('UPDATE inventory_items SET item_code = ? WHERE id = ?', (new_item_code, hose_id))
+                updated_count += 1
         else:
             print(f"Hose {hose_id}: name='{name}', item_code='{item_code}' - OK")
 
