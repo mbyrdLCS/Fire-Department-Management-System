@@ -1931,7 +1931,23 @@ def get_all_alerts(station_id=None):
     for row in cursor.fetchall():
         vehicle_id = row[0]
         inspection_id = row[5]
+        failed_date = row[3]
         additional_notes = row[4]
+
+        # Check if there's a completed maintenance record after this failed inspection
+        cursor.execute('''
+            SELECT COUNT(*)
+            FROM maintenance_records
+            WHERE vehicle_id = ?
+            AND completed = 1
+            AND performed_date >= ?
+        ''', (vehicle_id, failed_date))
+
+        maintenance_completed = cursor.fetchone()[0] > 0
+
+        # Skip this vehicle if maintenance has been completed after the failed inspection
+        if maintenance_completed:
+            continue
 
         # Compile all notes: additional notes + any item-specific notes
         all_notes = []
@@ -1957,7 +1973,7 @@ def get_all_alerts(station_id=None):
             'id': row[0],
             'name': row[1],
             'code': row[2],
-            'failed_date': row[3],
+            'failed_date': failed_date,
             'notes': combined_notes
         })
 
