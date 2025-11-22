@@ -354,6 +354,7 @@
         let pinnedHoses = new Set();
 
         function togglePinHose(checkbox) {
+            console.log('togglePinHose called', checkbox.checked);
             const row = checkbox.closest('tr');
             const hoseId = row.getAttribute('data-item-id');
             const hoseName = row.getAttribute('data-hose-name');
@@ -372,6 +373,10 @@
 
             updatePinnedSection();
             updatePinInfo();
+
+            // Verify search box still works
+            const searchBox = document.getElementById('searchBox');
+            console.log('Search box after pin:', searchBox, 'disabled:', searchBox.disabled);
         }
 
         function updatePinnedSection() {
@@ -547,12 +552,17 @@
         }
 
         function searchHoses() {
+            console.log('searchHoses function called!');
             const searchBox = document.getElementById('searchBox');
+            if (!searchBox) {
+                console.error('Search box not found!');
+                return;
+            }
             const searchTerm = searchBox.value.trim().toUpperCase();
             const table = document.querySelector('table tbody');
             const rows = Array.from(table.getElementsByTagName('tr'));
 
-            console.log('Search term:', searchTerm);
+            console.log('Search term:', searchTerm, 'Row count:', rows.length);
 
             rows.forEach(row => {
                 // Skip vehicle group headers
