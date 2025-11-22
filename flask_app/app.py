@@ -3956,37 +3956,83 @@ def iso_hose_testing_report():
             ])
 
         output.seek(0)
-        return Response(
-            output.getvalue(),
+        return send_file(
+            BytesIO(output.getvalue().encode('utf-8')),
             mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; filename=ISO_Hose_Testing_{year}.csv'}
+            as_attachment=True,
+            download_name=f'ISO_Hose_Testing_{year}.csv'
         )
 
-    # Handle PDF export
+    # Handle PDF export using ReportLab (same as other reports)
     if export_format == 'pdf':
-        from flask import make_response
         try:
-            from weasyprint import HTML, CSS
-            from io import BytesIO
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                                  topMargin=0.5*inch, bottomMargin=0.5*inch)
+            elements = []
+            styles = getSampleStyleSheet()
 
-            # Render the HTML template
-            html_content = render_template('reports/iso_hose_testing_report.html',
-                                         hoses=hoses,
-                                         year=year,
-                                         available_years=[year])
+            # Title
+            title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                       alignment=TA_CENTER, fontSize=18, spaceAfter=20)
+            title = Paragraph(f"<b>ISO HOSE TESTING REPORT - {year}</b>", title_style)
+            elements.append(title)
+            elements.append(Spacer(1, 0.25*inch))
 
-            # Generate PDF using WeasyPrint
-            pdf_file = BytesIO()
-            HTML(string=html_content).write_pdf(pdf_file)
-            pdf_file.seek(0)
+            # Summary statistics
+            total_tested = len(hoses)
+            passed = len([h for h in hoses if h['test_result'] == 'PASS'])
+            failed = len([h for h in hoses if h['test_result'] == 'FAIL'])
 
-            response = make_response(pdf_file.read())
-            response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'attachment; filename=ISO_Hose_Testing_{year}.pdf'
-            return response
-        except ImportError:
-            # If weasyprint not available, fallback to printing instructions
-            flash('PDF export requires WeasyPrint. Please use Print button instead.', 'error')
+            summary_text = f"Total Tested: {total_tested} | Passed: {passed} | Failed: {failed}"
+            summary = Paragraph(summary_text, styles['Normal'])
+            elements.append(summary)
+            elements.append(Spacer(1, 0.25*inch))
+
+            # Table data
+            data = [['Vehicle', 'Hose ID', 'Size', 'Test PSI', 'Status', 'Test Date', 'Notes']]
+
+            for hose in hoses:
+                notes = ''
+                if hose['failure_reason']:
+                    notes = hose['failure_reason']
+                if hose['repair_status']:
+                    notes += (' - ' if notes else '') + hose['repair_status']
+
+                data.append([
+                    hose['vehicle_code'],
+                    hose['hose_id'],
+                    f"{hose['diameter']}\"",
+                    f"{hose['test_pressure']} PSI",
+                    hose['test_result'],
+                    hose['test_date'],
+                    notes[:30] if notes else ''  # Limit notes length
+                ])
+
+            # Create table
+            table = Table(data, colWidths=[1.2*inch, 1.2*inch, 0.8*inch, 1*inch, 1*inch, 1.2*inch, 2.5*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ]))
+            elements.append(table)
+
+            doc.build(elements)
+            buffer.seek(0)
+
+            return send_file(buffer, mimetype='application/pdf',
+                           as_attachment=True,
+                           download_name=f'ISO_Hose_Testing_{year}.pdf')
+
+        except Exception as e:
+            logger.error(f"PDF Export error: {str(e)}")
+            flash('An error occurred during PDF export.')
             return redirect(url_for('iso_hose_testing_report', year=year))
 
     # Get available years
