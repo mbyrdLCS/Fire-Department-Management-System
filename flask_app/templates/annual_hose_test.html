@@ -283,7 +283,6 @@
                                     <option value="">--</option>
                                     <option value="PASS" {% if hose.test and hose.test.test_result == 'PASS' %}selected{% endif %}>PASS</option>
                                     <option value="FAIL" {% if hose.test and hose.test.test_result == 'FAIL' %}selected{% endif %}>FAIL</option>
-                                    <option value="REPAIR" {% if hose.test and hose.test.test_result == 'REPAIR' %}selected{% endif %}>@ REPAIR</option>
                                 </select>
                             </td>
                             <td>
@@ -533,14 +532,25 @@
             // Get the row
             const row = selectElement.closest('tr');
             const dateInput = row.querySelector('.test-date');
+            const repairStatusSelect = row.querySelector('.repair-status');
 
-            // Auto-fill date if a result is selected (PASS, FAIL, or REPAIR)
+            // Auto-fill date if a result is selected
             if (selectElement.value && selectElement.value !== '' && !dateInput.value) {
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const day = String(today.getDate()).padStart(2, '0');
                 dateInput.value = `${year}-${month}-${day}`;
+            }
+
+            // If FAIL is selected, auto-set repair status to "Being Repaired"
+            if (selectElement.value === 'FAIL' && repairStatusSelect.value === '') {
+                repairStatusSelect.value = 'Being Repaired';
+            }
+
+            // If PASS is selected, clear repair status
+            if (selectElement.value === 'PASS') {
+                repairStatusSelect.value = '';
             }
         }
 
