@@ -232,7 +232,7 @@
                     <div id="pinnedHosesList"></div>
                 </div>
             </div>
-            <table>
+            <table id="mainHoseTable">
                 <thead>
                     <tr>
                         <th style="width: 50px;">Pin</th>
@@ -247,7 +247,7 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="mainHoseTableBody">
                     {% set current_vehicle = '' %}
                     {% for hose in hoses %}
                         {% if hose.vehicle_code != current_vehicle %}
@@ -467,8 +467,8 @@
 
         function filterHoses(filter) {
             currentFilter = filter;
-            const table = document.querySelector('table tbody');
-            const rows = table.getElementsByTagName('tr');
+            const tableBody = document.getElementById('mainHoseTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
 
             // Update tab styling
             document.querySelectorAll('.filter-tab').forEach(tab => {
@@ -508,8 +508,8 @@
         }
 
         function updateVehicleGroupHeaders() {
-            const table = document.querySelector('table tbody');
-            const rows = table.getElementsByTagName('tr');
+            const tableBody = document.getElementById('mainHoseTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
 
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
@@ -559,10 +559,10 @@
                 return;
             }
             const searchTerm = searchBox.value.trim().toUpperCase();
-            const table = document.querySelector('table tbody');
+            const tableBody = document.getElementById('mainHoseTableBody');
 
             // Get ALL rows from the table, not just visible ones
-            const allRows = Array.from(table.querySelectorAll('tr'));
+            const allRows = Array.from(tableBody.querySelectorAll('tr'));
 
             console.log('Search term:', searchTerm, 'Total row count:', allRows.length);
 
