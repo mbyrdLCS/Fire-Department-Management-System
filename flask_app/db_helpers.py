@@ -3293,25 +3293,46 @@ def get_hoses_on_vehicles():
     conn.close()
     return hoses
 
-def get_hose_test_history(item_id, years=3):
-    """Get test history for a specific hose for the last N years"""
+def get_hose_test_history(item_id, years=None):
+    """Get test history for a specific hose for the last N years (or all if years=None)"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('''
-        SELECT
-            test_year,
-            test_date,
-            test_result,
-            test_pressure,
-            tested_by,
-            failure_reason,
-            repair_status
-        FROM iso_hose_tests
-        WHERE item_id = ?
-        ORDER BY test_year DESC
-        LIMIT ?
-    ''', (item_id, years))
+    if years is None:
+        # Get all test records
+        cursor.execute('''
+            SELECT
+                test_year,
+                test_date,
+                test_result,
+                test_pressure,
+                tested_by,
+                failure_reason,
+                repair_status
+            FROM iso_hose_tests
+            WHERE item_id = ?
+            ORDER BY test_year DESC
+        ''', (item_id,))
+    else:
+        # Get records for the last N years
+        from datetime import datetime
+        current_year = datetime.now().year
+        min_year = current_year - years + 1
+
+        cursor.execute('''
+            SELECT
+                test_year,
+                test_date,
+                test_result,
+                test_pressure,
+                tested_by,
+                failure_reason,
+                repair_status
+            FROM iso_hose_tests
+            WHERE item_id = ?
+            AND test_year >= ?
+            ORDER BY test_year DESC
+        ''', (item_id, min_year))
 
     tests = []
     for row in cursor.fetchall():

@@ -3711,7 +3711,7 @@ def annual_hose_test(test_year):
 
     # Get existing tests for this year
     for hose in hoses:
-        tests = db_helpers.get_hose_test_history(hose['id'], years=1)
+        tests = db_helpers.get_hose_test_history(hose['id'], years=None)  # Get all test records
         hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
 
     summary = db_helpers.get_hose_testing_summary(test_year)
