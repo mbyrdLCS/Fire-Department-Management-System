@@ -3807,8 +3807,10 @@ def add_hose():
     try:
         item_code = request.form['item_code']
         diameter = float(request.form['diameter'])
-        vehicle_id = int(request.form['vehicle_id'])
         hose_type = request.form.get('hose_type', 'Fire Hose')
+        assignment_type = request.form.get('assignment_type', 'vehicle')
+        vehicle_id = request.form.get('vehicle_id')
+        location = request.form.get('location', '').strip()
 
         # Create the hose in inventory
         conn = db_helpers.get_db_connection()
@@ -3816,21 +3818,23 @@ def add_hose():
 
         cursor.execute('''
             INSERT INTO inventory_items
-            (name, item_code, category, diameter, hose_type, unit_of_measure)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (f'{diameter}" Hose', item_code, 'Hose', diameter, hose_type, 'each'))
+            (name, item_code, category, diameter, hose_type, location, unit_of_measure)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (f'{diameter}" Hose', item_code, 'Hose', diameter, hose_type,
+              location if assignment_type == 'location' else None, 'each'))
 
         conn.commit()
         item_id = cursor.lastrowid
         conn.close()
 
         if item_id:
-            # Assign to vehicle (quantity=1 for hoses)
-            success, message = db_helpers.add_item_to_vehicle(vehicle_id, item_id, quantity=1)
-            if success:
-                return jsonify({'success': True, 'message': 'Hose added successfully', 'item_id': item_id, 'item_code': item_code})
-            else:
-                return jsonify({'success': False, 'error': message}), 500
+            # Assign to vehicle if vehicle assignment
+            if assignment_type == 'vehicle' and vehicle_id:
+                success, message = db_helpers.add_item_to_vehicle(int(vehicle_id), item_id, quantity=1)
+                if not success:
+                    return jsonify({'success': False, 'error': message}), 500
+
+            return jsonify({'success': True, 'message': 'Hose added successfully', 'item_id': item_id, 'item_code': item_code})
         else:
             return jsonify({'success': False, 'error': 'Failed to create hose'}), 500
 

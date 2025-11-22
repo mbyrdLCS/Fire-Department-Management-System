@@ -219,18 +219,22 @@
                                 <td colspan="10">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
                             </tr>
                         {% endif %}
-                        <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}">
+                        <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}" {% if hose.is_location %}style="background-color: #e8f5e9;"{% endif %}>
                             <td><strong>{{ hose.item_code }}</strong></td>
                             <td>{{ hose.diameter }}"</td>
                             <td>
-                                <select class="move-vehicle" onchange="moveHose({{ hose.id }}, this.value)">
-                                    <option value="">--</option>
-                                    {% for vehicle in vehicles %}
-                                        <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
-                                            {{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
+                                {% if hose.is_location %}
+                                    <span style="color: #2e7d32; font-weight: bold;">📍 {{ hose.location }}</span>
+                                {% else %}
+                                    <select class="move-vehicle" onchange="moveHose({{ hose.id }}, this.value)">
+                                        <option value="">--</option>
+                                        {% for vehicle in vehicles %}
+                                            <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
+                                                {{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                {% endif %}
                             </td>
                             <td>
                                 <input type="date" class="test-date" value="{{ hose.test.test_date if hose.test else '' }}">
@@ -287,13 +291,30 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Assignment Type:</label>
+                    <div style="display: flex; gap: 20px; margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="radio" name="assignment_type" value="vehicle" checked onchange="toggleAssignment()">
+                            Vehicle
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="radio" name="assignment_type" value="location" onchange="toggleAssignment()">
+                            Location
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" id="vehicle_section">
                     <label for="new_vehicle">Assign to Vehicle:</label>
-                    <select id="new_vehicle" name="vehicle_id" required>
+                    <select id="new_vehicle" name="vehicle_id">
                         <option value="">Select Vehicle...</option>
                         {% for vehicle in vehicles %}
                             <option value="{{ vehicle.id }}">{{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}</option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="form-group" id="location_section" style="display: none;">
+                    <label for="new_location">Location Name:</label>
+                    <input type="text" id="new_location" name="location" placeholder="e.g., First Baptist Church">
                 </div>
                 <div class="form-group">
                     <label for="new_hose_type">Hose Type:</label>
@@ -364,13 +385,35 @@
             }
         }
 
+        function toggleAssignment() {
+            const assignmentType = document.querySelector('input[name="assignment_type"]:checked').value;
+            const vehicleSection = document.getElementById('vehicle_section');
+            const locationSection = document.getElementById('location_section');
+            const vehicleSelect = document.getElementById('new_vehicle');
+            const locationInput = document.getElementById('new_location');
+
+            if (assignmentType === 'vehicle') {
+                vehicleSection.style.display = 'block';
+                locationSection.style.display = 'none';
+                vehicleSelect.required = true;
+                locationInput.required = false;
+            } else {
+                vehicleSection.style.display = 'none';
+                locationSection.style.display = 'block';
+                vehicleSelect.required = false;
+                locationInput.required = true;
+            }
+        }
+
         function showAddHoseModal() {
             document.getElementById('addHoseModal').style.display = 'block';
+            toggleAssignment(); // Ensure correct section is shown
         }
 
         function closeAddHoseModal() {
             document.getElementById('addHoseModal').style.display = 'none';
             document.getElementById('addHoseForm').reset();
+            toggleAssignment(); // Reset to default view
         }
 
         function addNewHose(event) {
