@@ -3455,3 +3455,108 @@ def get_hose_testing_summary(test_year):
         'fail_count': results['FAIL'],
         'repair_count': results['REPAIR']
     }
+
+def get_hose_compliance_data(current_year):
+    """
+    Get compliance data for hoses - which ones haven't been tested
+    Returns data for internal admin review only
+    """
+    from datetime import datetime
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Get all hoses with their latest test info
+    cursor.execute('''
+        SELECT 
+            i.id,
+            i.name,
+            i.item_code,
+            i.diameter,
+            i.location_type,
+            v.id as vehicle_id,
+            v.vehicle_code,
+            v.name as vehicle_name,
+            MAX(t.test_year) as last_test_year,
+            t.test_date as last_test_date,
+            t.test_result as last_test_result
+        FROM inventory_items i
+        LEFT JOIN vehicle_inventory vi ON i.id = vi.item_id
+        LEFT JOIN vehicles v ON vi.vehicle_id = v.id
+        LEFT JOIN iso_hose_tests t ON i.id = t.item_id
+        WHERE i.category = 'Hose'
+        GROUP BY i.id
+        ORDER BY last_test_year ASC NULLS FIRST, i.name
+    ''')
+    
+    all_hoses = []
+    untested_current_year = []
+    not_tested_1_year = 0
+    not_tested_2_years = 0
+    never_tested = 0
+    tested_current_year = 0
+    
+    for row in cursor.fetchall():
+        hose_data = {
+            'id': row[0],
+            'name': row[1],
+            'item_code': row[2],
+            'diameter': row[3],
+            'location_type': row[4],
+            'vehicle_id': row[5],
+            'vehicle_code': row[6],
+            'vehicle_name': row[7],
+            'last_test_year': row[8],
+            'last_test_date': row[9],
+            'last_test_result': row[10],
+            'years_since_test': None
+        }
+        
+        if hose_data['last_test_year']:
+            years_since = current_year - hose_data['last_test_year']
+            hose_data['years_since_test'] = years_since
+            
+            if hose_data['last_test_year'] == current_year:
+                tested_current_year += 1
+            else:
+                untested_current_year.append(hose_data)
+                if years_since >= 1:
+                    not_tested_1_year += 1
+                if years_since >= 2:
+                    not_tested_2_years += 1
+        else:
+            # Never tested
+            never_tested += 1
+            untested_current_year.append(hose_data)
+            not_tested_1_year += 1
+        
+        all_hoses.append(hose_data)
+    
+    conn.close()
+    
+    return {
+        'all_hoses': all_hoses,
+        'untested_hoses': untested_current_year,
+        'tested_current_year': tested_current_year,
+        'not_tested_1_year': not_tested_1_year,
+        'not_tested_2_years': not_tested_2_years,
+        'never_tested': never_tested,
+        'can_close_year': not_tested_1_year == 0  # Can close if all tested
+    }
+
+def close_testing_year(year):
+    """
+    Mark a testing year as closed/complete
+    This is just a setting flag for record keeping
+    """
+    set_setting(f'hose_testing_year_{year}_closed', 'true')
+    set_setting('hose_testing_current_year', str(year + 1))
+    
+    return {
+        'success': True,
+        'message': f'Year {year} closed. Now tracking {year + 1}.'
+    }
+
+def is_testing_year_closed(year):
+    """Check if a testing year has been closed"""
+    return get_setting(f'hose_testing_year_{year}_closed', 'false') == 'true'

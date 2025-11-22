@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hose Compliance Review - Fire Department</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 { color: #333; margin-bottom: 10px; }
+        .back-btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-value.good { color: #28a745; }
+        .stat-value.warning { color: #ff9800; }
+        .stat-value.danger { color: #f44336; }
+        .stat-label { color: #666; font-size: 14px; }
+
+        .action-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .action-card h2 { margin-bottom: 20px; color: #333; }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            text-decoration: none;
+        }
+        .btn-primary { background: #667eea; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #f44336; }
+        .btn-danger:hover { background: #da190b; }
+
+        .hose-table {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .hose-table h2 { margin-bottom: 15px; color: #333; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+        }
+        tr:hover { background: #f8f9fa; }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        .action-btns {
+            display: flex;
+            gap: 5px;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #17a2b8;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Hose Compliance Review - {{ current_year }}</h1>
+            <p>Internal compliance tracking and year-end closeout</p>
+            <a href="{{ url_for('iso_hose_testing') }}" class="back-btn">← Back to ISO Hose Testing</a>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value good">{{ compliance.tested_current_year }}</div>
+                <div class="stat-label">Tested {{ current_year }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value {% if compliance.not_tested_1_year > 0 %}danger{% else %}good{% endif %}">
+                    {{ compliance.not_tested_1_year }}
+                </div>
+                <div class="stat-label">Not Tested 1+ Year</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value {% if compliance.not_tested_2_years > 0 %}danger{% else %}good{% endif %}">
+                    {{ compliance.not_tested_2_years }}
+                </div>
+                <div class="stat-label">Not Tested 2+ Years</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value {% if compliance.never_tested > 0 %}warning{% else %}good{% endif %}">
+                    {{ compliance.never_tested }}
+                </div>
+                <div class="stat-label">Never Tested</div>
+            </div>
+        </div>
+
+        {% if can_close_year %}
+        <div class="action-card">
+            <h2>🎯 Year-End Closeout</h2>
+            <p style="margin-bottom: 20px;">
+                All {{ current_year }} testing appears complete. You can now close out {{ current_year }} and prepare for {{ current_year + 1 }} testing.
+            </p>
+            <form method="POST" action="{{ url_for('close_testing_year') }}" style="display: inline;">
+                <input type="hidden" name="year" value="{{ current_year }}">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Close out {{ current_year }} and prepare for {{ current_year + 1 }} testing?\n\nThis will mark {{ current_year }} as complete.')">
+                    ✓ Close {{ current_year }} & Start {{ current_year + 1 }}
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <strong>⚠️ Year Not Ready for Closeout</strong><br>
+            Complete all {{ current_year }} testing before closing out the year. Review untested hoses below.
+        </div>
+        {% endif %}
+
+        {% if compliance.not_tested_1_year > 0 %}
+        <div class="hose-table">
+            <h2>⚠️ Hoses Not Tested in {{ current_year }} ({{ compliance.untested_hoses|length }})</h2>
+            <p style="margin-bottom: 15px; color: #666;">
+                These hoses have not been tested this year. Test them or mark for deletion if no longer in service.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hose ID</th>
+                        <th>Size</th>
+                        <th>Location</th>
+                        <th>Last Tested</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hose in compliance.untested_hoses %}
+                    <tr>
+                        <td><strong>{{ hose.name }}</strong></td>
+                        <td>{{ hose.diameter }}"</td>
+                        <td>
+                            {% if hose.vehicle_code %}
+                                {{ hose.vehicle_code }} - {{ hose.vehicle_name }}
+                            {% elif hose.location_type %}
+                                {{ hose.location_type }}
+                            {% else %}
+                                <span style="color: #999;">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if hose.last_test_year %}
+                                {{ hose.last_test_year }} ({{ hose.last_test_date }})
+                                <br><span class="badge {% if hose.years_since_test >= 2 %}badge-danger{% else %}badge-warning{% endif %}">
+                                    {{ hose.years_since_test }} year(s) ago
+                                </span>
+                            {% else %}
+                                <span class="badge badge-warning">Never Tested</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if hose.last_test_result %}
+                                <span class="badge {% if hose.last_test_result == 'PASS' %}badge-info{% else %}badge-danger{% endif %}">
+                                    Last: {{ hose.last_test_result }}
+                                </span>
+                            {% else %}
+                                <span style="color: #999;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <a href="{{ url_for('annual_hose_test', test_year=current_year) }}" class="btn btn-primary btn-sm">
+                                    Test Now
+                                </a>
+                                <button onclick="deleteHose({{ hose.id }}, '{{ hose.name }}')" class="btn btn-danger btn-sm">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-info">
+            <strong>ℹ️ About This Page</strong><br>
+            This is an internal admin page for compliance review. Untested hoses will NOT appear in public reports or dashboards.
+            Use this page to identify hoses that need testing or removal from inventory before closing out the year.
+        </div>
+    </div>
+
+    <script>
+        function deleteHose(itemId, hoseName) {
+            if (!confirm(`Delete hose ${hoseName}?\n\nThis will:\n- Remove from inventory\n- Delete all test records\n- Cannot be undone\n\nProceed?`)) {
+                return;
+            }
+
+            fetch('{{ url_for("delete_hose") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `item_id=${itemId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Hose deleted successfully');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error deleting hose: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

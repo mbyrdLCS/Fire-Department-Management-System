@@ -3904,6 +3904,40 @@ def delete_hose():
         logger.error(f"Error deleting hose: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/iso-hose-testing/compliance-review')
+def hose_compliance_review():
+    """Internal admin page for hose compliance review and year closeout"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    from datetime import datetime
+    current_year = int(db_helpers.get_setting('hose_testing_current_year', str(datetime.now().year)))
+
+    compliance = db_helpers.get_hose_compliance_data(current_year)
+
+    return render_template('hose_compliance_review.html',
+                         compliance=compliance,
+                         current_year=current_year,
+                         can_close_year=compliance['can_close_year'])
+
+@app.route('/iso-hose-testing/close-year', methods=['POST'])
+def close_testing_year():
+    """Close out a testing year and prepare for next year"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    year = int(request.form['year'])
+    result = db_helpers.close_testing_year(year)
+
+    if result['success']:
+        flash(f"✓ {result['message']}")
+    else:
+        flash(f"Error: {result.get('message', 'Unknown error')}")
+
+    return redirect(url_for('hose_compliance_review'))
+
 @app.route('/reports/iso-hose-testing')
 def iso_hose_testing_report():
     """ISO Hose Testing Report"""
