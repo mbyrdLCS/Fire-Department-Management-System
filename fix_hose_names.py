@@ -7,16 +7,20 @@ while item_code should have the prefix (e.g., "HOSE-17-27").
 """
 
 import sqlite3
-import sys
 import os
 
-# Add the flask_app directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'flask_app'))
-
-import db_helpers
+def get_db_path():
+    """Get the database path"""
+    return os.path.join(os.path.dirname(__file__), 'flask_app', 'fire_department.db')
 
 def fix_hose_names():
-    conn = db_helpers.get_db_connection()
+    db_path = get_db_path()
+    if not os.path.exists(db_path):
+        print(f"Error: Database not found at {db_path}")
+        return 0
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     # Get all hoses
