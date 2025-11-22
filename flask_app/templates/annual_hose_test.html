@@ -192,9 +192,12 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                     <h2 style="margin: 0;">Hose Testing Form</h2>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
-                               style="padding: 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
-                               onkeyup="searchHoses()">
+                        <div style="position: relative;">
+                            <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
+                                   style="padding: 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
+                                   onkeyup="searchHoses()" oninput="searchHoses()">
+                            <button onclick="clearSearch()" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; color: #666;">✕</button>
+                        </div>
                         <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
                     </div>
                 </div>
@@ -531,6 +534,11 @@
             }
         }
 
+        function clearSearch() {
+            document.getElementById('searchBox').value = '';
+            searchHoses();
+        }
+
         function searchHoses() {
             const searchTerm = document.getElementById('searchBox').value.toUpperCase();
             const table = document.querySelector('table tbody');
@@ -550,8 +558,8 @@
                     const testDateInput = row.querySelector('.test-date');
                     const isTested = testDateInput && testDateInput.value !== '';
 
-                    // Check search match
-                    const matchesSearch = textValue.toUpperCase().indexOf(searchTerm) > -1;
+                    // Check search match (empty search shows all)
+                    const matchesSearch = searchTerm === '' || textValue.toUpperCase().indexOf(searchTerm) > -1;
 
                     // Check filter
                     let matchesFilter = true;
@@ -562,7 +570,6 @@
                     }
 
                     // Show row only if it matches both search and filter
-                    // Keep row visible regardless if it's pinned (so user can see what they pinned)
                     if (matchesSearch && matchesFilter) {
                         row.style.display = '';
                     } else {
