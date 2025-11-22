@@ -562,6 +562,7 @@
                     }
 
                     // Show row only if it matches both search and filter
+                    // Keep row visible regardless if it's pinned (so user can see what they pinned)
                     if (matchesSearch && matchesFilter) {
                         row.style.display = '';
                     } else {
