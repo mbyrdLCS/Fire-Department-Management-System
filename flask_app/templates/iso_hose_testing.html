@@ -147,6 +147,9 @@
             <a href="{{ url_for('annual_hose_test', test_year=current_year) }}" class="btn btn-success">
                 🧪 Start {{ current_year }} Annual Testing
             </a>
+            <a href="{{ url_for('iso_hose_testing_report', year=current_year) }}" class="btn btn-primary">
+                📊 View {{ current_year }} Report
+            </a>
             <a href="{{ url_for('annual_hose_test', test_year=current_year-1) }}" class="btn">
                 📋 View {{ current_year-1 }} Results
             </a>

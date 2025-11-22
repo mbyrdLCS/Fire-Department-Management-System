@@ -3880,6 +3880,114 @@ def delete_hose():
         logger.error(f"Error deleting hose: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/reports/iso-hose-testing')
+def iso_hose_testing_report():
+    """ISO Hose Testing Report"""
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    # Get year parameter or default to current year
+    year = request.args.get('year', type=int)
+    if not year:
+        year = datetime.now().year
+
+    export_format = request.args.get('export', '').lower()
+
+    # Get all tested hoses for the year
+    conn = db_helpers.get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            i.name as hose_id,
+            i.diameter,
+            t.test_pressure,
+            t.test_result,
+            t.test_date,
+            v.vehicle_code,
+            t.failure_reason,
+            t.repair_status
+        FROM iso_hose_tests t
+        JOIN inventory_items i ON t.item_id = i.id
+        LEFT JOIN vehicle_inventory vi ON i.id = vi.item_id
+        LEFT JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE t.test_year = ?
+        AND t.test_date IS NOT NULL
+        ORDER BY v.vehicle_code, i.name
+    ''', (year,))
+
+    hoses = []
+    for row in cursor.fetchall():
+        hoses.append({
+            'hose_id': row[0],
+            'diameter': row[1],
+            'test_pressure': row[2] or 250,
+            'test_result': row[3],
+            'test_date': row[4],
+            'vehicle_code': row[5] or 'Unassigned',
+            'failure_reason': row[6] or '',
+            'repair_status': row[7] or ''
+        })
+
+    conn.close()
+
+    # Handle CSV export
+    if export_format == 'csv':
+        import csv
+        from io import StringIO
+
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Write header
+        writer.writerow(['Vehicle', 'Hose ID', 'Size', 'Test PSI', 'Status', 'Test Date', 'Failure Reason', 'Repair Status'])
+
+        # Write data
+        for hose in hoses:
+            writer.writerow([
+                hose['vehicle_code'],
+                hose['hose_id'],
+                f"{hose['diameter']}\"",
+                f"{hose['test_pressure']} PSI",
+                hose['test_result'],
+                hose['test_date'],
+                hose['failure_reason'],
+                hose['repair_status']
+            ])
+
+        output.seek(0)
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename=ISO_Hose_Testing_{year}.csv'}
+        )
+
+    # Handle PDF export
+    if export_format == 'pdf':
+        from flask import make_response
+        import pdfkit
+
+        # Render the HTML template
+        html = render_template('reports/iso_hose_testing_report.html',
+                             hoses=hoses,
+                             year=year,
+                             available_years=[year])
+
+        # Generate PDF
+        pdf = pdfkit.from_string(html, False)
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=ISO_Hose_Testing_{year}.pdf'
+        return response
+
+    # Get available years
+    available_years = db_helpers.get_available_test_years()
+
+    return render_template('reports/iso_hose_testing_report.html',
+                         hoses=hoses,
+                         year=year,
+                         available_years=available_years)
+
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'

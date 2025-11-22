@@ -3308,6 +3308,28 @@ def get_hose_test_history(item_id, years=3):
     conn.close()
     return tests
 
+def get_available_test_years():
+    """Get list of years that have test data"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT DISTINCT test_year
+        FROM iso_hose_tests
+        WHERE test_year IS NOT NULL
+        ORDER BY test_year DESC
+    ''')
+
+    years = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    # If no years, include current year
+    if not years:
+        from datetime import datetime
+        years = [datetime.now().year]
+
+    return years
+
 def save_hose_test(item_id, test_year, test_date, test_result, test_pressure=None,
                    tested_by=None, failure_reason=None, repair_status=None,
                    repair_cost=None, repair_notes=None):
