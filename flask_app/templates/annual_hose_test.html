@@ -263,7 +263,7 @@
                             <td><strong>{{ hose.name }}</strong></td>
                             <td>{{ hose.diameter }}"</td>
                             <td>
-                                <select class="move-vehicle" disabled title="Vehicle assignment cannot be changed during testing">
+                                <select class="move-vehicle">
                                     <option value="">--</option>
                                     {% for vehicle in vehicles %}
                                         <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
@@ -741,6 +741,19 @@
 
             // Add clear button listener
             clearBtn.addEventListener('click', clearSearch);
+
+            // Add vehicle move handlers
+            document.querySelectorAll('.move-vehicle').forEach(select => {
+                select.addEventListener('change', function(e) {
+                    const row = this.closest('tr');
+                    const itemId = row.getAttribute('data-item-id');
+                    const newVehicleId = this.value;
+
+                    if (newVehicleId) {
+                        moveHose(itemId, newVehicleId);
+                    }
+                });
+            });
 
             console.log('Search event listeners attached');
         });
