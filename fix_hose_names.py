@@ -11,7 +11,20 @@ import os
 
 def get_db_path():
     """Get the database path"""
-    return os.path.join(os.path.dirname(__file__), 'flask_app', 'fire_department.db')
+    # Try multiple possible locations
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), 'flask_app', 'fire_department.db'),
+        '/home/michealhelps/fire_department.db',
+        os.path.join(os.path.expanduser('~'), 'fire_department.db'),
+    ]
+
+    for path in possible_paths:
+        if os.path.exists(path):
+            print(f"Found database at: {path}")
+            return path
+
+    # If not found, return the default and let the caller handle the error
+    return possible_paths[0]
 
 def fix_hose_names():
     db_path = get_db_path()
