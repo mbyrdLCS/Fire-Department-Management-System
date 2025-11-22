@@ -82,18 +82,27 @@
             background: #e9ecef;
             border-radius: 4px;
             height: 30px;
-            overflow: hidden;
             margin: 15px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .progress-fill {
             background: #28a745;
             height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
+            position: absolute;
+            left: 0;
+            top: 0;
             transition: width 0.3s;
+            border-radius: 4px;
+        }
+        .progress-text {
+            position: relative;
+            z-index: 1;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
         }
         .btn-add-hose {
             background: #007bff;
@@ -158,8 +167,13 @@
             <a href="{{ url_for('iso_hose_testing') }}" class="back-btn">← Back to ISO Hose Testing</a>
 
             <div class="progress-bar">
-                <div class="progress-fill" style="width: {{ (summary.tested_count / summary.total_hoses * 100) if summary.total_hoses > 0 else 0 }}%">
-                    {{ summary.tested_count }} / {{ summary.total_hoses }} Tested
+                <div class="progress-fill" style="width: {{ (summary.tested_count / summary.total_hoses * 100) if summary.total_hoses > 0 else 0 }}%;"></div>
+                <div class="progress-text">
+                    {% if summary.total_hoses > 0 %}
+                        {{ summary.tested_count }} / {{ summary.total_hoses }} Tested
+                    {% else %}
+                        No hoses to test
+                    {% endif %}
                 </div>
             </div>
         </div>
