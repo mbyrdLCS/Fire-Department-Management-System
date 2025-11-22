@@ -3707,12 +3707,30 @@ def annual_hose_test(test_year):
         flash('Please log in first!')
         return redirect(url_for('admin'))
 
-    hoses = db_helpers.get_hoses_on_vehicles()
+    from datetime import datetime
+    current_year = datetime.now().year
 
-    # Get existing tests for this year
-    for hose in hoses:
-        tests = db_helpers.get_hose_test_history(hose['id'], years=None)  # Get all test records
-        hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
+    # Get all hoses
+    all_hoses = db_helpers.get_hoses_on_vehicles()
+
+    # If viewing current year or future, filter to only show hoses tested last year
+    # This creates the baseline - only show active hoses from previous year
+    if test_year >= current_year:
+        previous_year = test_year - 1
+        hoses = []
+        for hose in all_hoses:
+            tests = db_helpers.get_hose_test_history(hose['id'], years=None)
+            # Include if tested in previous year OR if this is viewing an old year (historical)
+            was_tested_last_year = any(t['test_year'] == previous_year for t in tests)
+            if was_tested_last_year:
+                hoses.append(hose)
+                hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
+    else:
+        # Viewing historical year - show all hoses that existed then
+        hoses = all_hoses
+        for hose in hoses:
+            tests = db_helpers.get_hose_test_history(hose['id'], years=None)
+            hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
 
     summary = db_helpers.get_hose_testing_summary(test_year)
 

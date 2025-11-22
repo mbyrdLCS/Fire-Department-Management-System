@@ -177,9 +177,9 @@
             </div>
         </div>
 
-        {% if can_close_year %}
         <div class="action-card">
             <h2>🎯 Year-End Closeout</h2>
+            {% if can_close_year %}
             <p style="margin-bottom: 20px;">
                 All {{ current_year }} testing appears complete. You can now close out {{ current_year }} and prepare for {{ current_year + 1 }} testing.
             </p>
@@ -189,13 +189,24 @@
                     ✓ Close {{ current_year }} & Start {{ current_year + 1 }}
                 </button>
             </form>
+            {% else %}
+            <div class="alert alert-warning" style="margin-bottom: 15px;">
+                <strong>⚠️ {{ compliance.not_tested_1_year }} hose(s) not tested in {{ current_year }}</strong><br>
+                These may be old/historical hoses. You can still close the year if needed.
+            </div>
+            <p style="margin-bottom: 20px; color: #666;">
+                If the untested hoses below are old/historical records (like from 2017), you can close the year anyway.
+                Historical test records will be preserved.
+            </p>
+            <form method="POST" action="{{ url_for('close_testing_year') }}" style="display: inline;">
+                <input type="hidden" name="year" value="{{ current_year }}">
+                <input type="hidden" name="force" value="true">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Close {{ current_year }} anyway with {{ compliance.not_tested_1_year }} untested hoses?\n\nThis is OK if they are old/historical hoses.\n\nHistorical test records will be preserved.')">
+                    ✓ Close {{ current_year }} Anyway & Start {{ current_year + 1 }}
+                </button>
+            </form>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="alert alert-warning">
-            <strong>⚠️ Year Not Ready for Closeout</strong><br>
-            Complete all {{ current_year }} testing before closing out the year. Review untested hoses below.
-        </div>
-        {% endif %}
 
         {% if compliance.not_tested_1_year > 0 %}
         <div class="hose-table">
