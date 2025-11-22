@@ -560,11 +560,14 @@
             }
             const searchTerm = searchBox.value.trim().toUpperCase();
             const table = document.querySelector('table tbody');
-            const rows = Array.from(table.getElementsByTagName('tr'));
 
-            console.log('Search term:', searchTerm, 'Row count:', rows.length);
+            // Get ALL rows from the table, not just visible ones
+            const allRows = Array.from(table.querySelectorAll('tr'));
 
-            rows.forEach(row => {
+            console.log('Search term:', searchTerm, 'Total row count:', allRows.length);
+
+            let visibleCount = 0;
+            allRows.forEach(row => {
                 // Skip vehicle group headers
                 if (row.classList.contains('vehicle-group')) {
                     return;
@@ -591,10 +594,13 @@
                 // Show row only if it matches both search and filter
                 if (matchesSearch && matchesFilter) {
                     row.style.display = '';
+                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+
+            console.log('Visible rows after search:', visibleCount);
 
             // Show/hide vehicle group headers
             updateVehicleGroupHeaders();
