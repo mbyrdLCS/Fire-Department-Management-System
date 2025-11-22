@@ -263,7 +263,7 @@
                             <td><strong>{{ hose.name }}</strong></td>
                             <td>{{ hose.diameter }}"</td>
                             <td>
-                                <select class="move-vehicle" onchange="moveHose({{ hose.id }}, this.value)">
+                                <select class="move-vehicle" disabled title="Vehicle assignment cannot be changed during testing">
                                     <option value="">--</option>
                                     {% for vehicle in vehicles %}
                                         <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
