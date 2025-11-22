@@ -3805,7 +3805,7 @@ def add_hose():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     try:
-        item_code = request.form['item_code']
+        item_code = request.form['item_code'].strip()
         diameter = float(request.form['diameter'])
         vehicle_id = int(request.form['vehicle_id'])
         hose_type = request.form.get('hose_type', 'Fire Hose')
@@ -3813,6 +3813,17 @@ def add_hose():
         # Create the hose in inventory
         conn = db_helpers.get_db_connection()
         cursor = conn.cursor()
+
+        # Check if item_code already exists
+        cursor.execute('SELECT id, category FROM inventory_items WHERE item_code = ?', (item_code,))
+        existing = cursor.fetchone()
+
+        if existing:
+            conn.close()
+            if existing[1] == 'Hose':
+                return jsonify({'success': False, 'error': f'Hose "{item_code}" already exists in inventory'}), 400
+            else:
+                return jsonify({'success': False, 'error': f'Item code "{item_code}" is already used by a {existing[1]} item. Please use a different code.'}), 400
 
         cursor.execute('''
             INSERT INTO inventory_items
