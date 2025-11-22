@@ -194,9 +194,10 @@
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <div style="position: relative;">
                             <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
-                                   style="padding: 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
+                                   autocomplete="off"
+                                   style="padding: 10px 35px 10px 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
                                    onkeyup="searchHoses()" oninput="searchHoses()">
-                            <button onclick="clearSearch()" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; color: #666;">✕</button>
+                            <button onclick="clearSearch()" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; color: #666; padding: 0; width: 25px; height: 25px;">✕</button>
                         </div>
                         <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
                     </div>
@@ -535,48 +536,51 @@
         }
 
         function clearSearch() {
-            document.getElementById('searchBox').value = '';
+            const searchBox = document.getElementById('searchBox');
+            searchBox.value = '';
+            searchBox.focus();
             searchHoses();
         }
 
         function searchHoses() {
-            const searchTerm = document.getElementById('searchBox').value.toUpperCase();
+            const searchBox = document.getElementById('searchBox');
+            const searchTerm = searchBox.value.trim().toUpperCase();
             const table = document.querySelector('table tbody');
-            const rows = table.getElementsByTagName('tr');
+            const rows = Array.from(table.getElementsByTagName('tr'));
 
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
+            console.log('Search term:', searchTerm);
 
+            rows.forEach(row => {
                 // Skip vehicle group headers
                 if (row.classList.contains('vehicle-group')) {
-                    continue;
+                    return;
                 }
 
-                const hoseId = row.querySelector('td strong');
-                if (hoseId) {
-                    const textValue = hoseId.textContent || hoseId.innerText;
-                    const testDateInput = row.querySelector('.test-date');
-                    const isTested = testDateInput && testDateInput.value !== '';
+                const hoseIdElement = row.querySelector('td:nth-child(2) strong');
+                if (!hoseIdElement) return;
 
-                    // Check search match (empty search shows all)
-                    const matchesSearch = searchTerm === '' || textValue.toUpperCase().indexOf(searchTerm) > -1;
+                const hoseId = hoseIdElement.textContent.trim();
+                const testDateInput = row.querySelector('.test-date');
+                const isTested = testDateInput && testDateInput.value !== '';
 
-                    // Check filter
-                    let matchesFilter = true;
-                    if (currentFilter === 'tested' && !isTested) {
-                        matchesFilter = false;
-                    } else if (currentFilter === 'untested' && isTested) {
-                        matchesFilter = false;
-                    }
+                // Check search match (empty search shows all)
+                const matchesSearch = searchTerm === '' || hoseId.toUpperCase().indexOf(searchTerm) > -1;
 
-                    // Show row only if it matches both search and filter
-                    if (matchesSearch && matchesFilter) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
+                // Check filter
+                let matchesFilter = true;
+                if (currentFilter === 'tested' && !isTested) {
+                    matchesFilter = false;
+                } else if (currentFilter === 'untested' && isTested) {
+                    matchesFilter = false;
                 }
-            }
+
+                // Show row only if it matches both search and filter
+                if (matchesSearch && matchesFilter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
 
             // Show/hide vehicle group headers
             updateVehicleGroupHeaders();
