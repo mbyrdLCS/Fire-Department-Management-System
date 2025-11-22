@@ -13,9 +13,10 @@ def get_db_path():
     """Get the database path"""
     # Try multiple possible locations
     possible_paths = [
+        os.path.join(os.path.dirname(__file__), 'flask_app', 'database', 'fire_dept.db'),
+        '/home/michealhelps/Fire-Department-Management-System/flask_app/database/fire_dept.db',
         os.path.join(os.path.dirname(__file__), 'flask_app', 'fire_department.db'),
         '/home/michealhelps/fire_department.db',
-        os.path.join(os.path.expanduser('~'), 'fire_department.db'),
     ]
 
     for path in possible_paths:
@@ -23,6 +24,9 @@ def get_db_path():
             print(f"Found database at: {path}")
             return path
 
+    print(f"Database not found in any of these locations:")
+    for path in possible_paths:
+        print(f"  - {path}")
     # If not found, return the default and let the caller handle the error
     return possible_paths[0]
 
