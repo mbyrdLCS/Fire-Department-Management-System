@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ test_year }} Hose Testing - Fire Department</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        .testing-table {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+        }
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover { background: #f8f9fa; }
+        input[type="date"], input[type="number"], input[type="text"], select {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .btn-save {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-save:hover { background: #218838; }
+        .status-pass { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; }
+        .status-fail { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; }
+        .status-repair { background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; }
+        .vehicle-group {
+            background: #e3f2fd;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 4px;
+            height: 30px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            background: #28a745;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 {{ test_year }} Annual Hose Testing</h1>
+            <p>Test all in-service hoses and record results</p>
+            <a href="{{ url_for('iso_hose_testing') }}" class="back-btn">← Back to ISO Hose Testing</a>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ (summary.tested_count / summary.total_hoses * 100) if summary.total_hoses > 0 else 0 }}%">
+                    {{ summary.tested_count }} / {{ summary.total_hoses }} Tested
+                </div>
+            </div>
+        </div>
+
+        <div class="testing-table">
+            <h2>Hose Testing Form</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Size</th>
+                        <th>Vehicle</th>
+                        <th>Test Date</th>
+                        <th>Test PSI</th>
+                        <th>Result</th>
+                        <th>Tested By</th>
+                        <th>Failure Reason</th>
+                        <th>Repair Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set current_vehicle = '' %}
+                    {% for hose in hoses %}
+                        {% if hose.vehicle_code != current_vehicle %}
+                            {% set current_vehicle = hose.vehicle_code %}
+                            <tr class="vehicle-group">
+                                <td colspan="10">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
+                            </tr>
+                        {% endif %}
+                        <tr data-item-id="{{ hose.id }}">
+                            <td><strong>{{ hose.item_code }}</strong></td>
+                            <td>{{ hose.diameter }}"</td>
+                            <td>{{ hose.vehicle_code }}</td>
+                            <td>
+                                <input type="date" class="test-date" value="{{ hose.test.test_date if hose.test else '' }}">
+                            </td>
+                            <td>
+                                <input type="number" class="test-psi" value="{{ hose.test.test_pressure if hose.test else 250 }}" placeholder="250">
+                            </td>
+                            <td>
+                                <select class="test-result">
+                                    <option value="PASS" {% if hose.test and hose.test.test_result == 'PASS' %}selected{% endif %}>PASS</option>
+                                    <option value="FAIL" {% if hose.test and hose.test.test_result == 'FAIL' %}selected{% endif %}>FAIL</option>
+                                    <option value="REPAIR" {% if hose.test and hose.test.test_result == 'REPAIR' %}selected{% endif %}>@ REPAIR</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="tested-by" value="{{ hose.test.tested_by if hose.test else '' }}" placeholder="Name">
+                            </td>
+                            <td>
+                                <input type="text" class="failure-reason" value="{{ hose.test.failure_reason if hose.test else '' }}" placeholder="If failed...">
+                            </td>
+                            <td>
+                                <select class="repair-status">
+                                    <option value="">--</option>
+                                    <option value="Being Repaired" {% if hose.test and hose.test.repair_status == 'Being Repaired' %}selected{% endif %}>Being Repaired</option>
+                                    <option value="Complete Loss" {% if hose.test and hose.test.repair_status == 'Complete Loss' %}selected{% endif %}>Complete Loss</option>
+                                    <option value="Repaired" {% if hose.test and hose.test.repair_status == 'Repaired' %}selected{% endif %}>Repaired</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn-save" onclick="saveTest({{ hose.id }})">Save</button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function saveTest(itemId) {
+            const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+            const testDate = row.querySelector('.test-date').value;
+            const testPsi = row.querySelector('.test-psi').value;
+            const testResult = row.querySelector('.test-result').value;
+            const testedBy = row.querySelector('.tested-by').value;
+            const failureReason = row.querySelector('.failure-reason').value;
+            const repairStatus = row.querySelector('.repair-status').value;
+
+            if (!testDate) {
+                alert('Please enter a test date');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('item_id', itemId);
+            formData.append('test_year', {{ test_year }});
+            formData.append('test_date', testDate);
+            formData.append('test_result', testResult);
+            formData.append('test_pressure', testPsi);
+            formData.append('tested_by', testedBy);
+            formData.append('failure_reason', failureReason);
+            formData.append('repair_status', repairStatus);
+
+            fetch('{{ url_for("save_hose_test") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Test saved!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error saving test: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

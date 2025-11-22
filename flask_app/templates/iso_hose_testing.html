@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO Hose Testing - Fire Department</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 { color: #333; margin-bottom: 10px; }
+        .back-btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label { color: #666; font-size: 14px; }
+        .action-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .btn:hover { background: #5568d3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .hose-table {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+        }
+        tr:hover { background: #f8f9fa; }
+        .vehicle-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 ISO Hose Testing</h1>
+            <p>Annual hose testing and compliance management</p>
+            <a href="{{ url_for('admin_panel') }}" class="back-btn">← Back to Admin Panel</a>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ summary.total_hoses }}</div>
+                <div class="stat-label">Total In-Service Hoses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ summary.tested_count }}</div>
+                <div class="stat-label">Tested ({{ current_year }})</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ summary.untested_count }}</div>
+                <div class="stat-label">Untested ({{ current_year }})</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ summary.pass_count }}</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ summary.fail_count }}</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ summary.repair_count }}</div>
+                <div class="stat-label">In Repair</div>
+            </div>
+        </div>
+
+        <div class="action-card">
+            <h2 style="margin-bottom: 20px;">Annual Testing</h2>
+            <a href="{{ url_for('annual_hose_test', test_year=current_year) }}" class="btn btn-success">
+                🧪 Start {{ current_year }} Annual Testing
+            </a>
+            <a href="{{ url_for('annual_hose_test', test_year=current_year-1) }}" class="btn">
+                📋 View {{ current_year-1 }} Results
+            </a>
+            <a href="{{ url_for('annual_hose_test', test_year=current_year-2) }}" class="btn">
+                📋 View {{ current_year-2 }} Results
+            </a>
+        </div>
+
+        <div class="hose-table">
+            <h2>In-Service Hoses ({{ hoses|length }})</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Number</th>
+                        <th>Size</th>
+                        <th>Vehicle</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hose in hoses %}
+                    <tr>
+                        <td><strong>{{ hose.item_code }}</strong></td>
+                        <td>{{ hose.diameter }}"</td>
+                        <td><span class="vehicle-badge">{{ hose.vehicle_code }}</span> {{ hose.vehicle_name }}</td>
+                        <td>{{ hose.hose_type or 'Fire Hose' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
