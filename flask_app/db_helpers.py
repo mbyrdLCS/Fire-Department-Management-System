@@ -3234,77 +3234,28 @@ def get_all_hoses():
     return hoses
 
 def get_hoses_on_vehicles():
-    """Get hoses that are assigned to vehicles OR locations (in service)"""
+    """Get only hoses that are assigned to vehicles (in service)"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Check if location column exists
-    cursor.execute("PRAGMA table_info(inventory_items)")
-    columns = [col[1] for col in cursor.fetchall()]
-    has_location = 'location' in columns
-
-    if has_location:
-        # Get hoses on vehicles AND locations
-        cursor.execute('''
-            SELECT
-                i.id,
-                i.item_code,
-                i.name,
-                i.diameter,
-                i.hose_type,
-                v.id as vehicle_id,
-                v.vehicle_code,
-                v.name as vehicle_name,
-                v.vehicle_type,
-                NULL as location
-            FROM inventory_items i
-            JOIN vehicle_inventory vi ON i.id = vi.item_id
-            JOIN vehicles v ON vi.vehicle_id = v.id
-            WHERE i.category = 'Hose'
-            AND v.status = 'active'
-
-            UNION ALL
-
-            SELECT
-                i.id,
-                i.item_code,
-                i.name,
-                i.diameter,
-                i.hose_type,
-                NULL as vehicle_id,
-                NULL as vehicle_code,
-                NULL as vehicle_name,
-                NULL as vehicle_type,
-                i.location
-            FROM inventory_items i
-            WHERE i.category = 'Hose'
-            AND i.location IS NOT NULL
-            AND i.location != ''
-            AND i.id NOT IN (SELECT item_id FROM vehicle_inventory)
-
-            ORDER BY 7, 2
-        ''')
-    else:
-        # Only get hoses on vehicles (location column doesn't exist yet)
-        cursor.execute('''
-            SELECT
-                i.id,
-                i.item_code,
-                i.name,
-                i.diameter,
-                i.hose_type,
-                v.id as vehicle_id,
-                v.vehicle_code,
-                v.name as vehicle_name,
-                v.vehicle_type,
-                NULL as location
-            FROM inventory_items i
-            JOIN vehicle_inventory vi ON i.id = vi.item_id
-            JOIN vehicles v ON vi.vehicle_id = v.id
-            WHERE i.category = 'Hose'
-            AND v.status = 'active'
-            ORDER BY v.vehicle_code, i.item_code
-        ''')
+    cursor.execute('''
+        SELECT
+            i.id,
+            i.item_code,
+            i.name,
+            i.diameter,
+            i.hose_type,
+            v.id as vehicle_id,
+            v.vehicle_code,
+            v.name as vehicle_name,
+            v.vehicle_type
+        FROM inventory_items i
+        JOIN vehicle_inventory vi ON i.id = vi.item_id
+        JOIN vehicles v ON vi.vehicle_id = v.id
+        WHERE i.category = 'Hose'
+        AND v.status = 'active'
+        ORDER BY v.vehicle_code, i.item_code
+    ''')
 
     hoses = []
     for row in cursor.fetchall():
@@ -3315,11 +3266,9 @@ def get_hoses_on_vehicles():
             'diameter': row[3],
             'hose_type': row[4],
             'vehicle_id': row[5],
-            'vehicle_code': row[6] if row[6] else 'LOCATION',
-            'vehicle_name': row[7] if row[7] else (row[9] if has_location and len(row) > 9 else ''),
-            'vehicle_type': row[8],
-            'location': row[9] if has_location and len(row) > 9 else None,
-            'is_location': has_location and len(row) > 9 and row[9] is not None
+            'vehicle_code': row[6],
+            'vehicle_name': row[7],
+            'vehicle_type': row[8]
         })
 
     conn.close()
