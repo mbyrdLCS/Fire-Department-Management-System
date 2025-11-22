@@ -3965,20 +3965,29 @@ def iso_hose_testing_report():
     # Handle PDF export
     if export_format == 'pdf':
         from flask import make_response
-        import pdfkit
+        try:
+            from weasyprint import HTML, CSS
+            from io import BytesIO
 
-        # Render the HTML template
-        html = render_template('reports/iso_hose_testing_report.html',
-                             hoses=hoses,
-                             year=year,
-                             available_years=[year])
+            # Render the HTML template
+            html_content = render_template('reports/iso_hose_testing_report.html',
+                                         hoses=hoses,
+                                         year=year,
+                                         available_years=[year])
 
-        # Generate PDF
-        pdf = pdfkit.from_string(html, False)
-        response = make_response(pdf)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=ISO_Hose_Testing_{year}.pdf'
-        return response
+            # Generate PDF using WeasyPrint
+            pdf_file = BytesIO()
+            HTML(string=html_content).write_pdf(pdf_file)
+            pdf_file.seek(0)
+
+            response = make_response(pdf_file.read())
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = f'attachment; filename=ISO_Hose_Testing_{year}.pdf'
+            return response
+        except ImportError:
+            # If weasyprint not available, fallback to printing instructions
+            flash('PDF export requires WeasyPrint. Please use Print button instead.', 'error')
+            return redirect(url_for('iso_hose_testing_report', year=year))
 
     # Get available years
     available_years = db_helpers.get_available_test_years()
