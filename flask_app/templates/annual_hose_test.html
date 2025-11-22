@@ -257,7 +257,11 @@
                                 </select>
                             </td>
                             <td>
-                                <button class="btn-save" onclick="saveTest({{ hose.id }})">Save</button>
+                                <button class="btn-save" onclick="saveTest({{ hose.id }})" style="margin-right: 5px;">Save</button>
+                                <button onclick="deleteHose({{ hose.id }}, '{{ hose.item_code }}')"
+                                        style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     {% endfor %}
@@ -459,6 +463,32 @@
             })
             .catch(error => {
                 alert('Error moving hose: ' + error);
+            });
+        }
+
+        function deleteHose(itemId, hoseCode) {
+            if (!confirm(`Are you sure you want to DELETE hose ${hoseCode}?\n\nThis will:\n- Remove the hose from inventory\n- Delete all test records\n- This action CANNOT be undone!`)) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('item_id', itemId);
+
+            fetch('{{ url_for("delete_hose") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Hose deleted successfully');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error deleting hose: ' + error);
             });
         }
 

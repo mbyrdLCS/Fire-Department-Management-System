@@ -3838,6 +3838,37 @@ def add_hose():
         logger.error(f"Error adding hose: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/iso-hose-testing/delete-hose', methods=['POST'])
+def delete_hose():
+    """Delete a hose from inventory"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    try:
+        item_id = int(request.form['item_id'])
+
+        conn = db_helpers.get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete from vehicle_inventory first (if assigned)
+        cursor.execute('DELETE FROM vehicle_inventory WHERE item_id = ?', (item_id,))
+
+        # Delete all test records
+        cursor.execute('DELETE FROM iso_hose_tests WHERE item_id = ?', (item_id,))
+
+        # Delete from inventory_items
+        cursor.execute('DELETE FROM inventory_items WHERE id = ?', (item_id,))
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Hose {item_id} deleted successfully")
+        return jsonify({'success': True, 'message': 'Hose deleted successfully'})
+
+    except Exception as e:
+        logger.error(f"Error deleting hose: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
