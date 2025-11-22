@@ -63,8 +63,12 @@ def fix_hose_names():
             print(f"Updating hose {hose_id}: '{name}' -> '{new_name}'")
             cursor.execute('UPDATE inventory_items SET name = ? WHERE id = ?', (new_name, hose_id))
             updated_count += 1
+        elif name and ('" Hose' in name or '"Hose' in name):
+            # Handle bad data like '1.5" Hose' - these need manual review
+            print(f"WARNING: Hose {hose_id} has invalid name '{name}' - needs manual correction")
+            print(f"  item_code: '{item_code}'")
         else:
-            print(f"Hose {hose_id} already correct: name='{name}', item_code='{item_code}'")
+            print(f"Hose {hose_id}: name='{name}', item_code='{item_code}'")
 
     conn.commit()
     conn.close()
