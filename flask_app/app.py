@@ -3771,28 +3771,52 @@ def save_hose_test():
 
 @app.route('/iso-hose-testing/move-hose', methods=['POST'])
 def move_hose():
-    """Move a hose to a different vehicle"""
+    """Move a hose to a different vehicle or station spare location"""
     if not session.get('logged_in'):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     try:
         item_id = int(request.form['item_id'])
-        new_vehicle_id = int(request.form['vehicle_id'])
+        location_value = request.form['location_value']  # Format: "vehicle_123" or "spare_Station 1"
 
-        # First, find and delete the current vehicle_inventory entry for this item
         conn = db_helpers.get_db_connection()
         cursor = conn.cursor()
+
+        # First, always remove from vehicle_inventory
         cursor.execute('DELETE FROM vehicle_inventory WHERE item_id = ?', (item_id,))
-        conn.commit()
-        conn.close()
 
-        # Add to new vehicle (quantity=1 for hoses)
-        success, message = db_helpers.add_item_to_vehicle(new_vehicle_id, item_id, quantity=1)
+        if location_value.startswith('vehicle_'):
+            # Moving to a vehicle
+            new_vehicle_id = int(location_value.replace('vehicle_', ''))
 
-        if success:
-            return jsonify({'success': True, 'message': 'Hose moved successfully'})
+            # Clear location_type
+            cursor.execute('UPDATE inventory_items SET location_type = NULL WHERE id = ?', (item_id,))
+            conn.commit()
+            conn.close()
+
+            # Add to vehicle (quantity=1 for hoses)
+            success, message = db_helpers.add_item_to_vehicle(new_vehicle_id, item_id, quantity=1)
+
+            if success:
+                return jsonify({'success': True, 'message': 'Hose moved to vehicle'})
+            else:
+                return jsonify({'success': False, 'error': message}), 500
+
+        elif location_value.startswith('spare_'):
+            # Moving to station spares
+            station_name = location_value.replace('spare_', '')
+            location_type = f"{station_name} Spares"
+
+            # Set location_type (hose is no longer on a vehicle)
+            cursor.execute('UPDATE inventory_items SET location_type = ? WHERE id = ?', (location_type, item_id))
+            conn.commit()
+            conn.close()
+
+            return jsonify({'success': True, 'message': f'Hose moved to {location_type}'})
+
         else:
-            return jsonify({'success': False, 'error': message}), 500
+            conn.close()
+            return jsonify({'success': False, 'error': 'Invalid location value'}), 400
 
     except Exception as e:
         logger.error(f"Error moving hose: {str(e)}")

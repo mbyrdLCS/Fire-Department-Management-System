@@ -256,7 +256,7 @@
                                 <td colspan="11">{{ hose.vehicle_code }} - {{ hose.vehicle_name }}</td>
                             </tr>
                         {% endif %}
-                        <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}" data-hose-name="{{ hose.name }}" data-diameter="{{ hose.diameter }}" data-vehicle-name="{{ hose.vehicle_code }}">
+                        <tr data-item-id="{{ hose.id }}" data-vehicle-id="{{ hose.vehicle_id }}" data-location-type="{{ hose.location_type or '' }}" data-hose-name="{{ hose.name }}" data-diameter="{{ hose.diameter }}" data-vehicle-name="{{ hose.vehicle_code }}">
                             <td>
                                 <input type="checkbox" class="pin-checkbox" onchange="togglePinHose(this)">
                             </td>
@@ -265,11 +265,17 @@
                             <td>
                                 <select class="move-vehicle">
                                     <option value="">--</option>
-                                    {% for vehicle in vehicles %}
-                                        <option value="{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id %}selected{% endif %}>
-                                            {{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}
-                                        </option>
-                                    {% endfor %}
+                                    <optgroup label="Vehicles">
+                                        {% for vehicle in vehicles %}
+                                            <option value="vehicle_{{ vehicle.id }}" {% if vehicle.id == hose.vehicle_id and not hose.location_type %}selected{% endif %}>
+                                                {{ vehicle.vehicle_code }} - {{ vehicle.vehicle_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    <optgroup label="Station Spares">
+                                        <option value="spare_Station 1" {% if hose.location_type == 'Station 1 Spares' %}selected{% endif %}>Station 1 Spares</option>
+                                        <option value="spare_Station 2" {% if hose.location_type == 'Station 2 Spares' %}selected{% endif %}>Station 2 Spares</option>
+                                    </optgroup>
                                 </select>
                             </td>
                             <td>
@@ -678,23 +684,36 @@
             }
         });
 
-        function moveHose(itemId, newVehicleId) {
-            if (!newVehicleId) return;
+        function moveHose(itemId, locationValue) {
+            if (!locationValue) return;
 
             const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
             const currentVehicleId = row.getAttribute('data-vehicle-id');
+            const currentLocation = row.getAttribute('data-location-type');
 
-            if (newVehicleId == currentVehicleId) return;
+            // Build current value for comparison
+            let currentValue = '';
+            if (currentLocation && currentLocation !== '') {
+                currentValue = 'spare_' + currentLocation.replace(' Spares', '');
+            } else if (currentVehicleId) {
+                currentValue = 'vehicle_' + currentVehicleId;
+            }
 
-            if (!confirm('Move this hose to the selected vehicle?')) {
+            if (locationValue == currentValue) return;
+
+            const confirmMsg = locationValue.startsWith('spare_')
+                ? 'Move this hose to station spares?'
+                : 'Move this hose to the selected vehicle?';
+
+            if (!confirm(confirmMsg)) {
                 // Reset dropdown
-                row.querySelector('.move-vehicle').value = currentVehicleId;
+                row.querySelector('.move-vehicle').value = currentValue;
                 return;
             }
 
             const formData = new FormData();
             formData.append('item_id', itemId);
-            formData.append('vehicle_id', newVehicleId);
+            formData.append('location_value', locationValue);
 
             fetch('{{ url_for("move_hose") }}', {
                 method: 'POST',
@@ -703,8 +722,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update the row's vehicle ID without reloading
-                    row.setAttribute('data-vehicle-id', newVehicleId);
+                    // Update the row's attributes without reloading
+                    if (locationValue.startsWith('spare_')) {
+                        row.setAttribute('data-location-type', locationValue.replace('spare_', '') + ' Spares');
+                        row.removeAttribute('data-vehicle-id');
+                    } else {
+                        const newVehicleId = locationValue.replace('vehicle_', '');
+                        row.setAttribute('data-vehicle-id', newVehicleId);
+                        row.setAttribute('data-location-type', '');
+                    }
 
                     // Show success message briefly
                     const dropdown = row.querySelector('.move-vehicle');
@@ -716,13 +742,13 @@
                 } else {
                     alert('Error: ' + data.error);
                     // Reset dropdown on error
-                    row.querySelector('.move-vehicle').value = currentVehicleId;
+                    row.querySelector('.move-vehicle').value = currentValue;
                 }
             })
             .catch(error => {
                 alert('Error moving hose: ' + error);
                 // Reset dropdown on error
-                row.querySelector('.move-vehicle').value = currentVehicleId;
+                row.querySelector('.move-vehicle').value = currentValue;
             });
         }
 

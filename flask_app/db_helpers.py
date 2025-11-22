@@ -3234,7 +3234,7 @@ def get_all_hoses():
     return hoses
 
 def get_hoses_on_vehicles():
-    """Get all hoses that are assigned to vehicles (including out of service vehicles)"""
+    """Get all hoses that are assigned to vehicles or station spares (including out of service vehicles)"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -3248,12 +3248,15 @@ def get_hoses_on_vehicles():
             v.id as vehicle_id,
             v.vehicle_code,
             v.name as vehicle_name,
-            v.vehicle_type
+            v.vehicle_type,
+            i.location_type
         FROM inventory_items i
-        JOIN vehicle_inventory vi ON i.id = vi.item_id
-        JOIN vehicles v ON vi.vehicle_id = v.id
+        LEFT JOIN vehicle_inventory vi ON i.id = vi.item_id
+        LEFT JOIN vehicles v ON vi.vehicle_id = v.id
         WHERE i.category = 'Hose'
-        ORDER BY v.vehicle_code, i.item_code
+        ORDER BY
+            CASE WHEN v.vehicle_code IS NOT NULL THEN v.vehicle_code ELSE i.location_type END,
+            i.item_code
     ''')
 
     hoses = []
@@ -3267,7 +3270,8 @@ def get_hoses_on_vehicles():
             'vehicle_id': row[5],
             'vehicle_code': row[6],
             'vehicle_name': row[7],
-            'vehicle_type': row[8]
+            'vehicle_type': row[8],
+            'location_type': row[9]
         })
 
     conn.close()
