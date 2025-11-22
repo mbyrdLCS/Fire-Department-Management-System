@@ -693,14 +693,26 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Hose moved successfully!');
-                    window.location.reload();
+                    // Update the row's vehicle ID without reloading
+                    row.setAttribute('data-vehicle-id', newVehicleId);
+
+                    // Show success message briefly
+                    const dropdown = row.querySelector('.move-vehicle');
+                    const originalBg = dropdown.style.backgroundColor;
+                    dropdown.style.backgroundColor = '#d4edda';
+                    setTimeout(() => {
+                        dropdown.style.backgroundColor = originalBg;
+                    }, 2000);
                 } else {
                     alert('Error: ' + data.error);
+                    // Reset dropdown on error
+                    row.querySelector('.move-vehicle').value = currentVehicleId;
                 }
             })
             .catch(error => {
                 alert('Error moving hose: ' + error);
+                // Reset dropdown on error
+                row.querySelector('.move-vehicle').value = currentVehicleId;
             });
         }
 
