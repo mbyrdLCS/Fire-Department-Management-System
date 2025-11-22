@@ -157,6 +157,14 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .highlight-new {
+            animation: highlightFade 3s ease-in-out;
+        }
+        @keyframes highlightFade {
+            0% { background-color: #fff3cd; }
+            50% { background-color: #fff3cd; }
+            100% { background-color: transparent; }
+        }
     </style>
 </head>
 <body>
@@ -231,7 +239,7 @@
                                 <input type="number" class="test-psi" value="{{ hose.test.test_pressure if hose.test else 250 }}" placeholder="250">
                             </td>
                             <td>
-                                <select class="test-result">
+                                <select class="test-result" onchange="autoFillDate(this)">
                                     <option value="PASS" {% if hose.test and hose.test.test_result == 'PASS' %}selected{% endif %}>PASS</option>
                                     <option value="FAIL" {% if hose.test and hose.test.test_result == 'FAIL' %}selected{% endif %}>FAIL</option>
                                     <option value="REPAIR" {% if hose.test and hose.test.test_result == 'REPAIR' %}selected{% endif %}>@ REPAIR</option>
@@ -297,6 +305,21 @@
     </div>
 
     <script>
+        function autoFillDate(selectElement) {
+            // Get the row
+            const row = selectElement.closest('tr');
+            const dateInput = row.querySelector('.test-date');
+
+            // Only auto-fill if date is empty
+            if (!dateInput.value) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${year}-${month}-${day}`;
+            }
+        }
+
         function searchHoses() {
             const searchTerm = document.getElementById('searchBox').value.toUpperCase();
             const table = document.querySelector('table tbody');
@@ -361,7 +384,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Hose added successfully!');
+                    // Store the new hose code to highlight after reload
+                    sessionStorage.setItem('newHoseCode', data.item_code);
                     window.location.reload();
                 } else {
                     alert('Error: ' + data.error);
@@ -371,6 +395,36 @@
                 alert('Error adding hose: ' + error);
             });
         }
+
+        // On page load, check if we just added a new hose
+        window.addEventListener('DOMContentLoaded', function() {
+            const newHoseCode = sessionStorage.getItem('newHoseCode');
+            if (newHoseCode) {
+                sessionStorage.removeItem('newHoseCode');
+
+                // Find the row with this hose code
+                setTimeout(function() {
+                    const allRows = document.querySelectorAll('table tbody tr');
+                    for (let row of allRows) {
+                        const hoseIdElement = row.querySelector('td strong');
+                        if (hoseIdElement && hoseIdElement.textContent.trim() === newHoseCode) {
+                            // Highlight the row
+                            row.classList.add('highlight-new');
+
+                            // Scroll to it
+                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                            // Focus on the test date field
+                            const dateInput = row.querySelector('.test-date');
+                            if (dateInput) {
+                                setTimeout(() => dateInput.focus(), 500);
+                            }
+                            break;
+                        }
+                    }
+                }, 100);
+            }
+        });
 
         function moveHose(itemId, newVehicleId) {
             if (!newVehicleId) return;

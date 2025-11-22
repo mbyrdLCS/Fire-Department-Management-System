@@ -3828,7 +3828,7 @@ def add_hose():
             # Assign to vehicle (quantity=1 for hoses)
             success, message = db_helpers.add_item_to_vehicle(vehicle_id, item_id, quantity=1)
             if success:
-                return jsonify({'success': True, 'message': 'Hose added successfully'})
+                return jsonify({'success': True, 'message': 'Hose added successfully', 'item_id': item_id, 'item_code': item_code})
             else:
                 return jsonify({'success': False, 'error': message}), 500
         else:
