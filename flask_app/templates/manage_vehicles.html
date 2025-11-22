@@ -268,6 +268,7 @@
                         <label for="vehicle_type">Type:</label>
                         <select name="vehicle_type" id="vehicle_type">
                             <option value="">-- Select Type --</option>
+                            <option value="Pumper">Pumper</option>
                             <option value="Engine">Engine</option>
                             <option value="Ladder">Ladder</option>
                             <option value="Tanker">Tanker</option>
@@ -276,6 +277,15 @@
                             <option value="Utility">Utility</option>
                             <option value="Command">Command</option>
                             <option value="Ambulance">Ambulance</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status:</label>
+                        <select name="status" id="status">
+                            <option value="active" selected>Active</option>
+                            <option value="out_of_service">Out of Service</option>
+                            <option value="maintenance">In Maintenance</option>
+                            <option value="retired">Retired</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -415,6 +425,7 @@
                                                 <label>Type:</label>
                                                 <select name="vehicle_type">
                                                     <option value="">-- Select Type --</option>
+                                                    <option value="Pumper" {% if vehicle.vehicle_type == 'Pumper' %}selected{% endif %}>Pumper</option>
                                                     <option value="Engine" {% if vehicle.vehicle_type == 'Engine' %}selected{% endif %}>Engine</option>
                                                     <option value="Ladder" {% if vehicle.vehicle_type == 'Ladder' %}selected{% endif %}>Ladder</option>
                                                     <option value="Tanker" {% if vehicle.vehicle_type == 'Tanker' %}selected{% endif %}>Tanker</option>
@@ -423,6 +434,15 @@
                                                     <option value="Utility" {% if vehicle.vehicle_type == 'Utility' %}selected{% endif %}>Utility</option>
                                                     <option value="Command" {% if vehicle.vehicle_type == 'Command' %}selected{% endif %}>Command</option>
                                                     <option value="Ambulance" {% if vehicle.vehicle_type == 'Ambulance' %}selected{% endif %}>Ambulance</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Status:</label>
+                                                <select name="status">
+                                                    <option value="active" {% if vehicle.status == 'active' %}selected{% endif %}>Active</option>
+                                                    <option value="out_of_service" {% if vehicle.status == 'out_of_service' %}selected{% endif %}>Out of Service</option>
+                                                    <option value="maintenance" {% if vehicle.status == 'maintenance' %}selected{% endif %}>In Maintenance</option>
+                                                    <option value="retired" {% if vehicle.status == 'retired' %}selected{% endif %}>Retired</option>
                                                 </select>
                                             </div>
                                             <div class="form-group">

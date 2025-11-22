@@ -1793,7 +1793,7 @@ def generate_vehicle_code(name, vehicle_type=''):
     conn.close()
     return vehicle_code
 
-def create_vehicle(vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', oil_type='', antifreeze_type='', brake_fluid_type='', power_steering_fluid_type='', transmission_fluid_type=''):
+def create_vehicle(vehicle_code, name, vehicle_type='', status='active', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', oil_type='', antifreeze_type='', brake_fluid_type='', power_steering_fluid_type='', transmission_fluid_type=''):
     """Create a new vehicle and automatically assign all active checklist items
 
     If vehicle_code is empty, it will be auto-generated from the name and type
@@ -1812,9 +1812,9 @@ def create_vehicle(vehicle_code, name, vehicle_type='', station_id=None, year=No
             (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
              purchase_date, purchase_cost, current_value, notes, status,
              oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
-              purchase_date, purchase_cost, current_value, notes,
+              purchase_date, purchase_cost, current_value, notes, status,
               oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type))
 
         vehicle_id = cursor.lastrowid

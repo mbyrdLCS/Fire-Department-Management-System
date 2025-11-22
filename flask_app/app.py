@@ -2335,6 +2335,7 @@ def create_vehicle():
         vehicle_code = request.form.get('vehicle_code', '').strip()
         name = request.form['name']
         vehicle_type = request.form.get('vehicle_type', '')
+        status = request.form.get('status', 'active')
         station_id = request.form.get('station_id', '')
         year = request.form.get('year', '')
         make = request.form.get('make', '')
@@ -2362,6 +2363,7 @@ def create_vehicle():
             vehicle_code=vehicle_code,
             name=name,
             vehicle_type=vehicle_type,
+            status=status,
             station_id=station_id,
             year=year,
             make=make,
