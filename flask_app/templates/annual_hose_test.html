@@ -195,9 +195,8 @@
                         <div style="position: relative;">
                             <input type="text" id="searchBox" placeholder="🔍 Search hose ID..."
                                    autocomplete="off"
-                                   style="padding: 10px 35px 10px 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;"
-                                   onkeyup="searchHoses()" oninput="searchHoses()">
-                            <button onclick="clearSearch()" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; color: #666; padding: 0; width: 25px; height: 25px;">✕</button>
+                                   style="padding: 10px 35px 10px 10px; border: 2px solid #667eea; border-radius: 5px; width: 250px; font-size: 14px;">
+                            <button id="clearSearchBtn" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; color: #666; padding: 0; width: 25px; height: 25px;">✕</button>
                         </div>
                         <button class="btn-add-hose" onclick="showAddHoseModal()">+ Add New Hose</button>
                     </div>
@@ -392,6 +391,11 @@
 
             pinnedHoses.forEach(hoseId => {
                 const row = document.querySelector(`tr[data-item-id="${hoseId}"]`);
+                if (!row) {
+                    console.error('Could not find row for hose ID:', hoseId);
+                    return;
+                }
+
                 const hoseName = row.getAttribute('data-hose-name');
                 const diameter = row.getAttribute('data-diameter');
                 const vehicleName = row.getAttribute('data-vehicle-name');
@@ -709,6 +713,21 @@
                 alert('Error deleting hose: ' + error);
             });
         }
+
+        // Set up event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchBox = document.getElementById('searchBox');
+            const clearBtn = document.getElementById('clearSearchBtn');
+
+            // Add search event listeners
+            searchBox.addEventListener('input', searchHoses);
+            searchBox.addEventListener('keyup', searchHoses);
+
+            // Add clear button listener
+            clearBtn.addEventListener('click', clearSearch);
+
+            console.log('Search event listeners attached');
+        });
 
         function saveTest(itemId) {
             const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
