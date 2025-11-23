@@ -3441,9 +3441,19 @@ def get_hose_testing_summary(test_year):
         GROUP BY test_result
     ''', (test_year,))
 
-    results = {'PASS': 0, 'FAIL': 0, 'REPAIR': 0}
+    results = {'PASS': 0, 'FAIL': 0}
     for row in cursor.fetchall():
-        results[row[0]] = row[1]
+        if row[0] in results:
+            results[row[0]] = row[1]
+
+    # Get repair count based on repair_status = 'Being Repaired'
+    cursor.execute('''
+        SELECT COUNT(*)
+        FROM iso_hose_tests
+        WHERE test_year = ?
+        AND repair_status = 'Being Repaired'
+    ''', (test_year,))
+    repair_count = cursor.fetchone()[0]
 
     conn.close()
 
@@ -3453,7 +3463,7 @@ def get_hose_testing_summary(test_year):
         'untested_count': total_hoses - tested_count,
         'pass_count': results['PASS'],
         'fail_count': results['FAIL'],
-        'repair_count': results['REPAIR']
+        'repair_count': repair_count
     }
 
 def get_hose_compliance_data(current_year):
