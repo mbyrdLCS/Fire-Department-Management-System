@@ -3713,20 +3713,32 @@ def annual_hose_test(test_year):
     # Get all hoses
     all_hoses = db_helpers.get_hoses_on_vehicles()
 
-    # If viewing current year or future, filter to only show hoses tested last year
-    # This creates the baseline - only show active hoses from previous year
-    if test_year >= current_year:
+    # If viewing current year, show hoses tested last year OR already tested this year
+    # If viewing future year, show only hoses tested in previous year (baseline)
+    if test_year == current_year:
+        # Current year: show baseline from last year + anything already tested this year
         previous_year = test_year - 1
         hoses = []
         for hose in all_hoses:
             tests = db_helpers.get_hose_test_history(hose['id'], years=None)
-            # Include if tested in previous year OR if this is viewing an old year (historical)
+            was_tested_last_year = any(t['test_year'] == previous_year for t in tests)
+            was_tested_this_year = any(t['test_year'] == test_year for t in tests)
+
+            if was_tested_last_year or was_tested_this_year:
+                hoses.append(hose)
+                hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
+    elif test_year > current_year:
+        # Future year: only show hoses tested in previous year (baseline)
+        previous_year = test_year - 1
+        hoses = []
+        for hose in all_hoses:
+            tests = db_helpers.get_hose_test_history(hose['id'], years=None)
             was_tested_last_year = any(t['test_year'] == previous_year for t in tests)
             if was_tested_last_year:
                 hoses.append(hose)
                 hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
     else:
-        # Viewing historical year - show all hoses that existed then
+        # Historical year - show all hoses that existed then
         hoses = all_hoses
         for hose in hoses:
             tests = db_helpers.get_hose_test_history(hose['id'], years=None)
