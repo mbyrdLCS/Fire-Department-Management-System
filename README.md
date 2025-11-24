@@ -43,7 +43,7 @@ A comprehensive web-based time tracking and management system designed specifica
 ## 📸 Screenshots
 
 ### Kiosk Mode
-Touch-friendly iPad interface for firefighters to check in and out
+Touch-friendly iPad interface for firefighters to check in and out. Can also be displayed on station TVs using [SignPresenter.com](https://www.signpresenter.com/)!
 
 ![Kiosk Mode](docs/screenshots/01-kiosk-mode.png)
 
@@ -53,7 +53,7 @@ Comprehensive management interface with all system features at your fingertips
 ![Admin Panel](docs/screenshots/02-admin-panel.png)
 
 ### Display Dashboard
-Real-time display with active firefighters, alerts, and leaderboards - perfect for station TVs
+Real-time display with active firefighters, alerts, and leaderboards - perfect for station TVs. Display on any Fire TV or smart TV using [SignPresenter.com](https://www.signpresenter.com/)!
 
 ![Display Dashboard](docs/screenshots/03-display-dashboard.png)
 
