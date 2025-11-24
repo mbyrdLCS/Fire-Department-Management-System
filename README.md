@@ -28,6 +28,7 @@ A comprehensive web-based time tracking and management system designed specifica
 
 ### Administration & Reporting
 - 🔐 **Admin Panel**: Comprehensive management interface for all system features
+- 👥 **Multi-User System**: Create multiple admin accounts with individual logins and secure password management
 - 📈 **Dashboard Analytics**: Visual charts and statistics for department operations
 - 📤 **Excel Export**: Export any report to formatted Excel spreadsheets
 - 🔔 **Alert Dashboard**: Centralized view of all system alerts and warnings
@@ -211,15 +212,144 @@ Fire-Department-Management-System/
 └── README.md                 # This file
 ```
 
-## Deployment
+## 🚀 Deployment
 
-### PythonAnywhere
+### Recommended: PythonAnywhere (Free Hosting!)
 
-1. Upload code to PythonAnywhere
-2. Set up virtual environment
-3. Configure WSGI file to point to `flask_app/app.py`
-4. Set environment variables in WSGI file or bash console
-5. Reload web app
+We highly recommend **[PythonAnywhere](https://www.pythonanywhere.com/)** for hosting this application. It works great for fire departments and offers:
+
+- ✅ **Free tier available** - Perfect for small/medium departments
+- ✅ **Always-on hosting** - No cold starts or sleep mode
+- ✅ **Easy deployment** - Simple web-based interface
+- ✅ **SQLite support** - Built-in database support
+- ✅ **Automatic HTTPS** - Secure by default
+- ✅ **No server maintenance** - They handle everything
+
+**Our live demo runs on PythonAnywhere's free tier!**
+
+### Step-by-Step PythonAnywhere Setup
+
+#### 1. Create Account
+1. Go to [PythonAnywhere.com](https://www.pythonanywhere.com/)
+2. Sign up for a free account
+3. Verify your email
+
+#### 2. Upload Code
+Open a Bash console from the dashboard and run:
+```bash
+git clone https://github.com/mbyrdLCS/Fire-Department-Management-System.git
+cd Fire-Department-Management-System
+```
+
+#### 3. Set Up Virtual Environment
+```bash
+mkvirtualenv fdms-env --python=python3.10
+pip install -r requirements.txt
+```
+
+#### 4. Configure Environment Variables
+Create your `.env` file:
+```bash
+nano .env
+```
+
+Add these variables (replace with your values):
+```bash
+FLASK_SECRET_KEY=your-secret-key-here-generate-a-random-string
+FLASK_ENV=production
+FLASK_DEBUG=False
+
+ADMIN_USERNAME=your-admin-username
+ADMIN_PASSWORD=your-secure-password-here
+
+# Optional: Dropbox backup (see DROPBOX_SETUP.md)
+DROPBOX_APP_KEY=your-dropbox-app-key
+DROPBOX_APP_SECRET=your-dropbox-app-secret
+DROPBOX_REFRESH_TOKEN=your-dropbox-refresh-token
+```
+
+Save with `Ctrl+O`, `Enter`, then `Ctrl+X`
+
+**Generate a secure secret key:**
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+#### 5. Initialize Database
+```bash
+cd ~/Fire-Department-Management-System
+python3 add_users_table.py
+```
+
+This creates the users table and converts your admin credentials to the first user account.
+
+#### 6. Configure Web App
+Go to the **Web** tab in PythonAnywhere dashboard:
+
+1. Click **"Add a new web app"**
+2. Choose **"Manual configuration"**
+3. Select **Python 3.10**
+
+#### 7. Configure WSGI File
+Click on the WSGI configuration file link and replace the contents with:
+
+```python
+import sys
+import os
+
+# Add your project directory to the sys.path
+project_home = '/home/YOUR_USERNAME/Fire-Department-Management-System'
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
+
+# Set environment variables path
+os.environ['DOTENV_PATH'] = '/home/YOUR_USERNAME/Fire-Department-Management-System/.env'
+
+# Import Flask app
+from flask_app.app import app as application
+```
+
+**Important:** Replace `YOUR_USERNAME` with your PythonAnywhere username!
+
+#### 8. Set Virtual Environment
+In the Web tab, under "Virtualenv":
+1. Enter: `/home/YOUR_USERNAME/.virtualenvs/fdms-env`
+2. Click the checkmark
+
+#### 9. Set Static Files (Optional but recommended)
+In the Web tab, under "Static files":
+- URL: `/static/`
+- Directory: `/home/YOUR_USERNAME/Fire-Department-Management-System/flask_app/static/`
+
+#### 10. Reload and Test
+1. Click the green **"Reload"** button
+2. Visit your site: `https://YOUR_USERNAME.pythonanywhere.com`
+3. You should see the kiosk clock-in page!
+4. Test admin login at: `https://YOUR_USERNAME.pythonanywhere.com/admin`
+
+### Updating Your Deployment
+
+When you want to update with new features:
+
+```bash
+cd ~/Fire-Department-Management-System
+git pull
+source ~/.virtualenvs/fdms-env/bin/activate
+pip install -r requirements.txt
+# Click "Reload" button in Web tab
+```
+
+### Other Hosting Options
+
+While we recommend PythonAnywhere, you can also deploy to:
+
+- **Heroku** - Free tier available with some limitations
+- **Railway** - Modern platform with generous free tier
+- **DigitalOcean** - More control, requires server management ($5/month)
+- **AWS/Azure/GCP** - Enterprise options
+- **Your own server** - Linux server with Python 3.7+
+
+The application will run anywhere Python Flask can run!
 
 ## Security Notes
 
@@ -310,7 +440,12 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## 📈 Recent Updates
 
-### January 2025
+### November 2024
+- ✅ **Multi-User Authentication**: Add multiple admin users with individual logins for better audit trails
+- ✅ **User Management System**: Admin interface to create, manage, and deactivate user accounts
+- ✅ **Password Security**: Bcrypt password hashing with forced password change on first login
+- ✅ **Request-Based Backups**: Fixed automatic Dropbox backups to work reliably on PythonAnywhere
+- ✅ **ISO Hose Testing**: Complete hose testing system with compliance tracking and year closeout
 - ✅ **Detailed Inspection Reports**: Export comprehensive reports showing every individual checklist item inspected with pass/fail status
 - ✅ **Vehicle Fluid Specifications**: Track required oil, coolant, brake fluid, power steering fluid, and transmission fluid for each vehicle
 - ✅ **Inline Fluid Display**: During inspections, fluid requirements automatically appear next to relevant checklist items
