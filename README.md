@@ -281,13 +281,21 @@ cd ~/Fire-Department-Management-System/flask_app
 python3 db_init.py
 ```
 
-This creates all database tables with proper schema.
+This single command creates **ALL** database tables including:
+- Time tracking & activity logs
+- Multi-user authentication
+- Vehicle inspections & maintenance
+- Inventory management
+- ISO hose testing & compliance
+- Stations & equipment tracking
 
-Then create your admin user:
+Then create your first admin user:
 ```bash
 cd ~/Fire-Department-Management-System
 python3 add_users_table.py
 ```
+
+That's it! No need to run multiple migration scripts.
 
 #### 6. Configure Web App
 Go to the **Web** tab in PythonAnywhere dashboard:

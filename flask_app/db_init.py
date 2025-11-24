@@ -321,6 +321,63 @@ def init_database():
     ''')
     print("✅ Created table: display_settings")
 
+    # 17. Users table (for multi-user admin authentication)
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'admin',
+        is_active BOOLEAN DEFAULT 1,
+        force_password_change BOOLEAN DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP
+    )
+    ''')
+    print("✅ Created table: users")
+
+    # 18. ISO Hose Testing table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS iso_hose_tests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL,
+        test_year INTEGER NOT NULL,
+        test_date DATE NOT NULL,
+        tested_by TEXT,
+        test_result TEXT NOT NULL,
+        test_pressure INTEGER,
+        failure_reason TEXT,
+        repair_status TEXT,
+        repair_cost REAL,
+        repair_notes TEXT,
+        expected_completion_date DATE,
+        completed_date DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (item_id) REFERENCES inventory_items(id) ON DELETE CASCADE,
+        UNIQUE(item_id, test_year)
+    )
+    ''')
+    print("✅ Created table: iso_hose_tests")
+
+    # Add hose-specific columns to inventory_items
+    print("\n🔧 Adding hose-specific columns to inventory_items...")
+    hose_columns = [
+        ('diameter', 'REAL'),
+        ('length_feet', 'INTEGER'),
+        ('pressure_rating', 'INTEGER'),
+        ('image_filename', 'TEXT'),
+        ('hose_type', 'TEXT')
+    ]
+
+    for col_name, col_type in hose_columns:
+        try:
+            cursor.execute(f'ALTER TABLE inventory_items ADD COLUMN {col_name} {col_type}')
+            print(f"✅ Added column: {col_name}")
+        except sqlite3.OperationalError:
+            print(f"⚠️  Column '{col_name}' already exists")
+
     print("\n📊 Creating indexes for performance...")
 
     # Create indexes
@@ -348,7 +405,11 @@ def init_database():
         'CREATE INDEX IF NOT EXISTS idx_certifications_item ON item_certifications(item_id)',
         'CREATE INDEX IF NOT EXISTS idx_certifications_expiration ON item_certifications(expiration_date)',
         'CREATE INDEX IF NOT EXISTS idx_certifications_vehicle ON item_certifications(vehicle_id)',
-        'CREATE INDEX IF NOT EXISTS idx_certifications_station ON item_certifications(station_id)'
+        'CREATE INDEX IF NOT EXISTS idx_certifications_station ON item_certifications(station_id)',
+        'CREATE INDEX IF NOT EXISTS idx_iso_tests_item ON iso_hose_tests(item_id)',
+        'CREATE INDEX IF NOT EXISTS idx_iso_tests_year ON iso_hose_tests(test_year)',
+        'CREATE INDEX IF NOT EXISTS idx_iso_tests_result ON iso_hose_tests(test_result)',
+        'CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)'
     ]
 
     for index_sql in indexes:
@@ -393,10 +454,18 @@ def init_database():
 
     print("\n🎉 Database initialization complete!")
     print(f"📁 Database file: {DATABASE_NAME}")
-    print(f"📊 Total tables: 16")
+    print(f"📊 Total tables: 18 (includes users + ISO hose testing)")
     print(f"📈 Total indexes: {len(indexes)}")
     print(f"📂 Default categories: {len(default_categories)}")
     print(f"⚙️ Default settings: {len(default_settings)}")
+    print("\n✨ All features ready:")
+    print("   - Time tracking & activity logs")
+    print("   - Multi-user admin authentication")
+    print("   - Vehicle inspections & maintenance")
+    print("   - Inventory management")
+    print("   - ISO hose testing & compliance")
+    print("   - Stations & equipment tracking")
+    print("\n⚠️  NEXT STEP: Run add_users_table.py to create your first admin user")
 
 if __name__ == '__main__':
     init_database()
