@@ -43,7 +43,7 @@ A comprehensive web-based time tracking and management system designed specifica
 ## 📸 Screenshots
 
 ### Kiosk Mode
-Touch-friendly iPad interface for firefighters to check in and out. Can also be displayed on station TVs using [SignPresenter.com](https://www.signpresenter.com/)!
+Touch-friendly iPad interface for firefighters to check in and out
 
 ![Kiosk Mode](docs/screenshots/01-kiosk-mode.png)
 
