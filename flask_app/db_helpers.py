@@ -3570,3 +3570,197 @@ def close_testing_year(year):
 def is_testing_year_closed(year):
     """Check if a testing year has been closed"""
     return get_setting(f'hose_testing_year_{year}_closed', 'false') == 'true'
+
+# ========== USER MANAGEMENT FUNCTIONS ==========
+
+def get_user_by_username(username):
+    """Get user by username"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, username, email, password_hash, full_name, role, 
+               permissions, is_active, must_change_password, last_login
+        FROM users
+        WHERE username = ?
+    ''', (username,))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+    
+    return {
+        'id': row[0],
+        'username': row[1],
+        'email': row[2],
+        'password_hash': row[3],
+        'full_name': row[4],
+        'role': row[5],
+        'permissions': row[6],
+        'is_active': row[7],
+        'must_change_password': row[8],
+        'last_login': row[9]
+    }
+
+def get_all_users():
+    """Get all users"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, username, email, full_name, role, is_active, 
+               last_login, created_at
+        FROM users
+        ORDER BY created_at DESC
+    ''')
+    
+    users = []
+    for row in cursor.fetchall():
+        users.append({
+            'id': row[0],
+            'username': row[1],
+            'email': row[2],
+            'full_name': row[3],
+            'role': row[4],
+            'is_active': row[5],
+            'last_login': row[6],
+            'created_at': row[7]
+        })
+    
+    conn.close()
+    return users
+
+def create_user(username, full_name, password_hash, role='viewer', email=None, 
+                permissions=None, created_by=None):
+    """Create a new user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO users (username, full_name, password_hash, role, email, 
+                             permissions, must_change_password, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+        ''', (username, full_name, password_hash, role, email, permissions, created_by))
+        
+        user_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return True, user_id, "User created successfully"
+    except Exception as e:
+        conn.close()
+        return False, None, str(e)
+
+def update_user(user_id, **kwargs):
+    """Update user fields"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Build dynamic UPDATE query
+    fields = []
+    values = []
+    
+    allowed_fields = ['username', 'email', 'full_name', 'role', 'permissions', 
+                      'is_active', 'must_change_password']
+    
+    for field in allowed_fields:
+        if field in kwargs:
+            fields.append(f"{field} = ?")
+            values.append(kwargs[field])
+    
+    if not fields:
+        conn.close()
+        return False, "No fields to update"
+    
+    fields.append("updated_at = CURRENT_TIMESTAMP")
+    values.append(user_id)
+    
+    query = f"UPDATE users SET {', '.join(fields)} WHERE id = ?"
+    
+    try:
+        cursor.execute(query, values)
+        conn.commit()
+        conn.close()
+        return True, "User updated successfully"
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+
+def update_user_password(user_id, password_hash):
+    """Update user password"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE users 
+            SET password_hash = ?, must_change_password = 0, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (password_hash, user_id))
+        
+        conn.commit()
+        conn.close()
+        return True, "Password updated successfully"
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+
+def update_last_login(user_id):
+    """Update user's last login time"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        UPDATE users 
+        SET last_login = CURRENT_TIMESTAMP 
+        WHERE id = ?
+    ''', (user_id,))
+    
+    conn.commit()
+    conn.close()
+
+def delete_user(user_id):
+    """Delete a user (soft delete by setting is_active = 0)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE users 
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        ''', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        return True, "User deactivated successfully"
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+
+def user_has_permission(user, permission):
+    """Check if user has a specific permission"""
+    if not user:
+        return False
+    
+    # Admin has all permissions
+    if user.get('role') == 'admin':
+        return True
+    
+    # Check custom permissions
+    permissions_str = user.get('permissions', '')
+    if permissions_str:
+        permissions_list = permissions_str.split(',')
+        return permission in permissions_list
+    
+    # Default role permissions
+    role_permissions = {
+        'editor': ['view', 'edit', 'create'],
+        'viewer': ['view']
+    }
+    
+    user_role = user.get('role', 'viewer')
+    return permission in role_permissions.get(user_role, [])

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Fire Department</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 { color: #333; margin-bottom: 10px; }
+
+        .back-btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 5px;
+        }
+        .btn-primary { background: #667eea; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #f44336; }
+        .btn-danger:hover { background: #da190b; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .users-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .users-card h2 { margin-bottom: 20px; color: #333; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+        }
+        tr:hover { background: #f8f9fa; }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-admin { background: #667eea; color: white; }
+        .badge-editor { background: #28a745; color: white; }
+        .badge-viewer { background: #6c757d; color: white; }
+        .badge-custom { background: #ff9800; color: white; }
+        .badge-active { background: #d4edda; color: #155724; }
+        .badge-inactive { background: #f8d7da; color: #721c24; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 { margin-bottom: 20px; }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+        .close-modal:hover { color: #333; }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #17a2b8;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 User Management</h1>
+            <p>Manage system users, roles, and permissions</p>
+            <a href="{{ url_for('admin') }}" class="back-btn">← Back to Admin</a>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>ℹ️ About Roles:</strong><br>
+            <strong>Admin:</strong> Full system access including user management<br>
+            <strong>Editor:</strong> Can view and edit all data, cannot manage users<br>
+            <strong>Viewer:</strong> Read-only access to all data<br>
+            <strong>Custom:</strong> Specific permissions can be assigned
+        </div>
+
+        <div class="users-card">
+            <h2>System Users ({{ users|length }})</h2>
+            <button class="btn btn-success" onclick="openAddUserModal()">
+                ➕ Add New User
+            </button>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email or '—' }}</td>
+                        <td>
+                            <span class="badge badge-{{ user.role }}">{{ user.role|upper }}</span>
+                        </td>
+                        <td>
+                            {% if user.is_active %}
+                                <span class="badge badge-active">Active</span>
+                            {% else %}
+                                <span class="badge badge-inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.last_login %}
+                                {{ user.last_login }}
+                            {% else %}
+                                <em style="color: #999;">Never</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="editUser({{ user.id }})">Edit</button>
+                            {% if user.id != current_user_id %}
+                                <button class="btn btn-danger btn-sm" onclick="deactivateUser({{ user.id }}, '{{ user.username }}')">Deactivate</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeAddUserModal()">&times;</span>
+            <h2>Add New User</h2>
+            <form method="POST" action="{{ url_for('add_user') }}">
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" name="username" required>
+                    <small>Used for login, must be unique</small>
+                </div>
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" name="full_name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email">
+                    <small>Optional - for future email features</small>
+                </div>
+                <div class="form-group">
+                    <label>Role *</label>
+                    <select name="role" required>
+                        <option value="viewer">Viewer (Read-only)</option>
+                        <option value="editor">Editor (Edit data)</option>
+                        <option value="admin">Admin (Full access)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Initial Password *</label>
+                    <input type="password" name="password" required>
+                    <small>User will be required to change on first login</small>
+                </div>
+                <button type="submit" class="btn btn-success" style="width: 100%;">Create User</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddUserModal() {
+            document.getElementById('addUserModal').classList.add('active');
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('active');
+        }
+
+        function editUser(userId) {
+            // TODO: Implement edit modal
+            alert('Edit functionality coming soon! For now, deactivate and recreate the user.');
+        }
+
+        function deactivateUser(userId, username) {
+            if (!confirm(`Deactivate user "${username}"?\n\nThey will no longer be able to log in.`)) {
+                return;
+            }
+
+            fetch('{{ url_for("deactivate_user") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `user_id=${userId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('User deactivated successfully');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error deactivating user: ' + error);
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addUserModal');
+            if (event.target == modal) {
+                closeAddUserModal();
+            }
+        }
+    </script>
+</body>
+</html>
