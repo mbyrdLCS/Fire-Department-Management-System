@@ -2,7 +2,7 @@
 
 A comprehensive web-based time tracking and management system designed specifically for volunteer fire departments. Built with Flask and SQLite, this system helps fire departments track volunteer hours, manage equipment inventory, schedule vehicle inspections, and monitor station operations.
 
-**Live Demo:** [Spring Valley VFD](https://michealhelps.pythonanywhere.com/)
+**Live Demo:** Coming soon! (Setting up dedicated demo server)
 
 [![License](https://img.shields.io/badge/License-Non--Commercial-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/)
@@ -430,7 +430,6 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 - **Issues**: [GitHub Issues](https://github.com/mbyrdLCS/Fire-Department-Management-System/issues)
 - **Email**: mike@signpresenter.com
-- **Live Demo**: [Spring Valley VFD](https://michealhelps.pythonanywhere.com/)
 
 ## 🙏 Acknowledgments
 
