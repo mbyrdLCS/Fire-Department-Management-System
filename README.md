@@ -45,22 +45,37 @@ A comprehensive web-based time tracking and management system designed specifica
 ### Kiosk Mode
 Touch-friendly iPad interface for firefighters to check in and out
 
+![Kiosk Mode](docs/screenshots/01-kiosk-mode.png)
+
+### Admin Panel
+Comprehensive management interface with all system features at your fingertips
+
+![Admin Panel](docs/screenshots/02-admin-panel.png)
+
 ### Display Dashboard
 Real-time display with active firefighters, alerts, and leaderboards - perfect for station TVs
 
-### Admin Panel
-Comprehensive management interface with firefighter management, reports, and system controls
+![Display Dashboard](docs/screenshots/03-display-dashboard.png)
+
+### ISO Hose Testing
+Annual hose testing interface with compliance tracking and repair management
+
+![ISO Hose Testing](docs/screenshots/04-hose-testing.png)
+
+### Vehicle Inspections
+Mobile-friendly inspection checklists with inline fluid specifications
+
+![Vehicle Inspections](docs/screenshots/05-vehicle-inspections.png)
 
 ### Inventory Management
 Track equipment across stations and vehicles with cost tracking
 
-### Vehicle Inspections
-Mobile-friendly inspection checklists with inline fluid specifications - shows exactly what oil, coolant, and brake fluid each vehicle requires
+![Inventory Management](docs/screenshots/06-inventory.png)
 
-### Failed Inspection Alerts
-Prominent alerts throughout the system when vehicles fail inspection, with maintenance tracking integration
+### Reports & Analytics
+Comprehensive reporting with Excel export capabilities
 
-*More screenshots available in the `/docs/screenshots` folder*
+![Reports](docs/screenshots/07-reports.png)
 
 ## 🛠️ Technology Stack
 
