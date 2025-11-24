@@ -212,6 +212,76 @@ dropbox_backup_scheduler.start()
 atexit.register(local_backup_scheduler.stop)
 atexit.register(dropbox_backup_scheduler.stop)
 
+# ========== REQUEST-BASED BACKUP TRIGGER ==========
+# PythonAnywhere doesn't keep daemon threads alive, so we trigger backups on requests
+
+last_backup_check = {'dropbox': None, 'local': None}
+
+@app.before_request
+def check_and_trigger_backups():
+    """Check if backups are due and trigger them (runs before each request)"""
+    global last_backup_check
+
+    # Only check once per minute to avoid overhead
+    now = datetime.now()
+
+    try:
+        # Check Dropbox backups
+        if last_backup_check['dropbox'] is None or (now - last_backup_check['dropbox']).seconds > 60:
+            last_backup_check['dropbox'] = now
+
+            # Get interval from settings
+            interval_hours = float(db_helpers.get_setting('dropbox_backup_interval_hours', '1'))
+
+            if interval_hours > 0:
+                # Get last backup info
+                backups = db_helpers.list_dropbox_backups()
+                if backups['success'] and backups['backups']:
+                    last_backup_time = datetime.fromisoformat(backups['backups'][0]['modified'])
+                    hours_since_last = (now - last_backup_time).total_seconds() / 3600
+
+                    if hours_since_last >= interval_hours:
+                        logger.info(f"Triggering Dropbox backup (last backup was {hours_since_last:.1f}h ago)")
+                        # Create and upload backup
+                        result = db_helpers.create_database_backup()
+                        if result['success']:
+                            db_helpers.upload_backup_to_dropbox(result['backup_path'])
+                            # Cleanup old backups
+                            keep_count = int(db_helpers.get_setting('max_dropbox_backups', '20'))
+                            db_helpers.cleanup_old_dropbox_backups(keep_count)
+                elif backups['success'] and not backups['backups']:
+                    # No backups exist, create first one
+                    logger.info("No Dropbox backups found, creating first backup")
+                    result = db_helpers.create_database_backup()
+                    if result['success']:
+                        db_helpers.upload_backup_to_dropbox(result['backup_path'])
+
+        # Check local backups
+        if last_backup_check['local'] is None or (now - last_backup_check['local']).seconds > 60:
+            last_backup_check['local'] = now
+
+            interval_hours = float(db_helpers.get_setting('local_backup_interval_hours', '1'))
+
+            if interval_hours > 0:
+                backups = db_helpers.list_local_backups()
+                if backups['success'] and backups['backups']:
+                    last_backup_time = datetime.fromisoformat(backups['backups'][0]['created'])
+                    hours_since_last = (now - last_backup_time).total_seconds() / 3600
+
+                    if hours_since_last >= interval_hours:
+                        logger.info(f"Triggering local backup (last backup was {hours_since_last:.1f}h ago)")
+                        result = db_helpers.create_database_backup()
+                        if result['success']:
+                            keep_count = int(db_helpers.get_setting('max_local_backups', '10'))
+                            db_helpers.cleanup_old_backups(keep_count)
+                elif backups['success'] and not backups['backups']:
+                    logger.info("No local backups found, creating first backup")
+                    db_helpers.create_database_backup()
+
+    except Exception as e:
+        # Don't let backup failures break requests
+        logger.error(f"Backup trigger error: {str(e)}")
+
 # Template filters
 @app.template_filter('fromisoformat')
 def fromisoformat_filter(date_string):
