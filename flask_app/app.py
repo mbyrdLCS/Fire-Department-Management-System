@@ -3974,18 +3974,20 @@ def annual_hose_test(test_year):
     # Get all hoses
     all_hoses = db_helpers.get_hoses_on_vehicles()
 
-    # If viewing current year, show hoses tested last year OR already tested this year
+    # If viewing current year, show hoses tested last year OR already tested this year OR new hoses with no history
     # If viewing future year, show only hoses tested in previous year (baseline)
     if test_year == current_year:
-        # Current year: show baseline from last year + anything already tested this year
+        # Current year: show baseline from last year + anything already tested this year + new hoses
         previous_year = test_year - 1
         hoses = []
         for hose in all_hoses:
             tests = db_helpers.get_hose_test_history(hose['id'], years=None)
             was_tested_last_year = any(t['test_year'] == previous_year for t in tests)
             was_tested_this_year = any(t['test_year'] == test_year for t in tests)
+            has_no_test_history = len(tests) == 0
 
-            if was_tested_last_year or was_tested_this_year:
+            # Show if tested last year, tested this year, OR brand new hose with no history
+            if was_tested_last_year or was_tested_this_year or has_no_test_history:
                 hoses.append(hose)
                 hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
     elif test_year > current_year:
