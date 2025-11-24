@@ -807,16 +807,12 @@ def add_user():
         username = request.form['username'].strip()
         full_name = request.form['full_name'].strip()
         email = request.form.get('email', '').strip() or None
-        role = request.form['role']
+        role = 'admin'  # All users are created as admins
         password = request.form['password']
 
         # Validate inputs
         if not username or not full_name or not password:
             flash('Username, full name, and password are required!')
-            return redirect(url_for('user_management'))
-
-        if role not in ['admin', 'editor', 'viewer', 'custom']:
-            flash('Invalid role selected!')
             return redirect(url_for('user_management'))
 
         # Hash the password

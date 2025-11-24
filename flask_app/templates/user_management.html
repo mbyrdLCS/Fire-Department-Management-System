@@ -169,11 +169,8 @@
         </div>
 
         <div class="alert alert-info">
-            <strong>ℹ️ About Roles:</strong><br>
-            <strong>Admin:</strong> Full system access including user management<br>
-            <strong>Editor:</strong> Can view and edit all data, cannot manage users<br>
-            <strong>Viewer:</strong> Read-only access to all data<br>
-            <strong>Custom:</strong> Specific permissions can be assigned
+            <strong>ℹ️ About User Accounts:</strong><br>
+            All users are created as <strong>Admins</strong> with full system access. This includes viewing, editing, managing inventory, vehicles, maintenance, and user management.
         </div>
 
         <div class="users-card">
@@ -188,7 +185,6 @@
                         <th>Username</th>
                         <th>Full Name</th>
                         <th>Email</th>
-                        <th>Role</th>
                         <th>Status</th>
                         <th>Last Login</th>
                         <th>Actions</th>
@@ -200,9 +196,6 @@
                         <td><strong>{{ user.username }}</strong></td>
                         <td>{{ user.full_name }}</td>
                         <td>{{ user.email or '—' }}</td>
-                        <td>
-                            <span class="badge badge-{{ user.role }}">{{ user.role|upper }}</span>
-                        </td>
                         <td>
                             {% if user.is_active %}
                                 <span class="badge badge-active">Active</span>
@@ -251,18 +244,11 @@
                     <small>Optional - for future email features</small>
                 </div>
                 <div class="form-group">
-                    <label>Role *</label>
-                    <select name="role" required>
-                        <option value="viewer">Viewer (Read-only)</option>
-                        <option value="editor">Editor (Edit data)</option>
-                        <option value="admin">Admin (Full access)</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>Initial Password *</label>
                     <input type="password" name="password" required>
                     <small>User will be required to change on first login</small>
                 </div>
+                <input type="hidden" name="role" value="admin">
                 <button type="submit" class="btn btn-success" style="width: 100%;">Create User</button>
             </form>
         </div>

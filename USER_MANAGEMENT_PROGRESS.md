@@ -73,24 +73,21 @@
 4. **Log in with existing credentials**
 5. **Add new users from Admin menu**
 
-## 📊 ROLES & PERMISSIONS
+## 📊 USER ACCESS
 
-### Admin
-- Everything (user management, all features)
+**All users are Admins with full system access:**
+- User management (add/deactivate users)
+- View and edit all data
+- Manage inventory, vehicles, maintenance
+- Create and manage reports
+- Access all features
 
-### Editor
-- View all data
-- Edit inventory, vehicles, maintenance
-- Create reports
-- **Cannot:** Manage users, change critical settings
-
-### Viewer
-- View all data
-- Generate reports
-- **Cannot:** Edit anything
-
-### Custom
-- Specific permissions assigned individually
+**Why admin-only?**
+- Simpler system without complex permission checks
+- Everyone who needs access is trusted
+- Individual logins provide audit trail
+- Users can be deactivated when they leave
+- Role-based permissions can be added later if needed
 
 ## 🚀 FUTURE ENHANCEMENTS (SendGrid Email)
 
