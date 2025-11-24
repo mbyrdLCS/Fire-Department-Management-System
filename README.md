@@ -2,7 +2,7 @@
 
 A comprehensive web-based time tracking and management system designed specifically for volunteer fire departments. Built with Flask and SQLite, this system helps fire departments track volunteer hours, manage equipment inventory, schedule vehicle inspections, and monitor station operations.
 
-**Live Demo:** Coming soon! (Setting up dedicated demo server)
+**Live Demo:** [https://byrdmanlk.pythonanywhere.com](https://byrdmanlk.pythonanywhere.com) (Login: demo / demo2024)
 
 [![License](https://img.shields.io/badge/License-Non--Commercial-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/)
@@ -277,11 +277,17 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 
 #### 5. Initialize Database
 ```bash
+cd ~/Fire-Department-Management-System/flask_app
+python3 db_init.py
+```
+
+This creates all database tables with proper schema.
+
+Then create your admin user:
+```bash
 cd ~/Fire-Department-Management-System
 python3 add_users_table.py
 ```
-
-This creates the users table and converts your admin credentials to the first user account.
 
 #### 6. Configure Web App
 Go to the **Web** tab in PythonAnywhere dashboard:
@@ -386,14 +392,34 @@ To manually trigger a backup, visit `/test_backup` while logged in as admin.
 
 ## Troubleshooting
 
+### "No such table" errors
+The database wasn't initialized properly. Run:
+```bash
+cd ~/Fire-Department-Management-System/flask_app
+python3 db_init.py
+```
+
+### "ModuleNotFoundError: No module named 'db_helpers'"
+Your WSGI file paths are wrong. Make sure your WSGI file includes:
+```python
+flask_app_dir = '/home/YOUR_USERNAME/Fire-Department-Management-System/flask_app'
+if flask_app_dir not in sys.path:
+    sys.path.insert(0, flask_app_dir)
+```
+
+### Site shows "Internal Server Error"
+Check the error log (link in Web tab). Common issues:
+- Database not initialized (run `db_init.py`)
+- Wrong virtualenv path
+- Missing `.env` file
+
 ### Auto-checkout not working
 - Check logs in `firefighter.log`
 - Verify background threads are running
 
 ### Dropbox backup failing
 - Verify credentials in `.env`
-- Check `backup.log` for errors
-- Visit `/debug_dropbox` while logged in as admin
+- Dropbox backups are optional - leave credentials blank if not using
 
 ### Data corruption
 - System automatically tries to recover from backups
