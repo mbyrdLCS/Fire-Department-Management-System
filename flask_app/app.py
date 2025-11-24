@@ -13,6 +13,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 import db_helpers
+import bcrypt
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
@@ -546,18 +547,45 @@ def admin():
 
 @app.route('/admin', methods=['POST'])
 def admin_auth():
-    """Admin authentication"""
+    """Admin authentication - now using users table"""
     username = request.form['username']
     password = request.form['password']
 
-    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-        session['logged_in'] = True
-        logger.info("Admin login successful")
-        return redirect(url_for('admin_panel'))
+    try:
+        # Get user from database
+        user = db_helpers.get_user_by_username(username)
 
-    logger.warning(f"Failed admin login attempt with username: {username}")
-    flash('Invalid credentials!')
-    return redirect(url_for('admin'))
+        if user and user['is_active']:
+            # Verify password with bcrypt
+            if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+                # Login successful - update session
+                session['logged_in'] = True
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['full_name'] = user['full_name']
+                session['role'] = user['role']
+
+                # Update last login timestamp
+                db_helpers.update_last_login(user['id'])
+
+                logger.info(f"User login successful: {username} (role: {user['role']})")
+
+                # Check if user must change password
+                if user['must_change_password']:
+                    flash('You must change your password before continuing.')
+                    return redirect(url_for('change_password'))
+
+                return redirect(url_for('admin_panel'))
+
+        # Invalid credentials
+        logger.warning(f"Failed login attempt with username: {username}")
+        flash('Invalid credentials!')
+        return redirect(url_for('admin'))
+
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}", exc_info=True)
+        flash('An error occurred during login.')
+        return redirect(url_for('admin'))
 
 @app.route('/admin_panel')
 def admin_panel():
@@ -747,6 +775,161 @@ def delete_log():
         flash('An error occurred while deleting the log.')
 
     return redirect(url_for('admin_panel'))
+
+# =====================================================
+# USER MANAGEMENT ROUTES
+# =====================================================
+
+@app.route('/admin/users')
+def user_management():
+    """User management page - admin only"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        users = db_helpers.get_all_users()
+        current_user_id = session.get('user_id')  # Will add this to session in login update
+        return render_template('user_management.html', users=users, current_user_id=current_user_id)
+    except Exception as e:
+        logger.error(f"User management error: {str(e)}", exc_info=True)
+        flash('Error loading user management page.')
+        return redirect(url_for('admin'))
+
+@app.route('/admin/users/add', methods=['POST'])
+def add_user():
+    """Create a new user - admin only"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        username = request.form['username'].strip()
+        full_name = request.form['full_name'].strip()
+        email = request.form.get('email', '').strip() or None
+        role = request.form['role']
+        password = request.form['password']
+
+        # Validate inputs
+        if not username or not full_name or not password:
+            flash('Username, full name, and password are required!')
+            return redirect(url_for('user_management'))
+
+        if role not in ['admin', 'editor', 'viewer', 'custom']:
+            flash('Invalid role selected!')
+            return redirect(url_for('user_management'))
+
+        # Hash the password
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Create the user
+        created_by = session.get('user_id')  # Will add this to session in login update
+        success, user_id, message = db_helpers.create_user(
+            username=username,
+            full_name=full_name,
+            password_hash=password_hash,
+            role=role,
+            email=email,
+            created_by=created_by
+        )
+
+        if success:
+            flash(f'User "{username}" created successfully! They must change their password on first login.')
+            logger.info(f"New user created: {username} ({role}) by user_id={created_by}")
+        else:
+            flash(f'Error creating user: {message}')
+
+    except Exception as e:
+        logger.error(f"Add user error: {str(e)}", exc_info=True)
+        flash('An error occurred while creating the user.')
+
+    return redirect(url_for('user_management'))
+
+@app.route('/admin/users/deactivate', methods=['POST'])
+def deactivate_user():
+    """Deactivate a user - admin only"""
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    try:
+        user_id = int(request.form['user_id'])
+        current_user_id = session.get('user_id')
+
+        # Prevent deactivating yourself
+        if user_id == current_user_id:
+            return jsonify({'success': False, 'error': 'Cannot deactivate your own account'}), 400
+
+        success, message = db_helpers.delete_user(user_id)
+
+        if success:
+            logger.info(f"User {user_id} deactivated by user_id={current_user_id}")
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': message}), 400
+
+    except Exception as e:
+        logger.error(f"Deactivate user error: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/user/change-password', methods=['GET', 'POST'])
+def change_password():
+    """Change password page - allows users to change their own password"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    user_id = session.get('user_id')
+    user = db_helpers.get_user_by_username(session.get('username'))
+    must_change = user.get('must_change_password', False) if user else False
+
+    if request.method == 'GET':
+        return render_template('change_password.html', must_change=must_change)
+
+    # POST - process password change
+    try:
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        # Validate passwords match
+        if new_password != confirm_password:
+            flash('New passwords do not match!')
+            return redirect(url_for('change_password'))
+
+        # Validate password length
+        if len(new_password) < 8:
+            flash('Password must be at least 8 characters!')
+            return redirect(url_for('change_password'))
+
+        # If not must_change, verify current password
+        if not must_change:
+            current_password = request.form.get('current_password')
+            if not current_password:
+                flash('Current password is required!')
+                return redirect(url_for('change_password'))
+
+            # Verify current password
+            if not bcrypt.checkpw(current_password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+                flash('Current password is incorrect!')
+                return redirect(url_for('change_password'))
+
+        # Hash new password
+        new_password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Update password
+        success, message = db_helpers.update_user_password(user_id, new_password_hash)
+
+        if success:
+            flash('Password changed successfully!')
+            logger.info(f"Password changed for user_id={user_id}")
+            return redirect(url_for('admin_panel'))
+        else:
+            flash(f'Error changing password: {message}')
+            return redirect(url_for('change_password'))
+
+    except Exception as e:
+        logger.error(f"Change password error: {str(e)}", exc_info=True)
+        flash('An error occurred while changing your password.')
+        return redirect(url_for('change_password'))
 
 @app.route('/clear_all_logs', methods=['POST'])
 def clear_all_logs():

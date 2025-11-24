@@ -29,32 +29,35 @@
   - Edit/Deactivate buttons
   - Role explanations
 
-## 🔨 TODO (Next Session)
-
 ### 4. Routes in app.py
-- [ ] `/admin/users` - Show user management page
-- [ ] `/admin/users/add` - Create new user
-- [ ] `/admin/users/<id>/edit` - Edit user (future)
-- [ ] `/admin/users/<id>/deactivate` - Deactivate user
-- [ ] `/user/change-password` - User changes own password
+- [x] `/admin/users` - Show user management page
+- [x] `/admin/users/add` - Create new user (POST)
+- [x] `/admin/users/deactivate` - Deactivate user (POST)
+- [x] `/user/change-password` - User changes own password
+- [x] Added link to User Management in admin panel menu
+- [ ] `/admin/users/<id>/edit` - Edit user (future enhancement)
 
 ### 5. Update Login System
-- [ ] Modify login route to check users table
-- [ ] Store user object in session (not just logged_in flag)
-- [ ] Check if must_change_password on login
-- [ ] Redirect to change password if needed
-- [ ] Update last_login timestamp
+- [x] Modified login route to check users table
+- [x] Store user object in session (user_id, username, full_name, role)
+- [x] Check if must_change_password on login
+- [x] Redirect to change password if needed
+- [x] Update last_login timestamp
+- [x] Use bcrypt for password verification
 
-### 6. Add Permission Checks
+### 6. Change Password Page
+- [x] Template for changing password (change_password.html)
+- [x] Verify old password (when not must_change)
+- [x] Set new password with validation (min 8 chars)
+- [x] Clear must_change_password flag
+- [x] Password confirmation field
+
+## 🔨 TODO (Next Steps)
+
+### 7. Add Permission Checks (Optional - Future Enhancement)
 - [ ] Create decorator `@require_permission('admin')`
 - [ ] Add to sensitive routes (user management, etc.)
-- [ ] Show/hide UI elements based on role
-
-### 7. Change Password Page
-- [ ] Template for changing password
-- [ ] Verify old password
-- [ ] Set new password
-- [ ] Clear must_change_password flag
+- [ ] Show/hide UI elements based on role in templates
 
 ## 🎯 DEPLOYMENT STEPS
 
