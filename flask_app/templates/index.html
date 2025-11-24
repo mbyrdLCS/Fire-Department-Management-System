@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spring Valley Volunteer Fire Department</title>
+    <title>{{ DEPARTMENT_NAME }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         * {
@@ -17,6 +17,24 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+        }
+
+        .demo-banner {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .demo-banner strong {
+            font-size: 18px;
+            display: block;
+            margin-bottom: 5px;
         }
 
         .main-header {
@@ -295,9 +313,17 @@
 </head>
 <body>
     <div class="container">
+        {% if DEMO_MODE %}
+        <!-- Demo Banner -->
+        <div class="demo-banner">
+            <strong>🎭 DEMO SYSTEM - SAMPLE DATA ONLY</strong>
+            This is a demonstration site with sample data. Login: demo / demo2024
+        </div>
+        {% endif %}
+
         <!-- Main Header -->
         <div class="main-header">
-            <h1>🚒 Spring Valley Volunteer Fire Department</h1>
+            <h1>🚒 {{ DEPARTMENT_NAME }}</h1>
             <div class="subtitle">Activity Log & Management System</div>
         </div>
 

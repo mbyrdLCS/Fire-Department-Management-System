@@ -43,6 +43,10 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
+# Demo mode settings
+DEMO_MODE = os.getenv('DEMO_MODE', 'false').lower() == 'true'
+DEPARTMENT_NAME = os.getenv('DEPARTMENT_NAME', 'Spring Valley Volunteer Fire Department')
+
 # Validate required environment variables
 if not all([app.secret_key, ADMIN_USERNAME, ADMIN_PASSWORD]):
     raise ValueError("Missing required environment variables. Check your .env file.")
@@ -296,6 +300,14 @@ def format_log_time(log_time):
     return central_time.strftime('%Y-%m-%d %H:%M:%S')
 
 app.jinja_env.filters['format_log_time'] = format_log_time
+
+# Context processor to inject variables into all templates
+@app.context_processor
+def inject_global_vars():
+    return {
+        'DEMO_MODE': DEMO_MODE,
+        'DEPARTMENT_NAME': DEPARTMENT_NAME
+    }
 
 # ========== UTILITY FUNCTIONS ==========
 
