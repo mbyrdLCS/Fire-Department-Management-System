@@ -228,10 +228,11 @@ def check_and_trigger_backups():
 
     # Only check once per minute to avoid overhead
     now = datetime.now()
+    now_utc = datetime.now(pytz.UTC)
 
     try:
         # Check Dropbox backups
-        if last_backup_check['dropbox'] is None or (now - last_backup_check['dropbox']).seconds > 60:
+        if last_backup_check['dropbox'] is None or (now - last_backup_check['dropbox']).total_seconds() > 60:
             last_backup_check['dropbox'] = now
 
             # Get interval from settings
@@ -241,8 +242,9 @@ def check_and_trigger_backups():
                 # Get last backup info
                 backups = db_helpers.list_dropbox_backups()
                 if backups['success'] and backups['backups']:
-                    last_backup_time = datetime.fromisoformat(backups['backups'][0]['modified'])
-                    hours_since_last = (now - last_backup_time).total_seconds() / 3600
+                    # 'date' is already a timezone-aware datetime object
+                    last_backup_time = backups['backups'][0]['date']
+                    hours_since_last = (now_utc - last_backup_time).total_seconds() / 3600
 
                     if hours_since_last >= interval_hours:
                         logger.info(f"Triggering Dropbox backup (last backup was {hours_since_last:.1f}h ago)")
@@ -261,15 +263,17 @@ def check_and_trigger_backups():
                         db_helpers.upload_backup_to_dropbox(result['backup_path'])
 
         # Check local backups
-        if last_backup_check['local'] is None or (now - last_backup_check['local']).seconds > 60:
+        if last_backup_check['local'] is None or (now - last_backup_check['local']).total_seconds() > 60:
             last_backup_check['local'] = now
 
             interval_hours = float(db_helpers.get_setting('local_backup_interval_hours', '1'))
 
             if interval_hours > 0:
-                backups = db_helpers.list_local_backups()
-                if backups['success'] and backups['backups']:
-                    last_backup_time = datetime.fromisoformat(backups['backups'][0]['created'])
+                # list_database_backups returns a plain list, not a dict
+                backups = db_helpers.list_database_backups()
+                if backups:
+                    # 'date' is already a datetime object (naive, local time)
+                    last_backup_time = backups[0]['date']
                     hours_since_last = (now - last_backup_time).total_seconds() / 3600
 
                     if hours_since_last >= interval_hours:
@@ -278,13 +282,16 @@ def check_and_trigger_backups():
                         if result['success']:
                             keep_count = int(db_helpers.get_setting('max_local_backups', '10'))
                             db_helpers.cleanup_old_backups(keep_count)
-                elif backups['success'] and not backups['backups']:
+                else:
+                    # No backups exist, create first one
                     logger.info("No local backups found, creating first backup")
                     db_helpers.create_database_backup()
 
     except Exception as e:
         # Don't let backup failures break requests
         logger.error(f"Backup trigger error: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
 
 # Template filters
 @app.template_filter('fromisoformat')
