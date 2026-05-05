@@ -25,6 +25,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from threading import Timer
 import atexit
+from werkzeug.utils import secure_filename
 
 # Load environment variables - try multiple paths for different environments
 env_paths = [
@@ -66,6 +67,14 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Vehicle image upload configuration
+VEHICLE_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'vehicles')
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+os.makedirs(VEHICLE_UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_image_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 # Timezone configuration
 central = pytz.timezone('America/Chicago')
@@ -2621,6 +2630,17 @@ def create_vehicle():
         power_steering_fluid_type = request.form.get('power_steering_fluid_type', '')
         transmission_fluid_type = request.form.get('transmission_fluid_type', '')
 
+        # Handle vehicle image upload
+        image_filename = ''
+        if 'vehicle_image' in request.files:
+            file = request.files['vehicle_image']
+            if file and file.filename and allowed_image_file(file.filename):
+                filename = secure_filename(file.filename)
+                # Prefix with timestamp to avoid collisions
+                filename = f"{int(datetime.now().timestamp())}_{filename}"
+                file.save(os.path.join(VEHICLE_UPLOAD_FOLDER, filename))
+                image_filename = filename
+
         # Convert empty strings to None for optional fields
         station_id = int(station_id) if station_id else None
         year = int(year) if year else None
@@ -2645,7 +2665,8 @@ def create_vehicle():
             antifreeze_type=antifreeze_type,
             brake_fluid_type=brake_fluid_type,
             power_steering_fluid_type=power_steering_fluid_type,
-            transmission_fluid_type=transmission_fluid_type
+            transmission_fluid_type=transmission_fluid_type,
+            image_filename=image_filename
         )
 
         if success:
@@ -2697,6 +2718,31 @@ def update_vehicle(vehicle_id):
         power_steering_fluid_type = request.form.get('power_steering_fluid_type', '')
         transmission_fluid_type = request.form.get('transmission_fluid_type', '')
 
+        # Handle vehicle image upload
+        image_filename = None  # None means don't change existing image
+        if 'vehicle_image' in request.files:
+            file = request.files['vehicle_image']
+            if file and file.filename and allowed_image_file(file.filename):
+                # Delete old image if it exists
+                existing_vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+                if existing_vehicle and existing_vehicle.get('image_filename'):
+                    old_path = os.path.join(VEHICLE_UPLOAD_FOLDER, existing_vehicle['image_filename'])
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+                filename = secure_filename(file.filename)
+                filename = f"{int(datetime.now().timestamp())}_{filename}"
+                file.save(os.path.join(VEHICLE_UPLOAD_FOLDER, filename))
+                image_filename = filename
+
+        # Handle image removal
+        if request.form.get('remove_image') == '1':
+            existing_vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+            if existing_vehicle and existing_vehicle.get('image_filename'):
+                old_path = os.path.join(VEHICLE_UPLOAD_FOLDER, existing_vehicle['image_filename'])
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            image_filename = ''
+
         # Convert empty strings to None for optional fields
         station_id = int(station_id) if station_id else None
         year = int(year) if year else None
@@ -2722,7 +2768,8 @@ def update_vehicle(vehicle_id):
             antifreeze_type=antifreeze_type,
             brake_fluid_type=brake_fluid_type,
             power_steering_fluid_type=power_steering_fluid_type,
-            transmission_fluid_type=transmission_fluid_type
+            transmission_fluid_type=transmission_fluid_type,
+            image_filename=image_filename
         )
 
         if success:

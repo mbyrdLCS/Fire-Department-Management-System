@@ -110,12 +110,20 @@ def init_database():
         brake_fluid_type TEXT,
         power_steering_fluid_type TEXT,
         transmission_fluid_type TEXT,
+        image_filename TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (station_id) REFERENCES stations(id)
     )
     ''')
     print("✅ Created table: vehicles")
+
+    # Add image_filename column to vehicles if it doesn't exist (migration)
+    try:
+        cursor.execute('ALTER TABLE vehicles ADD COLUMN image_filename TEXT')
+        print("✅ Added column: vehicles.image_filename")
+    except sqlite3.OperationalError:
+        print("⚠️  Column 'image_filename' already exists on vehicles")
 
     # 6. Inspection checklist items table
     cursor.execute('''

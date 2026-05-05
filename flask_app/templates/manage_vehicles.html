@@ -254,7 +254,7 @@
         <!-- Add New Vehicle -->
         <div class="section">
             <div class="section-title">➕ Add New Vehicle</div>
-            <form method="POST" action="{{ url_for('create_vehicle') }}">
+            <form method="POST" action="{{ url_for('create_vehicle') }}" enctype="multipart/form-data">
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="vehicle_code">Vehicle Code (Optional):</label>
@@ -330,6 +330,16 @@
                         <textarea name="notes" id="notes" rows="3" placeholder="Additional notes..."></textarea>
                     </div>
 
+                    <!-- Vehicle Image Section -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <h3 style="margin: 20px 0 10px 0; color: #1a237e; border-bottom: 2px solid #1976d2; padding-bottom: 5px;">📷 Vehicle Photo</h3>
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicle_image">Upload Image:</label>
+                        <input type="file" name="vehicle_image" id="vehicle_image" accept="image/*" style="padding: 10px;">
+                        <small style="color: #888; display: block; margin-top: 4px;">JPG, PNG, GIF, or WebP</small>
+                    </div>
+
                     <!-- Fluid Specifications Section -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <h3 style="margin: 20px 0 10px 0; color: #1a237e; border-bottom: 2px solid #1976d2; padding-bottom: 5px;">🛢️ Fluid Specifications</h3>
@@ -369,6 +379,7 @@
                 <table class="vehicles-table">
                     <thead>
                         <tr>
+                            <th>Photo</th>
                             <th>Code</th>
                             <th>Name</th>
                             <th>Type</th>
@@ -382,6 +393,13 @@
                     <tbody>
                         {% for vehicle in vehicles %}
                         <tr>
+                            <td>
+                                {% if vehicle.image_filename %}
+                                <img src="/static/uploads/vehicles/{{ vehicle.image_filename }}" alt="{{ vehicle.name }}" style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid #ddd;" onclick="showImageModal('/static/uploads/vehicles/{{ vehicle.image_filename }}', '{{ vehicle.name }}')">
+                                {% else %}
+                                <span style="color: #ccc; font-size: 24px;">🚒</span>
+                                {% endif %}
+                            </td>
                             <td><strong>{{ vehicle.vehicle_code }}</strong></td>
                             <td>{{ vehicle.name }}</td>
                             <td>{{ vehicle.vehicle_type or '--' }}</td>
@@ -409,9 +427,9 @@
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="8" style="padding: 0;">
+                            <td colspan="9" style="padding: 0;">
                                 <div id="edit-{{ vehicle.id }}" class="edit-form">
-                                    <form method="POST" action="{{ url_for('update_vehicle', vehicle_id=vehicle.id) }}">
+                                    <form method="POST" action="{{ url_for('update_vehicle', vehicle_id=vehicle.id) }}" enctype="multipart/form-data">
                                         <div class="form-grid">
                                             <div class="form-group">
                                                 <label>Vehicle Code:</label>
@@ -491,6 +509,29 @@
                                                 </select>
                                             </div>
 
+                                            <!-- Vehicle Image Section -->
+                                            <div class="form-group" style="grid-column: 1 / -1;">
+                                                <h4 style="margin: 15px 0 10px 0; color: #1a237e; border-bottom: 2px solid #1976d2; padding-bottom: 5px;">📷 Vehicle Photo</h4>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Upload New Image:</label>
+                                                <input type="file" name="vehicle_image" accept="image/*" style="padding: 10px;">
+                                                <small style="color: #888; display: block; margin-top: 4px;">JPG, PNG, GIF, or WebP</small>
+                                            </div>
+                                            {% if vehicle.image_filename %}
+                                            <div class="form-group">
+                                                <label>Current Image:</label>
+                                                <div style="margin-top: 5px;">
+                                                    <img src="/static/uploads/vehicles/{{ vehicle.image_filename }}" alt="{{ vehicle.name }}" style="width: 120px; height: 90px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">
+                                                    <div style="margin-top: 8px;">
+                                                        <label style="font-weight: normal; color: #d32f2f; font-size: 13px;">
+                                                            <input type="checkbox" name="remove_image" value="1"> Remove current image
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+
                                             <!-- Fluid Specifications Section -->
                                             <div class="form-group" style="grid-column: 1 / -1;">
                                                 <h4 style="margin: 15px 0 10px 0; color: #1a237e; border-bottom: 2px solid #1976d2; padding-bottom: 5px;">🛢️ Fluid Specifications</h4>
@@ -534,6 +575,15 @@
         </div>
     </div>
 
+    <!-- Image Modal -->
+    <div id="imageModal" onclick="closeImageModal()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; cursor: pointer;">
+        <div style="position: relative; max-width: 90%; max-height: 90%;">
+            <img id="modalImage" src="" alt="" style="max-width: 100%; max-height: 85vh; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+            <div id="modalCaption" style="text-align: center; color: white; font-size: 18px; font-weight: 600; margin-top: 12px;"></div>
+            <button onclick="closeImageModal()" style="position: absolute; top: -15px; right: -15px; background: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">✕</button>
+        </div>
+    </div>
+
     <script>
         function toggleEdit(vehicleId) {
             const editForm = document.getElementById('edit-' + vehicleId);
@@ -543,6 +593,20 @@
                 editForm.style.display = 'none';
             }
         }
+
+        function showImageModal(src, caption) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('modalCaption').textContent = caption;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeImageModal();
+        });
     </script>
 </body>
 </html>

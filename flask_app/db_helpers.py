@@ -641,7 +641,7 @@ def get_all_vehicles():
                vin, license_plate, purchase_date, purchase_cost, current_value,
                status, notes,
                oil_type, antifreeze_type, brake_fluid_type,
-               power_steering_fluid_type, transmission_fluid_type
+               power_steering_fluid_type, transmission_fluid_type, image_filename
         FROM vehicles
         WHERE status = 'active'
         ORDER BY vehicle_code
@@ -669,7 +669,8 @@ def get_all_vehicles():
             'antifreeze_type': row[16] if row[16] else '',
             'brake_fluid_type': row[17] if row[17] else '',
             'power_steering_fluid_type': row[18] if row[18] else '',
-            'transmission_fluid_type': row[19] if row[19] else ''
+            'transmission_fluid_type': row[19] if row[19] else '',
+            'image_filename': row[20] if row[20] else ''
         })
 
     conn.close()
@@ -735,7 +736,7 @@ def get_vehicle_by_id(vehicle_id):
         cursor.execute('''
             SELECT id, vehicle_code, name, vehicle_type, status,
                    oil_type, antifreeze_type, brake_fluid_type,
-                   power_steering_fluid_type, transmission_fluid_type
+                   power_steering_fluid_type, transmission_fluid_type, image_filename
             FROM vehicles
             WHERE id = ?
         ''', (vehicle_id,))
@@ -754,7 +755,8 @@ def get_vehicle_by_id(vehicle_id):
                 'antifreeze_type': row[6] or '',
                 'brake_fluid_type': row[7] or '',
                 'power_steering_fluid_type': row[8] or '',
-                'transmission_fluid_type': row[9] or ''
+                'transmission_fluid_type': row[9] or '',
+                'image_filename': row[10] or ''
             }
     except Exception as e:
         # Fallback if fluid columns don't exist yet (for backwards compatibility)
@@ -1793,7 +1795,7 @@ def generate_vehicle_code(name, vehicle_type=''):
     conn.close()
     return vehicle_code
 
-def create_vehicle(vehicle_code, name, vehicle_type='', status='active', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', oil_type='', antifreeze_type='', brake_fluid_type='', power_steering_fluid_type='', transmission_fluid_type=''):
+def create_vehicle(vehicle_code, name, vehicle_type='', status='active', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', oil_type='', antifreeze_type='', brake_fluid_type='', power_steering_fluid_type='', transmission_fluid_type='', image_filename=''):
     """Create a new vehicle and automatically assign all active checklist items
 
     If vehicle_code is empty, it will be auto-generated from the name and type
@@ -1811,11 +1813,13 @@ def create_vehicle(vehicle_code, name, vehicle_type='', status='active', station
             INSERT INTO vehicles
             (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
              purchase_date, purchase_cost, current_value, notes, status,
-             oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type,
+             image_filename)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
               purchase_date, purchase_cost, current_value, notes, status,
-              oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type))
+              oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type,
+              image_filename))
 
         vehicle_id = cursor.lastrowid
 
@@ -1833,25 +1837,42 @@ def create_vehicle(vehicle_code, name, vehicle_type='', status='active', station
         conn.close()
         return False, str(e)
 
-def update_vehicle(vehicle_id, vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', status='active', oil_type='', antifreeze_type='', brake_fluid_type='', power_steering_fluid_type='', transmission_fluid_type=''):
+def update_vehicle(vehicle_id, vehicle_code, name, vehicle_type='', station_id=None, year=None, make='', model='', vin='', license_plate='', purchase_date=None, purchase_cost=None, current_value=None, notes='', status='active', oil_type='', antifreeze_type='', brake_fluid_type='', power_steering_fluid_type='', transmission_fluid_type='', image_filename=None):
     """Update an existing vehicle"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        cursor.execute('''
-            UPDATE vehicles
-            SET vehicle_code = ?, name = ?, vehicle_type = ?, station_id = ?, year = ?,
-                make = ?, model = ?, vin = ?, license_plate = ?, purchase_date = ?,
-                purchase_cost = ?, current_value = ?, notes = ?, status = ?,
-                oil_type = ?, antifreeze_type = ?, brake_fluid_type = ?,
-                power_steering_fluid_type = ?, transmission_fluid_type = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
-              purchase_date, purchase_cost, current_value, notes, status,
-              oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type,
-              vehicle_id))
+        # Build update query - only update image_filename if a new one is provided
+        if image_filename is not None:
+            cursor.execute('''
+                UPDATE vehicles
+                SET vehicle_code = ?, name = ?, vehicle_type = ?, station_id = ?, year = ?,
+                    make = ?, model = ?, vin = ?, license_plate = ?, purchase_date = ?,
+                    purchase_cost = ?, current_value = ?, notes = ?, status = ?,
+                    oil_type = ?, antifreeze_type = ?, brake_fluid_type = ?,
+                    power_steering_fluid_type = ?, transmission_fluid_type = ?,
+                    image_filename = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
+                  purchase_date, purchase_cost, current_value, notes, status,
+                  oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type,
+                  image_filename, vehicle_id))
+        else:
+            cursor.execute('''
+                UPDATE vehicles
+                SET vehicle_code = ?, name = ?, vehicle_type = ?, station_id = ?, year = ?,
+                    make = ?, model = ?, vin = ?, license_plate = ?, purchase_date = ?,
+                    purchase_cost = ?, current_value = ?, notes = ?, status = ?,
+                    oil_type = ?, antifreeze_type = ?, brake_fluid_type = ?,
+                    power_steering_fluid_type = ?, transmission_fluid_type = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (vehicle_code, name, vehicle_type, station_id, year, make, model, vin, license_plate,
+                  purchase_date, purchase_cost, current_value, notes, status,
+                  oil_type, antifreeze_type, brake_fluid_type, power_steering_fluid_type, transmission_fluid_type,
+                  vehicle_id))
 
         conn.commit()
         conn.close()
