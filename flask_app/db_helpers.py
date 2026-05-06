@@ -2959,11 +2959,20 @@ def get_backup_status():
             'error': str(e)
         }
 
-def get_dropbox_client():
+# Cached Dropbox client — avoids creating a new client (and 2 API calls) on every check
+_cached_dropbox_client = None
+
+def get_dropbox_client(force_new=False):
     """
-    Get authenticated Dropbox client using credentials from environment
+    Get authenticated Dropbox client using credentials from environment.
+    Caches the client so subsequent calls don't re-authenticate.
     Returns: Dropbox client or None if unavailable/failed
     """
+    global _cached_dropbox_client
+
+    if _cached_dropbox_client is not None and not force_new:
+        return _cached_dropbox_client
+
     if not DROPBOX_AVAILABLE:
         print("Dropbox SDK not available - dropbox module not installed")
         return None
@@ -2974,15 +2983,8 @@ def get_dropbox_client():
         app_secret = os.getenv('DROPBOX_APP_SECRET')
         refresh_token = os.getenv('DROPBOX_REFRESH_TOKEN')
 
-        # Debug: Check if credentials are present
-        has_key = bool(app_key)
-        has_secret = bool(app_secret)
-        has_token = bool(refresh_token)
-
-        print(f"Dropbox credentials check - Key: {has_key}, Secret: {has_secret}, Token: {has_token}")
-
         if not all([app_key, app_secret, refresh_token]):
-            print(f"Missing Dropbox credentials - app_key: {has_key}, app_secret: {has_secret}, refresh_token: {has_token}")
+            print(f"Missing Dropbox credentials - app_key: {bool(app_key)}, app_secret: {bool(app_secret)}, refresh_token: {bool(refresh_token)}")
             return None
 
         dbx = dropbox.Dropbox(
@@ -2992,15 +2994,16 @@ def get_dropbox_client():
             timeout=30
         )
 
-        # Verify it works
+        # Verify it works on first connection
         account = dbx.users_get_current_account()
         print(f"Successfully connected to Dropbox account: {account.email}")
+
+        _cached_dropbox_client = dbx
         return dbx
 
     except Exception as e:
         print(f"Error connecting to Dropbox: {e}")
-        import traceback
-        traceback.print_exc()
+        _cached_dropbox_client = None
         return None
 
 def list_dropbox_backups():

@@ -23,8 +23,6 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from threading import Timer
-import atexit
 from werkzeug.utils import secure_filename
 
 # Load environment variables - try multiple paths for different environments
@@ -79,222 +77,81 @@ def allowed_image_file(filename):
 # Timezone configuration
 central = pytz.timezone('America/Chicago')
 
-# ========== AUTOMATIC BACKUP SCHEDULER ==========
-
-class AutomaticBackupScheduler:
-    """Handles automatic configurable backups (local or Dropbox)"""
-
-    def __init__(self, backup_type, setting_key, default_interval_hours=1):
-        self.backup_type = backup_type  # 'local' or 'dropbox'
-        self.setting_key = setting_key
-        self.default_interval_hours = default_interval_hours
-        self.interval_seconds = default_interval_hours * 3600
-        self.timer = None
-        self.is_running = False
-
-    def _get_backup_interval(self):
-        """Get the backup interval from database settings"""
-        try:
-            setting = db_helpers.get_setting(self.setting_key, str(self.default_interval_hours))
-            hours = float(setting)
-
-            # If interval is 0, backup is disabled
-            if hours == 0:
-                return 0
-
-            return int(hours * 3600)  # Convert hours to seconds
-        except Exception as e:
-            logger.error(f"Error getting {self.backup_type} backup interval from settings: {str(e)}")
-            return self.default_interval_hours * 3600
-
-    def _perform_backup(self):
-        """Perform the backup and schedule the next one"""
-        try:
-            if self.backup_type == 'local':
-                logger.info("Starting automatic local backup...")
-                result = db_helpers.create_database_backup()
-
-                if result['success']:
-                    logger.info(f"Automatic local backup created: {result['backup_filename']}")
-
-                    # Cleanup old local backups
-                    self._cleanup_old_backups()
-                else:
-                    logger.error(f"Automatic local backup failed: {result.get('error')}")
-
-            elif self.backup_type == 'dropbox':
-                logger.info("Starting automatic Dropbox backup...")
-
-                # Create local backup first
-                result = db_helpers.create_database_backup()
-
-                if result['success']:
-                    logger.info(f"Local backup created for Dropbox upload: {result['backup_filename']}")
-
-                    # Upload to Dropbox
-                    dropbox_result = db_helpers.upload_backup_to_dropbox(result['backup_path'])
-
-                    if dropbox_result['success']:
-                        logger.info(f"Automatic Dropbox backup uploaded successfully")
-
-                        # Cleanup old Dropbox backups
-                        self._cleanup_old_dropbox_backups()
-                    else:
-                        logger.warning(f"Dropbox upload failed: {dropbox_result.get('error')}")
-                else:
-                    logger.error(f"Automatic Dropbox backup failed (local creation): {result.get('error')}")
-
-        except Exception as e:
-            logger.error(f"Automatic {self.backup_type} backup error: {str(e)}")
-
-        finally:
-            # Schedule the next backup with updated interval
-            if self.is_running:
-                self._schedule_next()
-
-    def _schedule_next(self):
-        """Schedule the next backup with current interval setting"""
-        self.interval_seconds = self._get_backup_interval()
-
-        # If interval is 0, don't schedule (disabled)
-        if self.interval_seconds == 0:
-            logger.info(f"{self.backup_type.capitalize()} automatic backups are disabled")
-            return
-
-        self.timer = Timer(self.interval_seconds, self._perform_backup)
-        self.timer.daemon = True
-        self.timer.start()
-
-    def start(self):
-        """Start the automatic backup scheduler"""
-        if not self.is_running:
-            self.is_running = True
-            self.interval_seconds = self._get_backup_interval()
-
-            if self.interval_seconds == 0:
-                logger.info(f"{self.backup_type.capitalize()} automatic backups are disabled (interval: 0)")
-            else:
-                logger.info(f"{self.backup_type.capitalize()} automatic backup scheduler started (interval: {self.interval_seconds}s / {self.interval_seconds/3600}h)")
-                self._schedule_next()
-
-    def stop(self):
-        """Stop the automatic backup scheduler"""
-        self.is_running = False
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-            logger.info(f"{self.backup_type.capitalize()} automatic backup scheduler stopped")
-
-    def restart(self):
-        """Restart the scheduler with new interval (useful when settings change)"""
-        logger.info(f"Restarting {self.backup_type} backup scheduler with updated interval...")
-        self.stop()
-        self.start()
-
-    def _cleanup_old_backups(self):
-        """Cleanup old local backups based on settings"""
-        try:
-            keep_count = int(db_helpers.get_setting('max_local_backups', '10'))
-            result = db_helpers.cleanup_old_backups(keep_count)
-
-            if result['success'] and result['deleted_count'] > 0:
-                logger.info(f"Cleaned up {result['deleted_count']} old local backup(s), keeping {keep_count} most recent")
-        except Exception as e:
-            logger.error(f"Error cleaning up local backups: {str(e)}")
-
-    def _cleanup_old_dropbox_backups(self):
-        """Cleanup old Dropbox backups based on settings"""
-        try:
-            keep_count = int(db_helpers.get_setting('max_dropbox_backups', '20'))
-            result = db_helpers.cleanup_old_dropbox_backups(keep_count)
-
-            if result.get('success') and result.get('deleted_count', 0) > 0:
-                logger.info(f"Cleaned up {result['deleted_count']} old Dropbox backup(s), keeping {keep_count} most recent")
-        except Exception as e:
-            logger.error(f"Error cleaning up Dropbox backups: {str(e)}")
-
-# Initialize automatic backup schedulers
-local_backup_scheduler = AutomaticBackupScheduler('local', 'local_backup_interval_hours', default_interval_hours=1)
-dropbox_backup_scheduler = AutomaticBackupScheduler('dropbox', 'dropbox_backup_interval_hours', default_interval_hours=1)
-
-# Start automatic backups when the app starts
-local_backup_scheduler.start()
-dropbox_backup_scheduler.start()
-
-# Stop automatic backups when the app shuts down
-atexit.register(local_backup_scheduler.stop)
-atexit.register(dropbox_backup_scheduler.stop)
-
 # ========== REQUEST-BASED BACKUP TRIGGER ==========
-# PythonAnywhere doesn't keep daemon threads alive, so we trigger backups on requests
+# Backups are triggered by requests instead of background threads.
+# This is compatible with PythonAnywhere's WSGI worker model.
 
-last_backup_check = {'dropbox': None, 'local': None}
+_backup_check_state = {
+    'dropbox': None,        # last time we checked Dropbox
+    'local': None,          # last time we checked local
+    'dropbox_client': None, # cached Dropbox client (reuse across checks)
+}
+
+# How often (in seconds) to check if a backup is due
+BACKUP_CHECK_INTERVAL = 1800  # 30 minutes
 
 @app.before_request
 def check_and_trigger_backups():
-    """Check if backups are due and trigger them (runs before each request)"""
-    global last_backup_check
+    """Check if backups are due and trigger them. Skips non-admin routes."""
 
-    # Only check once per minute to avoid overhead
+    # Skip backup checks for display page, static files, and API endpoints
+    # These fire too frequently and don't need to trigger backups
+    path = request.path
+    if path.startswith('/display') or path.startswith('/static') or path.startswith('/api/'):
+        return
+
     now = datetime.now()
     now_utc = datetime.now(pytz.UTC)
 
     try:
-        # Check Dropbox backups
-        if last_backup_check['dropbox'] is None or (now - last_backup_check['dropbox']).total_seconds() > 60:
-            last_backup_check['dropbox'] = now
+        # Only check every 30 minutes
+        last_check = _backup_check_state['dropbox']
+        if last_check is not None and (now - last_check).total_seconds() < BACKUP_CHECK_INTERVAL:
+            return
 
-            # Get interval from settings
-            interval_hours = float(db_helpers.get_setting('dropbox_backup_interval_hours', '1'))
+        _backup_check_state['dropbox'] = now
+        _backup_check_state['local'] = now
 
-            if interval_hours > 0:
-                # Get last backup info
-                backups = db_helpers.list_dropbox_backups()
-                if backups['success'] and backups['backups']:
-                    # 'date' is already a timezone-aware datetime object
-                    last_backup_time = backups['backups'][0]['date']
-                    hours_since_last = (now_utc - last_backup_time).total_seconds() / 3600
+        # --- Dropbox backup check ---
+        dropbox_interval = float(db_helpers.get_setting('dropbox_backup_interval_hours', '0.5'))
 
-                    if hours_since_last >= interval_hours:
-                        logger.info(f"Triggering Dropbox backup (last backup was {hours_since_last:.1f}h ago)")
-                        # Create and upload backup
-                        result = db_helpers.create_database_backup()
-                        if result['success']:
-                            db_helpers.upload_backup_to_dropbox(result['backup_path'])
-                            # Cleanup old backups
-                            keep_count = int(db_helpers.get_setting('max_dropbox_backups', '20'))
-                            db_helpers.cleanup_old_dropbox_backups(keep_count)
-                elif backups['success'] and not backups['backups']:
-                    # No backups exist, create first one
-                    logger.info("No Dropbox backups found, creating first backup")
+        if dropbox_interval > 0:
+            backups = db_helpers.list_dropbox_backups()
+            if backups['success'] and backups['backups']:
+                last_backup_time = backups['backups'][0]['date']
+                hours_since_last = (now_utc - last_backup_time).total_seconds() / 3600
+
+                if hours_since_last >= dropbox_interval:
+                    logger.info(f"Triggering Dropbox backup (last backup was {hours_since_last:.1f}h ago)")
                     result = db_helpers.create_database_backup()
                     if result['success']:
                         db_helpers.upload_backup_to_dropbox(result['backup_path'])
+                        keep_count = int(db_helpers.get_setting('max_dropbox_backups', '20'))
+                        db_helpers.cleanup_old_dropbox_backups(keep_count)
+            elif backups['success'] and not backups['backups']:
+                logger.info("No Dropbox backups found, creating first backup")
+                result = db_helpers.create_database_backup()
+                if result['success']:
+                    db_helpers.upload_backup_to_dropbox(result['backup_path'])
 
-        # Check local backups
-        if last_backup_check['local'] is None or (now - last_backup_check['local']).total_seconds() > 60:
-            last_backup_check['local'] = now
+        # --- Local backup check ---
+        local_interval = float(db_helpers.get_setting('local_backup_interval_hours', '0.5'))
 
-            interval_hours = float(db_helpers.get_setting('local_backup_interval_hours', '1'))
+        if local_interval > 0:
+            backups = db_helpers.list_database_backups()
+            if backups:
+                last_backup_time = backups[0]['date']
+                hours_since_last = (now - last_backup_time).total_seconds() / 3600
 
-            if interval_hours > 0:
-                # list_database_backups returns a plain list, not a dict
-                backups = db_helpers.list_database_backups()
-                if backups:
-                    # 'date' is already a datetime object (naive, local time)
-                    last_backup_time = backups[0]['date']
-                    hours_since_last = (now - last_backup_time).total_seconds() / 3600
-
-                    if hours_since_last >= interval_hours:
-                        logger.info(f"Triggering local backup (last backup was {hours_since_last:.1f}h ago)")
-                        result = db_helpers.create_database_backup()
-                        if result['success']:
-                            keep_count = int(db_helpers.get_setting('max_local_backups', '10'))
-                            db_helpers.cleanup_old_backups(keep_count)
-                else:
-                    # No backups exist, create first one
-                    logger.info("No local backups found, creating first backup")
-                    db_helpers.create_database_backup()
+                if hours_since_last >= local_interval:
+                    logger.info(f"Triggering local backup (last backup was {hours_since_last:.1f}h ago)")
+                    result = db_helpers.create_database_backup()
+                    if result['success']:
+                        keep_count = int(db_helpers.get_setting('max_local_backups', '10'))
+                        db_helpers.cleanup_old_backups(keep_count)
+            else:
+                logger.info("No local backups found, creating first backup")
+                db_helpers.create_database_backup()
 
     except Exception as e:
         # Don't let backup failures break requests
@@ -3339,9 +3196,9 @@ def update_backup_settings():
         db_helpers.set_setting('max_local_backups', max_local)
         db_helpers.set_setting('max_dropbox_backups', max_dropbox)
 
-        # Restart both backup schedulers with the new intervals
-        local_backup_scheduler.restart()
-        dropbox_backup_scheduler.restart()
+        # Reset the backup check timer so new intervals take effect on next request
+        _backup_check_state['dropbox'] = None
+        _backup_check_state['local'] = None
 
         logger.info(f"Backup settings updated - Local: {local_interval}h (keep {max_local}), Dropbox: {dropbox_interval}h (keep {max_dropbox})")
 
