@@ -6,183 +6,168 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <title>SVVFD Admin Panel</title>
 </head>
+<style>
+    .admin-top-bar { background: #1a237e; padding: 14px 20px; display: flex; align-items: center; gap: 20px; }
+    .admin-top-bar h1 { margin: 0; color: white; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; flex: 1; }
+    .admin-back { display: inline-block; padding: 8px 18px; background: rgba(255,255,255,0.18); color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .admin-back:hover { background: rgba(255,255,255,0.28); }
+
+    .export-bar { background: #1e2d8a; border-top: 1px solid rgba(255,255,255,0.12); padding: 18px 20px; }
+    .export-bar-inner { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .export-section-label { color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+    .export-detail-link { font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); color: white; padding: 4px 10px; border-radius: 5px; text-decoration: none; }
+    .export-detail-link:hover { background: rgba(255,255,255,0.25); }
+    .export-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .ex-select { padding: 7px 10px; border-radius: 5px; border: none; font-size: 13px; flex: 1; min-width: 110px; }
+    .ex-btn { padding: 7px 14px; border: none; border-radius: 5px; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .ex-btn.csv { background: #1976d2; color: white; }
+    .ex-btn.pdf { background: #dc3545; color: white; }
+    .ex-btn.teal { background: #20c997; color: white; }
+    .ex-btn.outline-blue { background: white; color: #1a237e; border: 2px solid #1a237e; }
+    .ex-btn.outline-red { background: white; color: #dc3545; border: 2px solid #dc3545; }
+    .ex-btn.outline-teal { background: white; color: #20c997; border: 2px solid #20c997; }
+    .ex-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .tools-section { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+    .tools-section h2 { color: #1a237e; font-size: 14px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin: 0 0 14px 0; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .tool-card { display: block; padding: 16px 18px; border-radius: 8px; text-decoration: none; border-left: 4px solid transparent; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: box-shadow 0.2s, transform 0.2s; }
+    .tool-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.15); transform: translateY(-2px); }
+    .tool-card .tc-title { font-weight: 700; font-size: 15px; color: #1a237e; margin-bottom: 3px; }
+    .tool-card .tc-desc { font-size: 12px; color: #777; }
+    .tool-card.accent-purple { border-left-color: #764ba2; }
+    .tool-card.accent-blue   { border-left-color: #1976d2; }
+    .tool-card.accent-green  { border-left-color: #20c997; }
+    .tool-card.accent-red    { border-left-color: #dc3545; }
+    .tool-card.accent-teal   { border-left-color: #11998e; }
+    .tool-card.accent-orange { border-left-color: #ff6a00; }
+    .tool-card.accent-pink   { border-left-color: #f5576c; }
+    .tool-card.accent-sky    { border-left-color: #4facfe; }
+    .tool-card.accent-gold   { border-left-color: #ffc107; }
+</style>
+
 <body class="admin-body">
-    <nav class="admin-nav" style="padding: 20px 0;">
-        <div class="admin-nav-content" style="max-width: 1400px; margin: 0 auto;">
-            <a href="{{ url_for('index') }}" style="display: inline-block; padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-bottom: 20px; transition: all 0.3s;">← Back to Home</a>
 
-            <div style="margin-bottom: 30px;">
-                <h1 style="margin: 0;">SVVFD Admin Panel</h1>
+    <!-- Header bar: back button + title -->
+    <div class="admin-top-bar">
+        <a href="{{ url_for('index') }}" class="admin-back">← Back to Home</a>
+        <h1>SVVFD Admin Panel</h1>
+    </div>
+
+    <!-- Export controls bar -->
+    <div class="export-bar">
+        <div class="export-bar-inner">
+
+            <!-- Payroll Export -->
+            <div>
+                <div class="export-section-label">Payroll Export</div>
+                <div class="export-row">
+                    <select id="payroll_month" class="ex-select">
+                        <option value="1">January</option><option value="2">February</option>
+                        <option value="3">March</option><option value="4">April</option>
+                        <option value="5">May</option><option value="6">June</option>
+                        <option value="7">July</option><option value="8">August</option>
+                        <option value="9">September</option><option value="10">October</option>
+                        <option value="11">November</option><option value="12">December</option>
+                    </select>
+                    <select id="payroll_year" class="ex-select" style="max-width:90px;">
+                        {% for y in range(2020, 2031) %}<option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                    </select>
+                    <button onclick="exportPayroll('csv', true)" class="ex-btn csv">CSV</button>
+                    <button onclick="exportPayroll('pdf', true)" class="ex-btn pdf">PDF</button>
+                </div>
+                <div class="ex-btn-grid">
+                    <button onclick="exportPayroll('csv', false)" class="ex-btn outline-blue">Export All (CSV)</button>
+                    <button onclick="exportPayroll('pdf', false)" class="ex-btn outline-red">Export All (PDF)</button>
+                </div>
             </div>
 
-            <!-- Export Controls Grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; background: rgba(255,255,255,0.1); padding: 25px; border-radius: 12px;">
-
-                <!-- Payroll Export Section -->
-                <div>
-                    <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 20px;">📊</span> PAYROLL EXPORT
-                    </h3>
-                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
-                        <select id="payroll_month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <select id="payroll_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
-                            {% for y in range(2020, 2031) %}
-                                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
-                            {% endfor %}
-                        </select>
-                        <button onclick="exportPayroll('csv', true)" style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
-                            📄 CSV
-                        </button>
-                        <button onclick="exportPayroll('pdf', true)" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
-                            📕 PDF
-                        </button>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button onclick="exportPayroll('csv', false)" style="padding: 10px; background: #f5f5f5; color: #1a237e; border: 2px solid #1a237e; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-                            📄 Export All (CSV)
-                        </button>
-                        <button onclick="exportPayroll('pdf', false)" style="padding: 10px; background: #f5f5f5; color: #dc3545; border: 2px solid #dc3545; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-                            📕 Export All (PDF)
-                        </button>
-                    </div>
+            <!-- Vehicle Inspection Export -->
+            <div>
+                <div class="export-section-label" style="display:flex;align-items:center;justify-content:space-between;">
+                    <span>Vehicle Inspection Export</span>
+                    <a href="{{ url_for('vehicle_inspection_detail_view') }}" class="export-detail-link">More Detailed Reports →</a>
                 </div>
-
-                <!-- Vehicle Inspection Export Section -->
-                <div>
-                    <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                        <span style="display:flex; align-items:center; gap:8px;"><span style="font-size: 20px;">🚒</span> VEHICLE INSPECTION EXPORT</span>
-                        <a href="{{ url_for('vehicle_inspection_detail_view') }}" style="font-size:12px; font-weight:600; background:rgba(255,255,255,0.2); color:white; padding:5px 12px; border-radius:6px; text-decoration:none; white-space:nowrap;">📋 More Detailed Reports →</a>
-                    </h3>
-                    <!-- Weekly Export (Most Common) -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                        <button onclick="exportInspectionsWeek('csv')" style="padding: 12px; background: #20c997; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
-                            📄 This Week (CSV)
-                        </button>
-                        <button onclick="exportInspectionsWeek('pdf')" style="padding: 12px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
-                            📕 This Week (PDF)
-                        </button>
-                    </div>
-                    <!-- Monthly Export -->
-                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
-                        <select id="insp_month" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; flex: 1; min-width: 120px;">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <select id="insp_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
-                            {% for y in range(2020, 2031) %}
-                                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
-                            {% endfor %}
-                        </select>
-                        <button onclick="exportInspections('csv', true)" style="padding: 8px 16px; background: #20c997; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
-                            📄 CSV
-                        </button>
-                        <button onclick="exportInspections('pdf', true)" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
-                            📕 PDF
-                        </button>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button onclick="exportInspections('csv', false)" style="padding: 10px; background: #f5f5f5; color: #20c997; border: 2px solid #20c997; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-                            📄 Export All (CSV)
-                        </button>
-                        <button onclick="exportInspections('pdf', false)" style="padding: 10px; background: #f5f5f5; color: #dc3545; border: 2px solid #dc3545; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-                            📕 Export All (PDF)
-                        </button>
-                    </div>
+                <div class="ex-btn-grid" style="margin-bottom:8px;">
+                    <button onclick="exportInspectionsWeek('csv')" class="ex-btn teal">This Week (CSV)</button>
+                    <button onclick="exportInspectionsWeek('pdf')" class="ex-btn pdf">This Week (PDF)</button>
                 </div>
-
+                <div class="export-row">
+                    <select id="insp_month" class="ex-select">
+                        <option value="1">January</option><option value="2">February</option>
+                        <option value="3">March</option><option value="4">April</option>
+                        <option value="5">May</option><option value="6">June</option>
+                        <option value="7">July</option><option value="8">August</option>
+                        <option value="9">September</option><option value="10">October</option>
+                        <option value="11">November</option><option value="12">December</option>
+                    </select>
+                    <select id="insp_year" class="ex-select" style="max-width:90px;">
+                        {% for y in range(2020, 2031) %}<option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                    </select>
+                    <button onclick="exportInspections('csv', true)" class="ex-btn teal">CSV</button>
+                    <button onclick="exportInspections('pdf', true)" class="ex-btn pdf">PDF</button>
+                </div>
+                <div class="ex-btn-grid">
+                    <button onclick="exportInspections('csv', false)" class="ex-btn outline-teal">Export All (CSV)</button>
+                    <button onclick="exportInspections('pdf', false)" class="ex-btn outline-red">Export All (PDF)</button>
+                </div>
             </div>
+
         </div>
-    </nav>
+    </div>
 
-    <!-- Management Tools Section - Right under blue header -->
-    <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
-        <div style="background: rgba(255,255,255,0.9); padding: 25px; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <h2 style="color: #333; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: 600;">📋 Management & Tools</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                <a href="{{ url_for('dashboard') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                    <div style="font-weight: 600; font-size: 16px;">Dashboard</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Statistics, analytics & reports</div>
-                </a>
-                <a href="{{ url_for('inspections_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
-                    <div style="font-weight: 600; font-size: 16px;">Vehicle Inspections</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">6-day inspection tracking</div>
-                </a>
-                <a href="{{ url_for('maintenance_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🔧</div>
-                    <div style="font-weight: 600; font-size: 16px;">Maintenance</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Work orders & repairs</div>
-                </a>
-                <a href="{{ url_for('manage_vehicles') }}" style="display: block; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🚛</div>
-                    <div style="font-weight: 600; font-size: 16px;">Fleet Management</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Add & manage vehicles</div>
-                </a>
-                <a href="{{ url_for('inventory_menu') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📦</div>
-                    <div style="font-weight: 600; font-size: 16px;">Inventory</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Equipment & supplies</div>
-                </a>
-                <a href="{{ url_for('alerts_dashboard') }}" style="display: block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🚨</div>
-                    <div style="font-weight: 600; font-size: 16px;">Alerts Dashboard</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Warnings & notifications</div>
-                </a>
-                <a href="{{ url_for('manage_stations') }}" style="display: block; background: white; color: #333; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🏢</div>
-                    <div style="font-weight: 600; font-size: 16px;">Manage Stations</div>
-                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Add fire station locations</div>
-                </a>
-                <a href="{{ url_for('manage_checklist_items') }}" style="display: block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📋</div>
-                    <div style="font-weight: 600; font-size: 16px;">Manage Checklist Items</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Configure inspection checks</div>
-                </a>
-                <a href="{{ url_for('backup_management') }}" style="display: block; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">💾</div>
-                    <div style="font-weight: 600; font-size: 16px;">Backup Management</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Database backups & restore</div>
-                </a>
-                <a href="{{ url_for('kiosk_settings') }}" style="display: block; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">⚙️</div>
-                    <div style="font-weight: 600; font-size: 16px;">Kiosk Settings</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Configure welcome screen display</div>
-                </a>
-                <a href="{{ url_for('user_management') }}" style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">👥</div>
-                    <div style="font-weight: 600; font-size: 16px;">User Management</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Manage users, roles & permissions</div>
-                </a>
-                <a href="{{ url_for('iso_hose_testing') }}" style="display: block; background: linear-gradient(135deg, #ff9a56 0%, #ff6a00 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🧪</div>
-                    <div style="font-weight: 600; font-size: 16px;">ISO Hose Testing</div>
-                    <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Annual hose testing & compliance</div>
-                </a>
-            </div>
+    <!-- Management Tools -->
+    <div class="tools-section">
+        <h2>Management &amp; Tools</h2>
+        <div class="tools-grid">
+            <a href="{{ url_for('dashboard') }}" class="tool-card accent-purple">
+                <div class="tc-title">Dashboard</div>
+                <div class="tc-desc">Statistics, analytics &amp; reports</div>
+            </a>
+            <a href="{{ url_for('inspections_menu') }}" class="tool-card accent-blue">
+                <div class="tc-title">Vehicle Inspections</div>
+                <div class="tc-desc">6-day inspection tracking</div>
+            </a>
+            <a href="{{ url_for('maintenance_menu') }}" class="tool-card accent-blue">
+                <div class="tc-title">Maintenance</div>
+                <div class="tc-desc">Work orders &amp; repairs</div>
+            </a>
+            <a href="{{ url_for('manage_vehicles') }}" class="tool-card accent-teal">
+                <div class="tc-title">Fleet Management</div>
+                <div class="tc-desc">Add &amp; manage vehicles</div>
+            </a>
+            <a href="{{ url_for('inventory_menu') }}" class="tool-card accent-green">
+                <div class="tc-title">Inventory</div>
+                <div class="tc-desc">Equipment &amp; supplies</div>
+            </a>
+            <a href="{{ url_for('alerts_dashboard') }}" class="tool-card accent-red">
+                <div class="tc-title">Alerts Dashboard</div>
+                <div class="tc-desc">Warnings &amp; notifications</div>
+            </a>
+            <a href="{{ url_for('manage_stations') }}" class="tool-card accent-blue">
+                <div class="tc-title">Manage Stations</div>
+                <div class="tc-desc">Fire station locations</div>
+            </a>
+            <a href="{{ url_for('manage_checklist_items') }}" class="tool-card accent-pink">
+                <div class="tc-title">Checklist Items</div>
+                <div class="tc-desc">Configure inspection checks</div>
+            </a>
+            <a href="{{ url_for('backup_management') }}" class="tool-card accent-sky">
+                <div class="tc-title">Backup Management</div>
+                <div class="tc-desc">Database backups &amp; restore</div>
+            </a>
+            <a href="{{ url_for('kiosk_settings') }}" class="tool-card accent-gold">
+                <div class="tc-title">Kiosk Settings</div>
+                <div class="tc-desc">Configure welcome screen</div>
+            </a>
+            <a href="{{ url_for('user_management') }}" class="tool-card accent-purple">
+                <div class="tc-title">User Management</div>
+                <div class="tc-desc">Users, roles &amp; permissions</div>
+            </a>
+            <a href="{{ url_for('iso_hose_testing') }}" class="tool-card accent-orange">
+                <div class="tc-title">ISO Hose Testing</div>
+                <div class="tc-desc">Annual hose testing &amp; compliance</div>
+            </a>
         </div>
     </div>
 
