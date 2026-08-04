@@ -10,7 +10,7 @@
         .container { max-width: 1100px; margin: 0 auto; }
 
         .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 25px 30px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
-        .header h1 { margin: 0; font-size: 26px; }
+        .header h1 { margin: 0; font-size: 26px; color: white; }
         .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; }
         .back-btn:hover { background: rgba(255,255,255,0.3); }
 
@@ -23,7 +23,11 @@
         .filter-group select:focus, .filter-group input:focus { border-color: #667eea; outline: none; }
         .btn-filter { padding: 10px 24px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
         .btn-filter:hover { opacity: 0.9; }
-        .divider { color: #bbb; align-self: center; font-size: 13px; padding-bottom: 2px; }
+
+        .mode-tabs { display: flex; gap: 0; margin-bottom: 18px; border: 2px solid #1e3c72; border-radius: 8px; overflow: hidden; width: fit-content; }
+        .mode-tab { padding: 9px 22px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; background: white; color: #1e3c72; transition: background 0.15s; }
+        .mode-tab.active { background: #1e3c72; color: white; }
+        .mode-tab:hover:not(.active) { background: #e8eef8; }
 
         /* Inspection card */
         .inspection-card { background: white; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
@@ -79,8 +83,17 @@
     <!-- Filters -->
     <div class="filters">
         <h2>Filter Inspections</h2>
-        <form method="GET" action="{{ url_for('vehicle_inspection_detail_view') }}">
+        <form method="GET" action="{{ url_for('vehicle_inspection_detail_view') }}" id="filter-form">
+
+            <!-- Mode toggle -->
+            {% set use_custom = (start_date or end_date) and not selected_year %}
+            <div class="mode-tabs">
+                <button type="button" class="mode-tab {% if not use_custom %}active{% endif %}" onclick="setMode('year')">By Year</button>
+                <button type="button" class="mode-tab {% if use_custom %}active{% endif %}" onclick="setMode('custom')">Custom Date Range</button>
+            </div>
+
             <div class="filter-row">
+                <!-- Vehicle always visible -->
                 <div class="filter-group">
                     <label>Vehicle *</label>
                     <select name="vehicle_id" required>
@@ -93,9 +106,10 @@
                     </select>
                 </div>
 
-                <div class="filter-group">
+                <!-- Year panel -->
+                <div class="filter-group" id="year-panel" style="{{ 'display:none' if use_custom else '' }}">
                     <label>Year</label>
-                    <select name="year" onchange="this.form.start_date.value=''; this.form.end_date.value='';">
+                    <select name="year" id="year-select">
                         <option value="">-- All Years --</option>
                         {% for y in years %}
                         <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
@@ -103,15 +117,14 @@
                     </select>
                 </div>
 
-                <div class="divider">or custom range</div>
-
-                <div class="filter-group">
+                <!-- Custom date panel -->
+                <div class="filter-group" id="custom-panel" style="{{ '' if use_custom else 'display:none' }}">
                     <label>From Date</label>
-                    <input type="date" name="start_date" value="{{ start_date if not selected_year else '' }}">
+                    <input type="date" name="start_date" id="start-date" value="{{ start_date if use_custom else '' }}">
                 </div>
-                <div class="filter-group">
+                <div class="filter-group" id="custom-panel-2" style="{{ '' if use_custom else 'display:none' }}">
                     <label>To Date</label>
-                    <input type="date" name="end_date" value="{{ end_date if not selected_year else '' }}">
+                    <input type="date" name="end_date" id="end-date" value="{{ end_date if use_custom else '' }}">
                 </div>
 
                 <div class="filter-group">
@@ -206,5 +219,31 @@
     {% endif %}
 
 </div>
+
+<script>
+function setMode(mode) {
+    const yearPanel   = document.getElementById('year-panel');
+    const customPanel  = document.getElementById('custom-panel');
+    const customPanel2 = document.getElementById('custom-panel-2');
+    const tabs = document.querySelectorAll('.mode-tab');
+
+    if (mode === 'year') {
+        yearPanel.style.display = '';
+        customPanel.style.display = 'none';
+        customPanel2.style.display = 'none';
+        document.getElementById('start-date').value = '';
+        document.getElementById('end-date').value = '';
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+    } else {
+        yearPanel.style.display = 'none';
+        customPanel.style.display = '';
+        customPanel2.style.display = '';
+        document.getElementById('year-select').value = '';
+        tabs[1].classList.add('active');
+        tabs[0].classList.remove('active');
+    }
+}
+</script>
 </body>
 </html>
