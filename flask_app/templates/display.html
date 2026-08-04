@@ -470,7 +470,7 @@
     <div class="display-container">
         <!-- Header -->
         <div class="header">
-            <h1>🚒 Spring Valley Volunteer Fire Department{% if station %} - {{ station.name }}{% endif %}</h1>
+            <h1>Spring Valley Volunteer Fire Department{% if station %} - {{ station.name }}{% endif %}</h1>
             <div class="clock" id="clock"></div>
 
             <!-- Inventory QR - TOP LEFT, controlled by alerts page toggle -->
@@ -576,7 +576,7 @@
                             {% for vehicle in alerts.inspections_overdue %}
                                 {% set _ = all_notices.append({
                                     'type': 'critical',
-                                    'icon': '🚒',
+                                    'icon': '⚠',
                                     'title': 'INSPECTION OVERDUE',
                                     'details': vehicle.name + ' (' + vehicle.code + ')',
                                     'action': 'Inspection required'
@@ -603,7 +603,7 @@
                             {% for item in alerts.low_inventory_vehicle %}
                                 {% set _ = all_notices.append({
                                     'type': 'warning',
-                                    'icon': '🚒',
+                                    'icon': '⚠',
                                     'title': 'LOW EQUIPMENT',
                                     'details': item.item_name + ' on ' + item.vehicle_name,
                                     'action': item.quantity|string + '/' + item.min_quantity|string + ' remaining'
@@ -734,7 +734,7 @@
             {% for vehicle in alerts.inspections_overdue %}
             allAlerts.push({
                 type: 'critical',
-                message: '🚒 INSPECTION OVERDUE: {{ vehicle.name }} ({{ vehicle.code }})'
+                message: 'INSPECTION OVERDUE: {{ vehicle.name }} ({{ vehicle.code }})'
             });
             {% endfor %}
             {% for vehicle in alerts.inspections_failed %}
@@ -752,7 +752,7 @@
             {% for item in alerts.low_inventory_vehicle %}
             allAlerts.push({
                 type: 'warning',
-                message: '🚒 LOW EQUIPMENT: {{ item.item_name }} on {{ item.vehicle_name }} - {{ item.quantity }}/{{ item.min_quantity }}'
+                message: 'LOW EQUIPMENT: {{ item.item_name }} on {{ item.vehicle_name }} - {{ item.quantity }}/{{ item.min_quantity }}'
             });
             {% endfor %}
         {% endif %}
