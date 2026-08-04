@@ -99,47 +99,128 @@
             20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
 
-        .checklist-item {
+        /* ── Category section cards ── */
+        .category-section {
             background: white;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            overflow: hidden;
         }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            background: #1e3c72;
+            color: white;
+        }
+
+        .category-header h3 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .category-count {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .category-status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffc107;
+            flex-shrink: 0;
+            margin-left: 10px;
+            transition: background 0.2s;
+        }
+
+        .category-status-dot.all-pass { background: #28a745; }
+        .category-status-dot.has-fail { background: #dc3545; }
+
+        .category-actions {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 14px 18px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+
+        .btn-all-present {
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 700;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-all-present:active { transform: scale(0.97); }
+        .btn-all-present.active { background: #1e7e34; box-shadow: 0 0 0 3px rgba(40,167,69,0.3); }
+
+        .btn-toggle-items {
+            padding: 16px 14px;
+            font-size: 15px;
+            font-weight: 600;
+            background: white;
+            color: #555;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .btn-toggle-items:active { transform: scale(0.97); }
+        .btn-toggle-items.open { border-color: #1e3c72; color: #1e3c72; }
+
+        /* Individual items list (hidden by default) */
+        .items-list {
+            display: none;
+            padding: 10px 18px 14px;
+        }
+
+        .items-list.open { display: block; }
+
+        .checklist-item {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 12px 0;
+        }
+
+        .checklist-item:last-child { border-bottom: none; }
 
         .item-description {
-            font-weight: bold;
-            font-size: 16px;
+            font-weight: 600;
+            font-size: 15px;
             color: #333;
-            margin-bottom: 15px;
-        }
-
-        .item-category {
-            display: inline-block;
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
             margin-bottom: 10px;
         }
 
         .pass-fail-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
         }
 
         .pass-fail-button {
-            padding: 18px;
-            font-size: 18px;
+            padding: 14px;
+            font-size: 16px;
             font-weight: bold;
-            border: 3px solid #ddd;
-            border-radius: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
             background: white;
             cursor: pointer;
-            min-height: 60px; /* Large touch target */
+            min-height: 50px;
             transition: all 0.2s;
         }
 
@@ -155,26 +236,22 @@
             border-color: #dc3545;
         }
 
-        .pass-fail-button:active {
-            transform: scale(0.98);
-        }
+        .pass-fail-button:active { transform: scale(0.97); }
 
         .notes-area {
             display: none;
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
-        .notes-area.show {
-            display: block;
-        }
+        .notes-area.show { display: block; }
 
         .notes-area textarea {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 15px;
             border: 2px solid #ddd;
             border-radius: 8px;
-            min-height: 80px;
+            min-height: 70px;
             box-sizing: border-box;
         }
 
@@ -312,65 +389,93 @@
                 <div style="margin-top: 6px; font-size: 13px; color: #888;">Leave as today's date for current inspections. Change only when entering old paper records.</div>
             </div>
 
-            <!-- Checklist Items -->
+            <!-- Checklist Items grouped by category -->
+            {% set ns = namespace(current_category=None, section_index=0) %}
             {% for item in checklist_items %}
-            <div class="checklist-item">
-                {% if item.category %}
-                <div class="item-category">{{ item.category }}</div>
+                {% set cat = item.category if item.category else 'General' %}
+
+                {% if cat != ns.current_category %}
+                    {% if ns.current_category is not none %}
+                        </div><!-- close items-list -->
+                    </div><!-- close category-section -->
+                    {% endif %}
+                    {% set ns.current_category = cat %}
+                    {% set ns.section_index = ns.section_index + 1 %}
+                    {% set cat_id = 'cat_' ~ ns.section_index %}
+
+                    <div class="category-section" id="section_{{ cat_id }}">
+                        <div class="category-header">
+                            <div>
+                                <h3>{{ cat }}</h3>
+                                <div class="category-count" id="count_{{ cat_id }}"></div>
+                            </div>
+                            <div class="category-status-dot" id="dot_{{ cat_id }}"></div>
+                        </div>
+                        <div class="category-actions">
+                            <button type="button" class="btn-all-present" id="allbtn_{{ cat_id }}"
+                                    onclick="markAllPass('{{ cat_id }}')">
+                                ✓ All Present / All Pass
+                            </button>
+                            <button type="button" class="btn-toggle-items" id="togglebtn_{{ cat_id }}"
+                                    onclick="toggleItems('{{ cat_id }}')">
+                                Show Items ▼
+                            </button>
+                        </div>
+                        <div class="items-list" id="items_{{ cat_id }}" data-cat="{{ cat_id }}">
                 {% endif %}
 
-                <div class="item-description">{{ item.description }}</div>
+                <!-- Individual item (inside items-list) -->
+                <div class="checklist-item" data-cat="{{ cat_id }}" data-item-id="{{ item.id }}">
+                    <div class="item-description">{{ item.description }}</div>
 
-                <!-- Show fluid specification if relevant to this checklist item -->
-                {% set desc_lower = item.description.lower() %}
-                {% if 'oil' in desc_lower and vehicle.oil_type %}
-                    <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-left: 4px solid #FF9800; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #E65100;">
-                        ⚙️ <strong>Use:</strong> {{ vehicle.oil_type }}
-                    </div>
-                {% elif ('antifreeze' in desc_lower or 'coolant' in desc_lower) and vehicle.antifreeze_type %}
-                    <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-left: 4px solid #4CAF50; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #1B5E20;">
-                        ❄️ <strong>Use:</strong> {{ vehicle.antifreeze_type }}
-                    </div>
-                {% elif 'brake' in desc_lower and vehicle.brake_fluid_type %}
-                    <div style="background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); border-left: 4px solid #F44336; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #B71C1C;">
-                        🛑 <strong>Use:</strong> {{ vehicle.brake_fluid_type }}
-                    </div>
-                {% elif 'power steering' in desc_lower and vehicle.power_steering_fluid_type %}
-                    <div style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border-left: 4px solid #9C27B0; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #4A148C;">
-                        🔄 <strong>Use:</strong> {{ vehicle.power_steering_fluid_type }}
-                    </div>
-                {% elif 'transmission' in desc_lower and vehicle.transmission_fluid_type %}
-                    <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-left: 4px solid #FF9800; padding: 12px; margin: 10px 0; border-radius: 8px; font-weight: 600; color: #E65100;">
-                        ⚡ <strong>Use:</strong> {{ vehicle.transmission_fluid_type }}
-                    </div>
-                {% endif %}
+                    {% set desc_lower = item.description.lower() %}
+                    {% if 'oil' in desc_lower and vehicle.oil_type %}
+                        <div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#E65100;">
+                            ⚙️ Use: {{ vehicle.oil_type }}
+                        </div>
+                    {% elif ('antifreeze' in desc_lower or 'coolant' in desc_lower) and vehicle.antifreeze_type %}
+                        <div style="background:#E8F5E9;border-left:4px solid #4CAF50;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#1B5E20;">
+                            ❄️ Use: {{ vehicle.antifreeze_type }}
+                        </div>
+                    {% elif 'brake' in desc_lower and vehicle.brake_fluid_type %}
+                        <div style="background:#FFEBEE;border-left:4px solid #F44336;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#B71C1C;">
+                            🛑 Use: {{ vehicle.brake_fluid_type }}
+                        </div>
+                    {% elif 'power steering' in desc_lower and vehicle.power_steering_fluid_type %}
+                        <div style="background:#F3E5F5;border-left:4px solid #9C27B0;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#4A148C;">
+                            🔄 Use: {{ vehicle.power_steering_fluid_type }}
+                        </div>
+                    {% elif 'transmission' in desc_lower and vehicle.transmission_fluid_type %}
+                        <div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#E65100;">
+                            ⚡ Use: {{ vehicle.transmission_fluid_type }}
+                        </div>
+                    {% endif %}
 
-                <div class="pass-fail-buttons">
-                    <button type="button"
-                            class="pass-fail-button pass-button"
-                            data-item-id="{{ item.id }}"
-                            data-status="pass"
-                            onclick="toggleStatus({{ item.id }}, 'pass')">
-                        ✓ PASS
-                    </button>
-                    <button type="button"
-                            class="pass-fail-button fail-button"
-                            data-item-id="{{ item.id }}"
-                            data-status="fail"
-                            onclick="toggleStatus({{ item.id }}, 'fail')">
-                        ✗ FAIL
-                    </button>
+                    <div class="pass-fail-buttons">
+                        <button type="button" class="pass-fail-button pass-button"
+                                data-item-id="{{ item.id }}" data-cat="{{ cat_id }}"
+                                onclick="toggleStatus({{ item.id }}, 'pass', '{{ cat_id }}')">
+                            ✓ PASS
+                        </button>
+                        <button type="button" class="pass-fail-button fail-button"
+                                data-item-id="{{ item.id }}" data-cat="{{ cat_id }}"
+                                onclick="toggleStatus({{ item.id }}, 'fail', '{{ cat_id }}')">
+                            ✗ FAIL
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="item_{{ item.id }}" id="status_{{ item.id }}" value="pass">
+
+                    <div class="notes-area" id="notes_area_{{ item.id }}">
+                        <textarea name="notes_{{ item.id }}" placeholder="Notes about failure..."></textarea>
+                    </div>
                 </div>
 
-                <input type="hidden" name="item_{{ item.id }}" id="status_{{ item.id }}" value="pass">
-
-                <div class="notes-area" id="notes_area_{{ item.id }}">
-                    <textarea name="notes_{{ item.id }}"
-                              placeholder="Notes about failure..."
-                              id="notes_{{ item.id }}"></textarea>
-                </div>
-            </div>
             {% endfor %}
+            {% if ns.current_category is not none %}
+                </div><!-- close last items-list -->
+            </div><!-- close last category-section -->
+            {% endif %}
 
             <!-- Additional Notes -->
             <div class="additional-notes">
@@ -388,92 +493,118 @@
     </div>
 
     <script>
-        // Initialize all items as "pass"
         document.addEventListener('DOMContentLoaded', function() {
-            const passButtons = document.querySelectorAll('.pass-button');
-            passButtons.forEach(btn => {
+            // Default all items to pass and initialize category counts
+            document.querySelectorAll('.pass-button').forEach(btn => {
                 btn.classList.add('selected-pass');
+            });
+
+            // Set item counts and initial dot state for each category
+            document.querySelectorAll('.items-list').forEach(list => {
+                const catId = list.dataset.cat;
+                const count = list.querySelectorAll('.checklist-item').length;
+                const countEl = document.getElementById('count_' + catId);
+                if (countEl) countEl.textContent = count + ' items';
+                updateCategoryDot(catId);
             });
 
             // Default inspection date to today
             const dateInput = document.getElementById('inspection_date');
             if (dateInput && !dateInput.value) {
                 const today = new Date();
-                const yyyy = today.getFullYear();
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const dd = String(today.getDate()).padStart(2, '0');
-                dateInput.value = `${yyyy}-${mm}-${dd}`;
+                dateInput.value = today.getFullYear() + '-' +
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(today.getDate()).padStart(2, '0');
             }
 
-            // Add form validation
-            const form = document.getElementById('inspectionForm');
-            form.addEventListener('submit', function(e) {
-                const inspectorSelect = document.getElementById('inspector_number');
-                const errorMessage = document.getElementById('inspector_error');
-
-                if (!inspectorSelect.value || inspectorSelect.value === '') {
-                    e.preventDefault(); // Stop form submission
-
-                    // Show error styling
-                    inspectorSelect.classList.add('error');
-                    errorMessage.classList.add('show');
-
-                    // Focus and open the dropdown
-                    inspectorSelect.focus();
-
-                    // Trigger the dropdown to open
-                    if (typeof inspectorSelect.showPicker === 'function') {
-                        // Modern browsers support showPicker()
-                        inspectorSelect.showPicker();
-                    } else {
-                        // Fallback: simulate click to open dropdown
-                        const clickEvent = new MouseEvent('mousedown', {
-                            bubbles: true,
-                            cancelable: true,
-                            view: window
-                        });
-                        inspectorSelect.dispatchEvent(clickEvent);
-                    }
-
-                    // Remove error styling after animation
-                    setTimeout(function() {
-                        inspectorSelect.classList.remove('error');
-                    }, 500);
-
-                    return false;
+            // Form validation
+            document.getElementById('inspectionForm').addEventListener('submit', function(e) {
+                const sel = document.getElementById('inspector_number');
+                if (!sel.value) {
+                    e.preventDefault();
+                    sel.classList.add('error');
+                    document.getElementById('inspector_error').classList.add('show');
+                    sel.focus();
+                    setTimeout(() => sel.classList.remove('error'), 500);
                 }
             });
 
-            // Clear error message when user selects an inspector
             document.getElementById('inspector_number').addEventListener('change', function() {
-                const errorMessage = document.getElementById('inspector_error');
-                if (this.value) {
-                    errorMessage.classList.remove('show');
-                }
+                if (this.value) document.getElementById('inspector_error').classList.remove('show');
             });
         });
 
-        function toggleStatus(itemId, status) {
+        function markAllPass(catId) {
+            const list = document.getElementById('items_' + catId);
+            list.querySelectorAll('.checklist-item').forEach(item => {
+                const itemId = item.dataset.itemId;
+                const passBtn = item.querySelector('.pass-button');
+                const failBtn = item.querySelector('.fail-button');
+                const notesArea = document.getElementById('notes_area_' + itemId);
+                const hidden = document.getElementById('status_' + itemId);
+                passBtn.classList.add('selected-pass');
+                failBtn.classList.remove('selected-fail');
+                if (notesArea) notesArea.classList.remove('show');
+                if (hidden) hidden.value = 'pass';
+            });
+
+            // Visual feedback on the button
+            const btn = document.getElementById('allbtn_' + catId);
+            btn.classList.add('active');
+            btn.textContent = '✓ All Checked';
+            updateCategoryDot(catId);
+        }
+
+        function toggleItems(catId) {
+            const list = document.getElementById('items_' + catId);
+            const btn = document.getElementById('togglebtn_' + catId);
+            const open = list.classList.toggle('open');
+            btn.classList.toggle('open', open);
+            btn.textContent = open ? 'Hide Items ▲' : 'Show Items ▼';
+        }
+
+        function toggleStatus(itemId, status, catId) {
             const passBtn = document.querySelector(`.pass-button[data-item-id="${itemId}"]`);
             const failBtn = document.querySelector(`.fail-button[data-item-id="${itemId}"]`);
-            const notesArea = document.getElementById(`notes_area_${itemId}`);
-            const hiddenInput = document.getElementById(`status_${itemId}`);
+            const notesArea = document.getElementById('notes_area_' + itemId);
+            const hidden = document.getElementById('status_' + itemId);
 
-            // Remove all selections
             passBtn.classList.remove('selected-pass');
             failBtn.classList.remove('selected-fail');
 
-            // Add selection to clicked button
             if (status === 'pass') {
                 passBtn.classList.add('selected-pass');
-                notesArea.classList.remove('show');
+                if (notesArea) notesArea.classList.remove('show');
             } else {
                 failBtn.classList.add('selected-fail');
-                notesArea.classList.add('show');
+                if (notesArea) notesArea.classList.add('show');
+                // Auto-open items list so fail is visible
+                const list = document.getElementById('items_' + catId);
+                if (list && !list.classList.contains('open')) toggleItems(catId);
             }
 
-            // Update hidden input
-            hiddenInput.value = status;
+            if (hidden) hidden.value = status;
+
+            // Reset the "All Checked" button label if something changed
+            const allBtn = document.getElementById('allbtn_' + catId);
+            if (allBtn) {
+                allBtn.textContent = '✓ All Present / All Pass';
+                allBtn.classList.remove('active');
+            }
+            updateCategoryDot(catId);
+        }
+
+        function updateCategoryDot(catId) {
+            const list = document.getElementById('items_' + catId);
+            const dot = document.getElementById('dot_' + catId);
+            if (!list || !dot) return;
+            const items = list.querySelectorAll('.checklist-item');
+            let hasFail = false;
+            items.forEach(item => {
+                const hidden = document.getElementById('status_' + item.dataset.itemId);
+                if (hidden && hidden.value === 'fail') hasFail = true;
+            });
+            dot.className = 'category-status-dot ' + (hasFail ? 'has-fail' : 'all-pass');
         }
     </script>
 </body>
