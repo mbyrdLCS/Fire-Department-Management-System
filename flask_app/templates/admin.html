@@ -168,6 +168,10 @@
                 <div class="tc-title">ISO Hose Testing</div>
                 <div class="tc-desc">Annual hose testing &amp; compliance</div>
             </a>
+            <a href="{{ url_for('display') }}" class="tool-card accent-red" style="border-left-color:#1a237e; background: linear-gradient(135deg, #1a237e 0%, #2a5298 100%);">
+                <div class="tc-title" style="color:white;">TV Display Screen</div>
+                <div class="tc-desc" style="color:rgba(255,255,255,0.75);">Live updates on station TV</div>
+            </a>
         </div>
     </div>
 
@@ -655,13 +659,6 @@ function exportInspectionsWeek(format) {
 }
 </script>
 
-<!-- Small footer promo -->
-<div style="text-align: center; padding: 15px; background: rgba(0,0,0,0.1); margin-top: 40px; font-size: 11px; color: #666;">
-    <span style="opacity: 0.7;">💡 Tip: Display live updates on TV with</span>
-    <a href="{{ url_for('alerts_dashboard') }}" style="color: #1976d2; text-decoration: none; font-weight: 500;">SignPresenter</a>
-    <span style="opacity: 0.5;">|</span>
-    <a href="{{ url_for('display') }}" style="color: #666; text-decoration: none;">View Display</a>
-</div>
 
 </body>
 </html>

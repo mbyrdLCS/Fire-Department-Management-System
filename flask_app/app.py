@@ -3579,7 +3579,22 @@ def vehicle_inspection_detail_pdf():
         result_color = GREEN if insp['passed'] else RED
         result_text  = '✓ PASSED' if insp['passed'] else '✗ FAILED'
 
-        # Inspection header row
+        # Inspection header — vehicle name spans full width, then date/inspector/result row
+        veh_name = vehicle.get('name', '')
+        veh_code = vehicle.get('code') or vehicle.get('vehicle_code', '')
+        hd_veh_s = ParagraphStyle('hdv', fontSize=9, textColor=colors.white, fontName='Helvetica',
+                                   alignment=TA_CENTER)
+        veh_hdr = Table([[Paragraph(f'{veh_name}  ({veh_code})', hd_veh_s)]],
+                        colWidths=[7.2*inch])
+        veh_hdr.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,-1), NAVY),
+            ('TOPPADDING',    (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('LEFTPADDING',   (0,0), (-1,-1), 10),
+            ('RIGHTPADDING',  (0,0), (-1,-1), 10),
+        ]))
+        story.append(veh_hdr)
+
         hdr = Table([[
             Paragraph(f'<b>{insp["date"]}</b>', ParagraphStyle('hd', fontSize=10, textColor=colors.white, fontName='Helvetica-Bold')),
             Paragraph(f'Inspector: {insp["inspector"]}', ParagraphStyle('hd2', fontSize=9, textColor=colors.white, fontName='Helvetica')),
