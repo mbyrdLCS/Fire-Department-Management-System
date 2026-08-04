@@ -218,7 +218,13 @@
 </head>
 <body>
     <div class="container">
-        <a href="{{ url_for('admin') }}" class="back-btn">← Back to Admin</a>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+            <a href="{{ url_for('admin') }}" class="back-btn" style="margin-bottom:0;">← Back to Admin</a>
+            <a href="{{ url_for('display') }}" target="_blank"
+               style="padding:10px 22px; background:linear-gradient(135deg,#1e3c72,#2a5298); color:white; text-decoration:none; border-radius:8px; font-weight:700; font-size:15px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+                Preview Display Screen →
+            </a>
+        </div>
 
         <div class="header">
             <h1>⚙️ Kiosk Display Settings</h1>
