@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Inspection Report</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; font-family: Arial, sans-serif; }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 25px 30px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+        .header h1 { margin: 0; font-size: 26px; }
+        .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .filters { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .filters h2 { margin: 0 0 18px 0; font-size: 18px; color: #1e3c72; }
+        .filter-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-weight: 600; font-size: 13px; color: #555; }
+        .filter-group select, .filter-group input { padding: 10px 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; background: white; }
+        .filter-group select:focus, .filter-group input:focus { border-color: #667eea; outline: none; }
+        .btn-filter { padding: 10px 24px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+        .btn-filter:hover { opacity: 0.9; }
+        .divider { color: #bbb; align-self: center; font-size: 13px; padding-bottom: 2px; }
+
+        /* Inspection card */
+        .inspection-card { background: white; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        .insp-header { padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .insp-header.passed { background: #e8f5e9; border-left: 6px solid #28a745; }
+        .insp-header.failed { background: #fdecea; border-left: 6px solid #dc3545; }
+        .insp-meta h3 { margin: 0 0 4px 0; font-size: 18px; color: #1e3c72; }
+        .insp-meta p { margin: 0; font-size: 14px; color: #555; }
+        .insp-badge { padding: 8px 20px; border-radius: 20px; font-weight: 700; font-size: 15px; }
+        .insp-badge.pass { background: #28a745; color: white; }
+        .insp-badge.fail { background: #dc3545; color: white; }
+
+        .insp-body { padding: 20px 24px; }
+        .category-block { margin-bottom: 20px; }
+        .category-block:last-child { margin-bottom: 0; }
+        .cat-title { font-size: 14px; font-weight: 700; color: #1e3c72; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e0e0e0; padding-bottom: 6px; margin-bottom: 10px; }
+        .item-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+        .item-row:last-child { border-bottom: none; }
+        .item-status { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+        .item-text { flex: 1; font-size: 14px; color: #333; }
+        .item-text.failed { color: #c62828; font-weight: 600; }
+        .item-notes { font-size: 12px; color: #e53935; margin-top: 3px; font-style: italic; }
+
+        .insp-notes { background: #f8f9fa; border-left: 4px solid #aaa; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-top: 15px; font-size: 14px; color: #555; }
+
+        .no-results { background: white; border-radius: 12px; padding: 50px; text-align: center; color: #888; }
+        .no-results h2 { color: #1e3c72; margin-bottom: 10px; }
+
+        .summary-bar { background: white; border-radius: 12px; padding: 18px 24px; margin-bottom: 20px; display: flex; gap: 30px; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); flex-wrap: wrap; }
+        .summary-stat { text-align: center; }
+        .summary-stat .num { font-size: 28px; font-weight: 700; color: #1e3c72; }
+        .summary-stat .lbl { font-size: 12px; color: #777; margin-top: 2px; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .filters, .back-btn, .header { display: none; }
+            .inspection-card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+        }
+        @media (max-width: 600px) {
+            .filter-row { flex-direction: column; }
+            .summary-bar { gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>🔍 Detailed Inspection Report</h1>
+        <a href="{{ url_for('vehicle_inspection_reports') }}" class="back-btn">← Back to Reports</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <h2>Filter Inspections</h2>
+        <form method="GET" action="{{ url_for('vehicle_inspection_detail_view') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Vehicle *</label>
+                    <select name="vehicle_id" required>
+                        <option value="">-- Select Vehicle --</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if v.id == vehicle_id %}selected{% endif %}>
+                            {{ v.vehicle_code }} — {{ v.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Year</label>
+                    <select name="year" onchange="this.form.start_date.value=''; this.form.end_date.value='';">
+                        <option value="">-- All Years --</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="divider">or custom range</div>
+
+                <div class="filter-group">
+                    <label>From Date</label>
+                    <input type="date" name="start_date" value="{{ start_date if not selected_year else '' }}">
+                </div>
+                <div class="filter-group">
+                    <label>To Date</label>
+                    <input type="date" name="end_date" value="{{ end_date if not selected_year else '' }}">
+                </div>
+
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn-filter">Run Report</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if inspections %}
+        <!-- Summary bar -->
+        {% set total_insp = inspections | length %}
+        {% set passed_count = inspections | selectattr('passed') | list | length %}
+        {% set failed_count = total_insp - passed_count %}
+        <div class="summary-bar">
+            {% if selected_vehicle %}
+            <div class="summary-stat">
+                <div class="num">{{ selected_vehicle.name }}</div>
+                <div class="lbl">Vehicle</div>
+            </div>
+            {% endif %}
+            <div class="summary-stat">
+                <div class="num">{{ total_insp }}</div>
+                <div class="lbl">Inspections</div>
+            </div>
+            <div class="summary-stat">
+                <div class="num" style="color:#28a745;">{{ passed_count }}</div>
+                <div class="lbl">Passed</div>
+            </div>
+            {% if failed_count > 0 %}
+            <div class="summary-stat">
+                <div class="num" style="color:#dc3545;">{{ failed_count }}</div>
+                <div class="lbl">Had Failures</div>
+            </div>
+            {% endif %}
+            <div style="margin-left:auto;">
+                <button onclick="window.print()" style="padding:10px 20px;background:#6c757d;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">🖨️ Print</button>
+            </div>
+        </div>
+
+        {% for insp in inspections %}
+        <div class="inspection-card">
+            <div class="insp-header {{ 'passed' if insp.passed else 'failed' }}">
+                <div class="insp-meta">
+                    <h3>{{ insp.date[:10] }}</h3>
+                    <p>Inspector: <strong>{{ insp.inspector }}</strong> &nbsp;·&nbsp; {{ insp.total }} items checked{% if insp.failed > 0 %} &nbsp;·&nbsp; <span style="color:#c62828;">{{ insp.failed }} failed</span>{% endif %}</p>
+                </div>
+                <span class="insp-badge {{ 'pass' if insp.passed else 'fail' }}">
+                    {{ '✓ PASSED' if insp.passed else '✗ FAILED' }}
+                </span>
+            </div>
+
+            <div class="insp-body">
+                {% for cat, items in insp.categories.items() %}
+                <div class="category-block">
+                    <div class="cat-title">{{ cat }}</div>
+                    {% for item in items %}
+                    <div class="item-row">
+                        <span class="item-status">{{ '✓' if item.status == 'pass' else '✗' }}</span>
+                        <div class="item-text {{ 'failed' if item.status == 'fail' else '' }}">
+                            {{ item.description }}
+                            {% if item.notes %}
+                            <div class="item-notes">⚠ {{ item.notes }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                {% if insp.notes %}
+                <div class="insp-notes"><strong>Notes:</strong> {{ insp.notes }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+    {% elif vehicle_id %}
+        <div class="no-results">
+            <h2>No inspections found</h2>
+            <p>No inspections match the selected filters for this vehicle.</p>
+        </div>
+    {% else %}
+        <div class="no-results">
+            <h2>Select a vehicle to get started</h2>
+            <p>Choose a vehicle and date range above, then click Run Report.</p>
+        </div>
+    {% endif %}
+
+</div>
+</body>
+</html>

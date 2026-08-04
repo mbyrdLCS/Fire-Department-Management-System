@@ -40,7 +40,7 @@
                         </select>
                         <select id="payroll_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
                             {% for y in range(2020, 2031) %}
-                                <option value="{{ y }}" {% if y == 2025 %}selected{% endif %}>{{ y }}</option>
+                                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
                             {% endfor %}
                         </select>
                         <button onclick="exportPayroll('csv', true)" style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">
@@ -62,8 +62,9 @@
 
                 <!-- Vehicle Inspection Export Section -->
                 <div>
-                    <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 20px;">🚒</span> VEHICLE INSPECTION EXPORT
+                    <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <span style="display:flex; align-items:center; gap:8px;"><span style="font-size: 20px;">🚒</span> VEHICLE INSPECTION EXPORT</span>
+                        <a href="{{ url_for('vehicle_inspection_detail_view') }}" style="font-size:12px; font-weight:600; background:rgba(255,255,255,0.2); color:white; padding:5px 12px; border-radius:6px; text-decoration:none; white-space:nowrap;">📋 More Detailed Reports →</a>
                     </h3>
                     <!-- Weekly Export (Most Common) -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
@@ -92,7 +93,7 @@
                         </select>
                         <select id="insp_year" style="padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; width: 100px;">
                             {% for y in range(2020, 2031) %}
-                                <option value="{{ y }}" {% if y == 2025 %}selected{% endif %}>{{ y }}</option>
+                                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
                             {% endfor %}
                         </select>
                         <button onclick="exportInspections('csv', true)" style="padding: 8px 16px; background: #20c997; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap;">

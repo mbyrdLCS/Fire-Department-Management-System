@@ -581,7 +581,7 @@ def admin_panel():
         logger.error(f"Error sorting logs: {str(e)}", exc_info=True)
         # If sorting fails, just use unsorted list
 
-    return render_template('admin.html', user_data=user_data, categories=categories_list, all_logs=all_logs)
+    return render_template('admin.html', user_data=user_data, categories=categories_list, all_logs=all_logs, current_year=datetime.now().year)
 
 @app.route('/update_hours', methods=['POST'])
 def update_hours():
@@ -3400,6 +3400,72 @@ def reports_menu():
 def vehicle_inspection_reports():
     """Vehicle inspection reports page"""
     return render_template('vehicle_inspection_reports.html')
+
+@app.route('/reports/vehicle-inspections/detail-view')
+def vehicle_inspection_detail_view():
+    """On-screen detailed inspection report — all items listed per inspection"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    vehicles = db_helpers.get_all_vehicles()
+    vehicle_id = request.args.get('vehicle_id', type=int)
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+    year = request.args.get('year', type=int)
+
+    # If year is selected, override start/end date
+    if year:
+        start_date_str = f'{year}-01-01'
+        end_date_str = f'{year}-12-31'
+
+    inspections = []
+    if vehicle_id:
+        history = db_helpers.get_vehicle_inspection_history(vehicle_id, limit=500)
+        for insp in history:
+            insp_date = datetime.fromisoformat(insp['date'])
+
+            if start_date_str:
+                start_dt = datetime.strptime(start_date_str, '%Y-%m-%d').replace(tzinfo=insp_date.tzinfo)
+                if insp_date < start_dt:
+                    continue
+            if end_date_str:
+                end_dt = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=insp_date.tzinfo)
+                if insp_date > end_dt:
+                    continue
+
+            items = db_helpers.get_inspection_details(insp['id'])
+            # Group items by category
+            categories = {}
+            for item in items:
+                cat = item['category'] or 'General'
+                categories.setdefault(cat, []).append(item)
+
+            inspections.append({
+                'id': insp['id'],
+                'date': insp['date'],
+                'inspector': insp.get('inspector') or insp.get('full_name', 'Unknown'),
+                'passed': insp['passed'],
+                'notes': insp.get('notes') or insp.get('additional_notes', ''),
+                'categories': categories,
+                'total': len(items),
+                'failed': sum(1 for i in items if i['status'] == 'fail'),
+            })
+
+    selected_vehicle = next((v for v in vehicles if v['id'] == vehicle_id), None)
+    current_year = datetime.now().year
+    years = list(range(current_year, 2019, -1))
+
+    return render_template('inspection_detail_view.html',
+                           vehicles=vehicles,
+                           inspections=inspections,
+                           selected_vehicle=selected_vehicle,
+                           vehicle_id=vehicle_id,
+                           start_date=start_date_str,
+                           end_date=end_date_str,
+                           selected_year=year,
+                           years=years,
+                           current_year=current_year)
 
 @app.route('/reports/vehicle-inspections/detailed-export')
 def export_detailed_inspections():
