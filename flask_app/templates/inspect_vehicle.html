@@ -389,20 +389,25 @@
                 <div style="margin-top: 6px; font-size: 13px; color: #888;">Leave as today's date for current inspections. Change only when entering old paper records.</div>
             </div>
 
-            <!-- Checklist Items grouped by category -->
-            {% set ns = namespace(current_category=None, section_index=0) %}
+            <!-- Checklist Items -->
+            <!-- EMR categories get a grouped section with one-tap "All Present". -->
+            <!-- All other categories show individual pass/fail per item. -->
+            {% set ns = namespace(current_emr_cat=None, emr_section_index=0) %}
+
             {% for item in checklist_items %}
                 {% set cat = item.category if item.category else 'General' %}
+                {% set is_emr = cat.startswith('EMR') %}
 
-                {% if cat != ns.current_category %}
-                    {% if ns.current_category is not none %}
+                {% if is_emr %}
+                    {# ── EMR grouped section ── #}
+                    {% if cat != ns.current_emr_cat %}
+                        {% if ns.current_emr_cat is not none %}
                         </div><!-- close items-list -->
                     </div><!-- close category-section -->
-                    {% endif %}
-                    {% set ns.current_category = cat %}
-                    {% set ns.section_index = ns.section_index + 1 %}
-                    {% set cat_id = 'cat_' ~ ns.section_index %}
-
+                        {% endif %}
+                        {% set ns.current_emr_cat = cat %}
+                        {% set ns.emr_section_index = ns.emr_section_index + 1 %}
+                        {% set cat_id = 'emr_' ~ ns.emr_section_index %}
                     <div class="category-section" id="section_{{ cat_id }}">
                         <div class="category-header">
                             <div>
@@ -422,59 +427,81 @@
                             </button>
                         </div>
                         <div class="items-list" id="items_{{ cat_id }}" data-cat="{{ cat_id }}">
-                {% endif %}
-
-                <!-- Individual item (inside items-list) -->
-                <div class="checklist-item" data-cat="{{ cat_id }}" data-item-id="{{ item.id }}">
-                    <div class="item-description">{{ item.description }}</div>
-
-                    {% set desc_lower = item.description.lower() %}
-                    {% if 'oil' in desc_lower and vehicle.oil_type %}
-                        <div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#E65100;">
-                            ⚙️ Use: {{ vehicle.oil_type }}
-                        </div>
-                    {% elif ('antifreeze' in desc_lower or 'coolant' in desc_lower) and vehicle.antifreeze_type %}
-                        <div style="background:#E8F5E9;border-left:4px solid #4CAF50;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#1B5E20;">
-                            ❄️ Use: {{ vehicle.antifreeze_type }}
-                        </div>
-                    {% elif 'brake' in desc_lower and vehicle.brake_fluid_type %}
-                        <div style="background:#FFEBEE;border-left:4px solid #F44336;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#B71C1C;">
-                            🛑 Use: {{ vehicle.brake_fluid_type }}
-                        </div>
-                    {% elif 'power steering' in desc_lower and vehicle.power_steering_fluid_type %}
-                        <div style="background:#F3E5F5;border-left:4px solid #9C27B0;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#4A148C;">
-                            🔄 Use: {{ vehicle.power_steering_fluid_type }}
-                        </div>
-                    {% elif 'transmission' in desc_lower and vehicle.transmission_fluid_type %}
-                        <div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#E65100;">
-                            ⚡ Use: {{ vehicle.transmission_fluid_type }}
-                        </div>
                     {% endif %}
 
-                    <div class="pass-fail-buttons">
-                        <button type="button" class="pass-fail-button pass-button"
-                                data-item-id="{{ item.id }}" data-cat="{{ cat_id }}"
-                                onclick="toggleStatus({{ item.id }}, 'pass', '{{ cat_id }}')">
-                            ✓ PASS
-                        </button>
-                        <button type="button" class="pass-fail-button fail-button"
-                                data-item-id="{{ item.id }}" data-cat="{{ cat_id }}"
-                                onclick="toggleStatus({{ item.id }}, 'fail', '{{ cat_id }}')">
-                            ✗ FAIL
-                        </button>
+                    <div class="checklist-item" data-cat="{{ cat_id }}" data-item-id="{{ item.id }}">
+                        <div class="item-description">{{ item.description }}</div>
+                        <div class="pass-fail-buttons">
+                            <button type="button" class="pass-fail-button pass-button"
+                                    data-item-id="{{ item.id }}" data-cat="{{ cat_id }}"
+                                    onclick="toggleStatus({{ item.id }}, 'pass', '{{ cat_id }}')">
+                                ✓ PASS
+                            </button>
+                            <button type="button" class="pass-fail-button fail-button"
+                                    data-item-id="{{ item.id }}" data-cat="{{ cat_id }}"
+                                    onclick="toggleStatus({{ item.id }}, 'fail', '{{ cat_id }}')">
+                                ✗ FAIL
+                            </button>
+                        </div>
+                        <input type="hidden" name="item_{{ item.id }}" id="status_{{ item.id }}" value="pass">
+                        <div class="notes-area" id="notes_area_{{ item.id }}">
+                            <textarea name="notes_{{ item.id }}" placeholder="Notes about failure..."></textarea>
+                        </div>
                     </div>
 
-                    <input type="hidden" name="item_{{ item.id }}" id="status_{{ item.id }}" value="pass">
+                {% else %}
+                    {# ── Close any open EMR section before regular items ── #}
+                    {% if ns.current_emr_cat is not none %}
+                        </div><!-- close items-list -->
+                    </div><!-- close category-section -->
+                        {% set ns.current_emr_cat = None %}
+                    {% endif %}
 
-                    <div class="notes-area" id="notes_area_{{ item.id }}">
-                        <textarea name="notes_{{ item.id }}" placeholder="Notes about failure..."></textarea>
+                    {# ── Regular item: individual pass/fail, original style ── #}
+                    <div class="checklist-item" data-item-id="{{ item.id }}" style="background:white;border-radius:12px;padding:15px;margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                        {% if cat and cat != 'General' %}
+                        <div class="item-category">{{ cat }}</div>
+                        {% endif %}
+
+                        <div class="item-description">{{ item.description }}</div>
+
+                        {% set desc_lower = item.description.lower() %}
+                        {% if 'oil' in desc_lower and vehicle.oil_type %}
+                            <div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#E65100;">⚙️ Use: {{ vehicle.oil_type }}</div>
+                        {% elif ('antifreeze' in desc_lower or 'coolant' in desc_lower) and vehicle.antifreeze_type %}
+                            <div style="background:#E8F5E9;border-left:4px solid #4CAF50;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#1B5E20;">❄️ Use: {{ vehicle.antifreeze_type }}</div>
+                        {% elif 'brake' in desc_lower and vehicle.brake_fluid_type %}
+                            <div style="background:#FFEBEE;border-left:4px solid #F44336;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#B71C1C;">🛑 Use: {{ vehicle.brake_fluid_type }}</div>
+                        {% elif 'power steering' in desc_lower and vehicle.power_steering_fluid_type %}
+                            <div style="background:#F3E5F5;border-left:4px solid #9C27B0;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#4A148C;">🔄 Use: {{ vehicle.power_steering_fluid_type }}</div>
+                        {% elif 'transmission' in desc_lower and vehicle.transmission_fluid_type %}
+                            <div style="background:#FFF3E0;border-left:4px solid #FF9800;padding:10px;margin:8px 0;border-radius:8px;font-weight:600;color:#E65100;">⚡ Use: {{ vehicle.transmission_fluid_type }}</div>
+                        {% endif %}
+
+                        <div class="pass-fail-buttons">
+                            <button type="button" class="pass-fail-button pass-button"
+                                    data-item-id="{{ item.id }}"
+                                    onclick="toggleStatus({{ item.id }}, 'pass', null)">
+                                ✓ PASS
+                            </button>
+                            <button type="button" class="pass-fail-button fail-button"
+                                    data-item-id="{{ item.id }}"
+                                    onclick="toggleStatus({{ item.id }}, 'fail', null)">
+                                ✗ FAIL
+                            </button>
+                        </div>
+                        <input type="hidden" name="item_{{ item.id }}" id="status_{{ item.id }}" value="pass">
+                        <div class="notes-area" id="notes_area_{{ item.id }}">
+                            <textarea name="notes_{{ item.id }}" placeholder="Notes about failure..."></textarea>
+                        </div>
                     </div>
-                </div>
-
+                {% endif %}
             {% endfor %}
-            {% if ns.current_category is not none %}
-                </div><!-- close last items-list -->
-            </div><!-- close last category-section -->
+
+            {# Close any trailing open EMR section #}
+            {% if ns.current_emr_cat is not none %}
+                </div><!-- close items-list -->
+            </div><!-- close category-section -->
             {% endif %}
 
             <!-- Additional Notes -->
