@@ -3488,15 +3488,11 @@ def vehicle_inspection_detail_pdf():
     history = db_helpers.get_vehicle_inspection_history(vehicle_id, limit=500)
     inspections = []
     for insp in history:
-        insp_date = datetime.fromisoformat(insp['date'])
-        if start_date_s:
-            start_dt = datetime.strptime(start_date_s, '%Y-%m-%d').replace(tzinfo=insp_date.tzinfo)
-            if insp_date < start_dt:
-                continue
-        if end_date_s:
-            end_dt = datetime.strptime(end_date_s, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=insp_date.tzinfo)
-            if insp_date > end_dt:
-                continue
+        insp_date_str = insp['date'][:10]
+        if start_date_s and insp_date_str < start_date_s:
+            continue
+        if end_date_s and insp_date_str > end_date_s:
+            continue
         items = db_helpers.get_inspection_details(insp['id'])
         categories = {}
         for item in items:
@@ -3668,19 +3664,16 @@ def vehicle_inspection_detail_view():
     if vehicle_id:
         history = db_helpers.get_vehicle_inspection_history(vehicle_id, limit=500)
         for insp in history:
-            insp_date = datetime.fromisoformat(insp['date'])
+            # Compare date strings directly (first 10 chars = YYYY-MM-DD)
+            # avoids timezone-aware vs naive datetime crashes
+            insp_date_str = insp['date'][:10]
 
-            if start_date_str:
-                start_dt = datetime.strptime(start_date_str, '%Y-%m-%d').replace(tzinfo=insp_date.tzinfo)
-                if insp_date < start_dt:
-                    continue
-            if end_date_str:
-                end_dt = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=insp_date.tzinfo)
-                if insp_date > end_dt:
-                    continue
+            if start_date_str and insp_date_str < start_date_str:
+                continue
+            if end_date_str and insp_date_str > end_date_str:
+                continue
 
             items = db_helpers.get_inspection_details(insp['id'])
-            # Group items by category
             categories = {}
             for item in items:
                 cat = item['category'] or 'General'

@@ -247,18 +247,8 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Export / Import Buttons -->
+        <!-- Export Buttons -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: flex-end; flex-wrap: wrap;">
-            <form method="POST" action="{{ url_for('seed_emr_checklist') }}" onsubmit="return confirm('This will add all EMR equipment items from the Rescue Truck checklist sheet. Items already in the list will be skipped. Continue?');">
-                <button type="submit" style="padding: 10px 20px; background: #e65c00; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
-                    🚑 Import EMR Equipment List (R1/R2)
-                </button>
-            </form>
-            <form method="POST" action="{{ url_for('backfill_inspection_results') }}" onsubmit="return confirm('This will mark any newly-added checklist items (like EMR equipment) as PASSED on all past inspections that did not record them. Run this once after adding new items to vehicles. Continue?');">
-                <button type="submit" style="padding: 10px 20px; background: #5c6bc0; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
-                    🔄 Backfill Past Inspections with New Items
-                </button>
-            </form>
             <a href="{{ url_for('export_checklist_items') }}" style="padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
                 📄 Export CSV
             </a>
