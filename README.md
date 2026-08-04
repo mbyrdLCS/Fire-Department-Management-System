@@ -5,7 +5,7 @@ A comprehensive web-based time tracking and management system designed specifica
 **Live Demo:** [https://byrdmanlk.pythonanywhere.com](https://byrdmanlk.pythonanywhere.com) (Login: demo / demo2024)
 
 [![License](https://img.shields.io/badge/License-Non--Commercial-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.0%2B-green)](https://flask.palletsprojects.com/)
 
 ## ✨ Features
@@ -487,6 +487,16 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - Thanks to all contributors and fire departments using this system
 
 ## 📈 Recent Updates
+
+### August 2026
+- ✅ **EMR Equipment Checklists**: Rescue truck supply checklists grouped by section (EMR Equipment, Bandages, R1-Only) — one-tap "All Present" button per section for fast checks at the scene
+- ✅ **Backdated Inspection Entry**: Enter old paper records by backdating any inspection — "Show All Trucks" mode bypasses the 6-day filter to show every vehicle at once
+- ✅ **Professional PDF Inspection Reports**: Detailed downloadable PDF reports with one inspection per page (front/back print-ready for rescue trucks), vehicle name on every page, and EMR sections sorted after regular items
+- ✅ **Year/Date Range Report Filtering**: Filter detailed inspection reports by year or custom date range with a clean tabbed UI
+- ✅ **AI / MCP Server Integration**: Built-in MCP server lets Claude Desktop read a photo of a paper record and enter it automatically — works locally on Mac
+- ✅ **Vehicle Photo Upload**: Attach photos to fleet vehicles for easy identification
+- ✅ **Admin Panel Redesign**: Clean header bar, compact export strip, text-only tool cards replacing emoji icons
+- ✅ **TV Display Screen Card**: Quick access to display settings and SignPresenter setup from the admin panel
 
 ### November 2024
 - ✅ **Multi-User Authentication**: Add multiple admin users with individual logins for better audit trails
