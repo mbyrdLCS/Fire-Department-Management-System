@@ -3539,7 +3539,7 @@ def vehicle_inspection_detail_pdf():
     # Cover block
     label = f'{year} Annual Report' if year else (f'{start_date_s} – {end_date_s}' if start_date_s else 'All Inspections')
     cover = Table([[Paragraph(f'SVVFD — Vehicle Inspection Report', title_s)],
-                   [Paragraph(f'{vehicle["name"]} ({vehicle["vehicle_code"]})  ·  {label}', sub_s)]],
+                   [Paragraph(f'{vehicle["name"]} ({vehicle.get("vehicle_code") or vehicle.get("code", "")})  ·  {label}', sub_s)]],
                   colWidths=[7.2*inch])
     cover.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), NAVY),
