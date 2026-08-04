@@ -3462,7 +3462,7 @@ def vehicle_inspection_detail_pdf():
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     import io
 
@@ -3498,6 +3498,8 @@ def vehicle_inspection_detail_pdf():
         for item in items:
             cat = item['category'] or 'General'
             categories.setdefault(cat, []).append(item)
+        # EMR categories after regular inspection categories
+        categories = dict(sorted(categories.items(), key=lambda x: (1 if x[0].startswith('EMR') else 0, x[0])))
         inspections.append({
             'date': insp['date'][:10],
             'inspector': insp.get('inspector') or insp.get('full_name', 'Unknown'),
@@ -3570,7 +3572,7 @@ def vehicle_inspection_detail_pdf():
         ('FONTNAME',      (0,0), (-1,-1), 'Helvetica-Bold'),
     ]))
     story.append(summary)
-    story.append(Spacer(1, 0.2*inch))
+    story.append(PageBreak())
 
     # Each inspection
     for insp in inspections:
@@ -3632,12 +3634,12 @@ def vehicle_inspection_detail_pdf():
             story.append(Spacer(1, 0.05*inch))
             story.append(Paragraph(f'<i>Notes: {insp["notes"]}</i>', notes_s))
 
-        story.append(HRFlowable(width='100%', thickness=1, color=MGREY, spaceAfter=10, spaceBefore=6))
+        story.append(PageBreak())
 
     doc.build(story)
     buf.seek(0)
 
-    vehicle_code = vehicle.get('vehicle_code', 'vehicle')
+    vehicle_code = vehicle.get('code') or vehicle.get('vehicle_code', 'vehicle')
     filename = f'inspection_report_{vehicle_code}_{label.replace(" ","_").replace("–","-")}.pdf'
     return send_file(buf, mimetype='application/pdf',
                      as_attachment=True, download_name=filename)
@@ -3678,6 +3680,7 @@ def vehicle_inspection_detail_view():
             for item in items:
                 cat = item['category'] or 'General'
                 categories.setdefault(cat, []).append(item)
+            categories = dict(sorted(categories.items(), key=lambda x: (1 if x[0].startswith('EMR') else 0, x[0])))
 
             inspections.append({
                 'id': insp['id'],
