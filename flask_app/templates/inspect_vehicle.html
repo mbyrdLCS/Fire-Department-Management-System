@@ -305,6 +305,13 @@
                 <div class="error-message" id="inspector_error">Please select your firefighter number</div>
             </div>
 
+            <!-- Inspection Date (defaults to today, can be backdated for paper records) -->
+            <div class="inspector-section">
+                <label for="inspection_date">Inspection Date:</label>
+                <input type="date" name="inspection_date" id="inspection_date">
+                <div style="margin-top: 6px; font-size: 13px; color: #888;">Leave as today's date for current inspections. Change only when entering old paper records.</div>
+            </div>
+
             <!-- Checklist Items -->
             {% for item in checklist_items %}
             <div class="checklist-item">
@@ -387,6 +394,16 @@
             passButtons.forEach(btn => {
                 btn.classList.add('selected-pass');
             });
+
+            // Default inspection date to today
+            const dateInput = document.getElementById('inspection_date');
+            if (dateInput && !dateInput.value) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
 
             // Add form validation
             const form = document.getElementById('inspectionForm');

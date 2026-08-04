@@ -1053,7 +1053,7 @@ def get_vehicles_for_checklist_item(checklist_item_id):
     conn.close()
     return vehicles
 
-def create_vehicle_inspection(vehicle_id, inspector_id, inspection_results, additional_notes=''):
+def create_vehicle_inspection(vehicle_id, inspector_id, inspection_results, additional_notes='', inspection_date=None):
     """Create a new vehicle inspection with results"""
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1062,12 +1062,15 @@ def create_vehicle_inspection(vehicle_id, inspector_id, inspection_results, addi
         # Determine if inspection passed (all items passed)
         passed = all(result['status'] == 'pass' for result in inspection_results)
 
+        if inspection_date is None:
+            inspection_date = datetime.now(CENTRAL).isoformat()
+
         # Create inspection record
         cursor.execute('''
             INSERT INTO vehicle_inspections
             (vehicle_id, inspector_id, inspection_date, passed, additional_notes)
             VALUES (?, ?, ?, ?, ?)
-        ''', (vehicle_id, inspector_id, datetime.now(CENTRAL).isoformat(), passed, additional_notes))
+        ''', (vehicle_id, inspector_id, inspection_date, passed, additional_notes))
 
         inspection_id = cursor.lastrowid
 

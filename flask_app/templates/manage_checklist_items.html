@@ -205,6 +205,10 @@
             font-size: 12px;
         }
 
+        .category-badge.emr { background: #fff3e0; color: #e65c00; }
+        .category-badge.emr-bandages { background: #fce4ec; color: #c2185b; }
+        .category-badge.emr-r1 { background: #e8f5e9; color: #2e7d32; font-weight: 700; }
+
         .order-input {
             width: 60px !important;
         }
@@ -243,8 +247,13 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Export Buttons -->
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: flex-end;">
+        <!-- Export / Import Buttons -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: flex-end; flex-wrap: wrap;">
+            <form method="POST" action="{{ url_for('seed_emr_checklist') }}" onsubmit="return confirm('This will add all EMR equipment items from the Rescue Truck checklist sheet. Items already in the list will be skipped. Continue?');">
+                <button type="submit" style="padding: 10px 20px; background: #e65c00; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    🚑 Import EMR Equipment List (R1/R2)
+                </button>
+            </form>
             <a href="{{ url_for('export_checklist_items') }}" style="padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
                 📄 Export CSV
             </a>
@@ -279,6 +288,9 @@
                             <option value="Communications">Communications</option>
                             <option value="Exterior">Exterior</option>
                             <option value="Interior">Interior</option>
+                            <option value="EMR Equipment">EMR Equipment</option>
+                            <option value="EMR Bandages">EMR Bandages</option>
+                            <option value="EMR R1 Only">EMR R1 Only</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -319,7 +331,8 @@
                             <td><strong>{{ item.description }}</strong></td>
                             <td>
                                 {% if item.category %}
-                                <span class="category-badge">{{ item.category }}</span>
+                                {% set badge_class = 'emr' if item.category == 'EMR Equipment' else ('emr-bandages' if item.category == 'EMR Bandages' else ('emr-r1' if item.category == 'EMR R1 Only' else '')) %}
+                                <span class="category-badge {{ badge_class }}">{{ item.category }}</span>
                                 {% else %}
                                 --
                                 {% endif %}

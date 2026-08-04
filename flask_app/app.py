@@ -822,6 +822,56 @@ def deactivate_user():
         logger.error(f"Deactivate user error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/admin/users/edit', methods=['POST'])
+def edit_user():
+    """Edit a user - admin only"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    try:
+        user_id = int(request.form['user_id'])
+        full_name = request.form['full_name'].strip()
+        email = request.form.get('email', '').strip() or None
+        username = request.form['username'].strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+
+        if not username or not full_name:
+            flash('Username and full name are required!')
+            return redirect(url_for('user_management'))
+
+        success, message = db_helpers.update_user(
+            user_id,
+            username=username,
+            full_name=full_name,
+            email=email
+        )
+
+        if not success:
+            flash(f'Error updating user: {message}')
+            return redirect(url_for('user_management'))
+
+        if new_password:
+            if len(new_password) < 8:
+                flash('Password must be at least 8 characters!')
+                return redirect(url_for('user_management'))
+            if new_password != confirm_password:
+                flash('Passwords do not match!')
+                return redirect(url_for('user_management'))
+            password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            db_helpers.update_user_password(user_id, password_hash)
+            db_helpers.update_user(user_id, must_change_password=1)
+
+        flash(f'User "{username}" updated successfully!')
+        logger.info(f"User {user_id} updated by user_id={session.get('user_id')}")
+
+    except Exception as e:
+        logger.error(f"Edit user error: {str(e)}", exc_info=True)
+        flash('An error occurred while updating the user.')
+
+    return redirect(url_for('user_management'))
+
 @app.route('/user/change-password', methods=['GET', 'POST'])
 def change_password():
     """Change password page - allows users to change their own password"""
@@ -2072,6 +2122,7 @@ def submit_inspection():
         vehicle_id = int(request.form['vehicle_id'])
         inspector_number = request.form.get('inspector_number', '')
         additional_notes = request.form.get('additional_notes', '')
+        inspection_date_str = request.form.get('inspection_date', '').strip()
 
         # Validate that inspector number is provided
         if not inspector_number:
@@ -2086,6 +2137,17 @@ def submit_inspection():
             return redirect(url_for('inspect_vehicle', vehicle_id=vehicle_id))
 
         inspector_id = inspector['id']
+
+        # Parse inspection date (allow backdating for paper records)
+        inspection_date = None
+        if inspection_date_str:
+            try:
+                from datetime import date as date_type
+                parsed = datetime.strptime(inspection_date_str, '%Y-%m-%d')
+                inspection_date = parsed.replace(hour=12, minute=0, second=0).isoformat()
+            except ValueError:
+                flash('Invalid date format. Please use the date picker.')
+                return redirect(url_for('inspect_vehicle', vehicle_id=vehicle_id))
 
         # Collect inspection results
         inspection_results = []
@@ -2107,7 +2169,8 @@ def submit_inspection():
             vehicle_id,
             inspector_id,
             inspection_results,
-            additional_notes
+            additional_notes,
+            inspection_date=inspection_date
         )
 
         if success:
@@ -2897,6 +2960,111 @@ def update_checklist_item_order(item_id):
         logger.error(f"Update checklist item order error: {str(e)}")
         flash('An error occurred while updating the checklist item order.')
         return redirect(url_for('manage_checklist_items'))
+
+# ========== EMR EQUIPMENT SEED ROUTE ==========
+
+@app.route('/admin/seed-emr-checklist', methods=['POST'])
+def seed_emr_checklist():
+    """Seed the EMR equipment checklist items for rescue trucks (idempotent)"""
+    try:
+        existing_items = db_helpers.get_all_checklist_items()
+        existing_descriptions = {item['description'] for item in existing_items}
+
+        emr_items = [
+            # EMR Equipment - General
+            ("AED (qty: 1)", "EMR Equipment", 100),
+            ("Adult AED pads (qty: 2)", "EMR Equipment", 101),
+            ("Pediatric AED pads (qty: 2)", "EMR Equipment", 102),
+            ("Electronic BP machine (qty: 1)", "EMR Equipment", 103),
+            ("Adult BP cuff (qty: 1)", "EMR Equipment", 104),
+            ("Pediatric BP cuff (qty: 1)", "EMR Equipment", 105),
+            ("Rad 57 - Pulseoximeter/O2 monitor (qty: 1)", "EMR Equipment", 106),
+            ("Small Fingertip Pulseoximeter (qty: 1)", "EMR Equipment", 107),
+            ("Digital Scan Thermometer (qty: 1)", "EMR Equipment", 108),
+            ("Portable LCSU Suction Device (qty: 1)", "EMR Equipment", 109),
+            ("Suction Canister (qty: 2)", "EMR Equipment", 110),
+            ("Suction tubing & tip set (qty: 4)", "EMR Equipment", 111),
+            ("Long Backboard with immobilization (qty: 1)", "EMR Equipment", 112),
+            ("Mega movers (qty: 2)", "EMR Equipment", 113),
+            ("Manual BP Adult cuff set (qty: 1)", "EMR Equipment", 114),
+            ("Manual BP Pediatric cuff set (qty: 1)", "EMR Equipment", 115),
+            ("Stethoscope (qty: 1)", "EMR Equipment", 116),
+            ("Size D - O2 Bottles (qty: 3)", "EMR Equipment", 117),
+            ("Ambu Resuscitator BVM - Adult (qty: 1)", "EMR Equipment", 118),
+            ("Ambu Resuscitator BVM - Child (qty: 1)", "EMR Equipment", 119),
+            ("Ambu Resuscitator BVM - Infant (qty: 1)", "EMR Equipment", 120),
+            ("Set of Oropharyngeal Airways - 6 sizes (qty: 1)", "EMR Equipment", 121),
+            ("Nasal Cannulas (qty: 2)", "EMR Equipment", 122),
+            ("Nonrebreather Mask (NRB) - Adult (qty: 2)", "EMR Equipment", 123),
+            ("Nonrebreather Mask (NRB) - Child (qty: 2)", "EMR Equipment", 124),
+            ("CPR Mask (qty: 1)", "EMR Equipment", 125),
+            ("C-collar immobilization - Adult (qty: 3)", "EMR Equipment", 126),
+            ("C-collar immobilization - Pediatric (qty: 1)", "EMR Equipment", 127),
+            ("C-collar immobilization - Infant (qty: 1)", "EMR Equipment", 128),
+            ("Sam Splints/Flexall (qty: 4)", "EMR Equipment", 129),
+            ("OB Kit (qty: 1)", "EMR Equipment", 130),
+            ("Long Bulb syringe (qty: 2)", "EMR Equipment", 131),
+            ("Small Bulb syringe (qty: 1)", "EMR Equipment", 132),
+            ("N95 masks - box of 20 (qty: 1)", "EMR Equipment", 133),
+            ("Safety glasses (qty: 2)", "EMR Equipment", 134),
+            ("PPE suits (qty: 5)", "EMR Equipment", 135),
+            ("Penlight (qty: 3)", "EMR Equipment", 136),
+            ("Disposable Gloves - Box Small (qty: 1)", "EMR Equipment", 137),
+            ("Disposable Gloves - Box Medium (qty: 1)", "EMR Equipment", 138),
+            ("Disposable Gloves - Box Large (qty: 1)", "EMR Equipment", 139),
+            ("Disposable Gloves - Box X-Large (qty: 1)", "EMR Equipment", 140),
+            ("Lysol disinfectant spray can (qty: 2)", "EMR Equipment", 141),
+            ("Clorox disinfectant wipes container (qty: 1)", "EMR Equipment", 142),
+            ("Germ-x hand sanitizer 10oz bottle (qty: 1)", "EMR Equipment", 143),
+            ("Narcan Nasal Spray 4mg (qty: 4)", "EMR Equipment", 144),
+            ("Medical Scissors (qty: 3)", "EMR Equipment", 145),
+            ("Instant Cold Pack (qty: 3)", "EMR Equipment", 146),
+            ("Instant Hot Pack (qty: 2)", "EMR Equipment", 147),
+            ("Saline Solution Bottle 250ml (qty: 1)", "EMR Equipment", 148),
+            ("Saline Wound Wash (qty: 1)", "EMR Equipment", 149),
+            ("Saline Eye wash & cup (qty: 1)", "EMR Equipment", 150),
+            ("Sterile Alcohol wipes Box 100 (qty: 1)", "EMR Equipment", 151),
+            ("Report Book - blank patient care reports (qty: 1)", "EMR Equipment", 152),
+            # Bandages
+            ("Sterile Burn Sheets/Blankets 60x90\" (qty: 2)", "EMR Bandages", 200),
+            ("Sterile 4\"x4\" dressings (qty: 30)", "EMR Bandages", 201),
+            ("Roller Bandages 2\" or larger (qty: 12)", "EMR Bandages", 202),
+            ("Sterile Occlusive dressing 3\"x9\" petroleum (qty: 10)", "EMR Bandages", 203),
+            ("Triangular bandages (qty: 6)", "EMR Bandages", 204),
+            ("Sterile ABD Pads/dressing 8\"x10\" (qty: 10)", "EMR Bandages", 205),
+            ("Sterile ABD Pads/dressing 7\"x6\" (qty: 5)", "EMR Bandages", 206),
+            ("Sterile Multi-trauma dressing 5\"x9\" (qty: 15)", "EMR Bandages", 207),
+            ("Sterile Multi-trauma dressing 12\"x30\" (qty: 3)", "EMR Bandages", 208),
+            ("Oval ear bandages (qty: 2)", "EMR Bandages", 209),
+            ("Rolls of Tape cloth/clear 1\" & larger (qty: 3)", "EMR Bandages", 210),
+            ("Wraps (qty: 5)", "EMR Bandages", 211),
+            ("Tourniquet (qty: 2)", "EMR Bandages", 212),
+            ("Band-Aids Box multi sizes box of 100 (qty: 1)", "EMR Bandages", 213),
+            # Rescue 1 Only
+            ("R1 ONLY: Emergency air splint - Arm (qty: 1)", "EMR R1 Only", 300),
+            ("R1 ONLY: Emergency air splint - Leg (qty: 1)", "EMR R1 Only", 301),
+            ("R1 ONLY: Hard arm splint (qty: 1)", "EMR R1 Only", 302),
+            ("R1 ONLY: Hard leg splint (qty: 1)", "EMR R1 Only", 303),
+            ("R1 ONLY: Arm sling (qty: 2)", "EMR R1 Only", 304),
+        ]
+
+        added = 0
+        skipped = 0
+        for description, category, order in emr_items:
+            if description not in existing_descriptions:
+                db_helpers.create_checklist_item(description, category, order)
+                added += 1
+            else:
+                skipped += 1
+
+        flash(f'EMR checklist seeded: {added} items added, {skipped} already existed. Now assign them to R1 and R2 in the vehicle checklist manager.')
+        logger.info(f"EMR checklist seeded: {added} added, {skipped} skipped")
+
+    except Exception as e:
+        logger.error(f"EMR seed error: {str(e)}")
+        flash(f'Error seeding EMR checklist: {str(e)}')
+
+    return redirect(url_for('manage_checklist_items'))
 
 # ========== DASHBOARD ROUTE ==========
 

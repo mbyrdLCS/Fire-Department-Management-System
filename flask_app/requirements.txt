@@ -1,4 +1,5 @@
 Flask==2.1.2
+mcp>=1.0,<2.0
 pytz==2023.3
 Werkzeug==2.2.2
 click>=8.0
@@ -6,3 +7,6 @@ itsdangerous>=2.0
 Jinja2>=3.0
 python-dotenv>=0.19.0
 dropbox>=11.0.0
+bcrypt>=4.0.0
+openpyxl>=3.0.0
+reportlab>=3.6.0
