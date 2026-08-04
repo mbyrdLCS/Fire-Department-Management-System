@@ -3076,6 +3076,56 @@ def seed_emr_checklist():
 
     return redirect(url_for('manage_checklist_items'))
 
+# ========== BACKFILL MISSING INSPECTION RESULTS ==========
+
+@app.route('/admin/backfill-inspection-results', methods=['POST'])
+def backfill_inspection_results():
+    """For every past inspection, add 'pass' for any assigned checklist items
+    that weren't recorded (e.g. EMR items added after old inspections were done)."""
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        conn = db_helpers.get_db_connection()
+        cursor = conn.cursor()
+
+        # For each inspection, find checklist items assigned to that vehicle
+        # that have no result row — insert them as 'pass'
+        cursor.execute('SELECT id, vehicle_id FROM vehicle_inspections')
+        inspections = cursor.fetchall()
+
+        total_added = 0
+        for insp_id, vehicle_id in inspections:
+            # Items assigned to this vehicle
+            cursor.execute('''
+                SELECT ci.id FROM inspection_checklist_items ci
+                JOIN vehicle_checklist_assignments vca ON ci.id = vca.checklist_item_id
+                WHERE vca.vehicle_id = ? AND ci.is_active = 1
+            ''', (vehicle_id,))
+            assigned_ids = {row[0] for row in cursor.fetchall()}
+
+            # Items already recorded for this inspection
+            cursor.execute('SELECT checklist_item_id FROM inspection_results WHERE inspection_id = ?', (insp_id,))
+            recorded_ids = {row[0] for row in cursor.fetchall()}
+
+            missing = assigned_ids - recorded_ids
+            for item_id in missing:
+                cursor.execute('''
+                    INSERT INTO inspection_results (inspection_id, checklist_item_id, status, notes)
+                    VALUES (?, ?, 'pass', '')
+                ''', (insp_id, item_id))
+                total_added += 1
+
+        conn.commit()
+        conn.close()
+        flash(f'Backfill complete: {total_added} missing item results added as Pass across all inspections.')
+        logger.info(f'Inspection backfill: {total_added} results added')
+
+    except Exception as e:
+        logger.error(f'Backfill error: {str(e)}')
+        flash(f'Error during backfill: {str(e)}')
+
+    return redirect(url_for('manage_checklist_items'))
+
 # ========== DASHBOARD ROUTE ==========
 
 @app.route('/dashboard')
@@ -3400,6 +3450,201 @@ def reports_menu():
 def vehicle_inspection_reports():
     """Vehicle inspection reports page"""
     return render_template('vehicle_inspection_reports.html')
+
+@app.route('/reports/vehicle-inspections/detail-pdf')
+def vehicle_inspection_detail_pdf():
+    """Download a professionally formatted PDF of detailed inspection results"""
+    if not session.get('logged_in'):
+        flash('Please log in first!')
+        return redirect(url_for('admin'))
+
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    import io
+
+    vehicle_id   = request.args.get('vehicle_id', type=int)
+    start_date_s = request.args.get('start_date', '')
+    end_date_s   = request.args.get('end_date', '')
+    year         = request.args.get('year', type=int)
+
+    if year:
+        start_date_s = f'{year}-01-01'
+        end_date_s   = f'{year}-12-31'
+
+    if not vehicle_id:
+        flash('Please select a vehicle first.')
+        return redirect(url_for('vehicle_inspection_detail_view'))
+
+    vehicle = db_helpers.get_vehicle_by_id(vehicle_id)
+    if not vehicle:
+        flash('Vehicle not found.')
+        return redirect(url_for('vehicle_inspection_detail_view'))
+
+    # Collect inspections (same logic as view route)
+    history = db_helpers.get_vehicle_inspection_history(vehicle_id, limit=500)
+    inspections = []
+    for insp in history:
+        insp_date = datetime.fromisoformat(insp['date'])
+        if start_date_s:
+            start_dt = datetime.strptime(start_date_s, '%Y-%m-%d').replace(tzinfo=insp_date.tzinfo)
+            if insp_date < start_dt:
+                continue
+        if end_date_s:
+            end_dt = datetime.strptime(end_date_s, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=insp_date.tzinfo)
+            if insp_date > end_dt:
+                continue
+        items = db_helpers.get_inspection_details(insp['id'])
+        categories = {}
+        for item in items:
+            cat = item['category'] or 'General'
+            categories.setdefault(cat, []).append(item)
+        inspections.append({
+            'date': insp['date'][:10],
+            'inspector': insp.get('inspector') or insp.get('full_name', 'Unknown'),
+            'passed': insp['passed'],
+            'notes': insp.get('notes') or insp.get('additional_notes', ''),
+            'categories': categories,
+            'total': len(items),
+            'failed': sum(1 for i in items if i['status'] == 'fail'),
+        })
+
+    # ── Build PDF ──
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter,
+                            leftMargin=0.65*inch, rightMargin=0.65*inch,
+                            topMargin=0.65*inch, bottomMargin=0.65*inch)
+
+    NAVY   = colors.HexColor('#1e3c72')
+    GREEN  = colors.HexColor('#28a745')
+    RED    = colors.HexColor('#dc3545')
+    LGREY  = colors.HexColor('#f5f5f5')
+    MGREY  = colors.HexColor('#cccccc')
+
+    styles = getSampleStyleSheet()
+    title_s  = ParagraphStyle('title',  parent=styles['Normal'], fontSize=18, textColor=colors.white,
+                               fontName='Helvetica-Bold', alignment=TA_CENTER, spaceAfter=2)
+    sub_s    = ParagraphStyle('sub',    parent=styles['Normal'], fontSize=10, textColor=colors.white,
+                               fontName='Helvetica', alignment=TA_CENTER)
+    cat_s    = ParagraphStyle('cat',    parent=styles['Normal'], fontSize=9,  textColor=NAVY,
+                               fontName='Helvetica-Bold', spaceAfter=2, spaceBefore=4)
+    item_s   = ParagraphStyle('item',   parent=styles['Normal'], fontSize=8,  textColor=colors.HexColor('#333333'),
+                               fontName='Helvetica', leading=11)
+    fail_s   = ParagraphStyle('fail',   parent=styles['Normal'], fontSize=8,  textColor=RED,
+                               fontName='Helvetica-Bold', leading=11)
+    notes_s  = ParagraphStyle('notes',  parent=styles['Normal'], fontSize=7,  textColor=colors.HexColor('#888888'),
+                               fontName='Helvetica-Oblique', leading=10)
+
+    story = []
+
+    # Cover block
+    label = f'{year} Annual Report' if year else (f'{start_date_s} – {end_date_s}' if start_date_s else 'All Inspections')
+    cover = Table([[Paragraph(f'SVVFD — Vehicle Inspection Report', title_s)],
+                   [Paragraph(f'{vehicle["name"]} ({vehicle["vehicle_code"]})  ·  {label}', sub_s)]],
+                  colWidths=[7.2*inch])
+    cover.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), NAVY),
+        ('TOPPADDING',    (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('LEFTPADDING',   (0,0), (-1,-1), 14),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 14),
+        ('ROUNDEDCORNERS', [6]),
+    ]))
+    story.append(cover)
+    story.append(Spacer(1, 0.18*inch))
+
+    # Summary row
+    passed_n = sum(1 for i in inspections if i['passed'])
+    summary = Table([[
+        Paragraph(f'<b>{len(inspections)}</b><br/><font size="7">Inspections</font>', styles['Normal']),
+        Paragraph(f'<b><font color="#28a745">{passed_n}</font></b><br/><font size="7">Passed</font>', styles['Normal']),
+        Paragraph(f'<b><font color="#dc3545">{len(inspections)-passed_n}</font></b><br/><font size="7">Had Failures</font>', styles['Normal']),
+    ]], colWidths=[2.4*inch]*3)
+    summary.setStyle(TableStyle([
+        ('ALIGN',         (0,0), (-1,-1), 'CENTER'),
+        ('BACKGROUND',    (0,0), (-1,-1), LGREY),
+        ('BOX',           (0,0), (-1,-1), 0.5, MGREY),
+        ('INNERGRID',     (0,0), (-1,-1), 0.5, MGREY),
+        ('TOPPADDING',    (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('FONTSIZE',      (0,0), (-1,-1), 13),
+        ('FONTNAME',      (0,0), (-1,-1), 'Helvetica-Bold'),
+    ]))
+    story.append(summary)
+    story.append(Spacer(1, 0.2*inch))
+
+    # Each inspection
+    for insp in inspections:
+        result_color = GREEN if insp['passed'] else RED
+        result_text  = '✓ PASSED' if insp['passed'] else '✗ FAILED'
+
+        # Inspection header row
+        hdr = Table([[
+            Paragraph(f'<b>{insp["date"]}</b>', ParagraphStyle('hd', fontSize=10, textColor=colors.white, fontName='Helvetica-Bold')),
+            Paragraph(f'Inspector: {insp["inspector"]}', ParagraphStyle('hd2', fontSize=9, textColor=colors.white, fontName='Helvetica')),
+            Paragraph(f'<b>{result_text}</b>', ParagraphStyle('hd3', fontSize=10, textColor=colors.white, fontName='Helvetica-Bold', alignment=TA_RIGHT)),
+        ]], colWidths=[2.0*inch, 3.4*inch, 1.8*inch])
+        hdr.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,-1), result_color),
+            ('TOPPADDING',    (0,0), (-1,-1), 7),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+            ('LEFTPADDING',   (0,0), (-1,-1), 10),
+            ('RIGHTPADDING',  (0,0), (-1,-1), 10),
+            ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        story.append(hdr)
+
+        # Items by category — 2-column layout
+        for cat, items in insp['categories'].items():
+            story.append(Spacer(1, 0.06*inch))
+            story.append(Paragraph(cat.upper(), cat_s))
+
+            # Split into two columns
+            left_items  = items[:len(items)//2 + len(items)%2]
+            right_items = items[len(items)//2 + len(items)%2:]
+
+            def make_item_para(item):
+                icon  = '✓' if item['status'] == 'pass' else '✗'
+                style = fail_s if item['status'] == 'fail' else item_s
+                p = [Paragraph(f'{icon}  {item["description"]}', style)]
+                if item.get('notes'):
+                    p.append(Paragraph(f'    ⚠ {item["notes"]}', notes_s))
+                return p
+
+            rows = []
+            for i in range(max(len(left_items), len(right_items))):
+                left_cell  = make_item_para(left_items[i])  if i < len(left_items)  else [Paragraph('', item_s)]
+                right_cell = make_item_para(right_items[i]) if i < len(right_items) else [Paragraph('', item_s)]
+                rows.append([left_cell, right_cell])
+
+            if rows:
+                item_table = Table(rows, colWidths=[3.55*inch, 3.55*inch])
+                item_table.setStyle(TableStyle([
+                    ('VALIGN',       (0,0), (-1,-1), 'TOP'),
+                    ('TOPPADDING',   (0,0), (-1,-1), 1),
+                    ('BOTTOMPADDING',(0,0), (-1,-1), 1),
+                    ('LEFTPADDING',  (0,0), (-1,-1), 4),
+                    ('RIGHTPADDING', (0,0), (-1,-1), 4),
+                    ('ROWBACKGROUNDS',(0,0),(-1,-1), [colors.white, LGREY]),
+                ]))
+                story.append(item_table)
+
+        if insp['notes']:
+            story.append(Spacer(1, 0.05*inch))
+            story.append(Paragraph(f'<i>Notes: {insp["notes"]}</i>', notes_s))
+
+        story.append(HRFlowable(width='100%', thickness=1, color=MGREY, spaceAfter=10, spaceBefore=6))
+
+    doc.build(story)
+    buf.seek(0)
+
+    vehicle_code = vehicle.get('vehicle_code', 'vehicle')
+    filename = f'inspection_report_{vehicle_code}_{label.replace(" ","_").replace("–","-")}.pdf'
+    return send_file(buf, mimetype='application/pdf',
+                     as_attachment=True, download_name=filename)
 
 @app.route('/reports/vehicle-inspections/detail-view')
 def vehicle_inspection_detail_view():

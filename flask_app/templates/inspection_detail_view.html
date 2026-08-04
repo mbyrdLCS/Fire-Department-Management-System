@@ -149,7 +149,10 @@
             </div>
             {% endif %}
             <div style="margin-left:auto;">
-                <button onclick="window.print()" style="padding:10px 20px;background:#6c757d;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">🖨️ Print</button>
+                <a href="{{ url_for('vehicle_inspection_detail_pdf', vehicle_id=vehicle_id, start_date=start_date, end_date=end_date, year=selected_year or '') }}"
+                   style="padding:10px 22px;background:#dc3545;color:white;border-radius:8px;font-weight:700;text-decoration:none;font-size:15px;">
+                    📥 Download PDF
+                </a>
             </div>
         </div>
 
