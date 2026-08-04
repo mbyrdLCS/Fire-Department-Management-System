@@ -198,8 +198,20 @@
         {% endif %}
         {% endwith %}
 
+        <!-- Old Records / Normal toggle -->
+        {% if show_all %}
+        <div style="background:#fff3cd;border-left:5px solid #ffc107;border-radius:10px;padding:14px 16px;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span style="font-weight:700;color:#856404;">📋 Showing all trucks — backdating mode</span>
+            <a href="{{ url_for('inspections_menu') }}" style="background:#6c757d;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;white-space:nowrap;">← Normal View</a>
+        </div>
+        {% else %}
+        <a href="{{ url_for('inspections_menu') }}?show_all=1" style="display:block;background:#1e3c72;color:white;padding:14px 16px;border-radius:10px;margin-bottom:15px;text-align:center;text-decoration:none;font-weight:700;font-size:16px;">
+            📋 Enter Old Paper Records (Show All Trucks)
+        </a>
+        {% endif %}
+
         <!-- Station Filter -->
-        {% if stations and stations|length > 0 %}
+        {% if stations and stations|length > 0 and not show_all %}
         <div class="station-filter">
             <label for="station_filter">Filter by Station:</label>
             <select id="station_filter" onchange="filterByStation(this.value)">
@@ -245,7 +257,8 @@
             <div class="no-vehicles">
                 <h2>✓ All Caught Up!</h2>
                 <p>All vehicles have been inspected within the last 6 days.</p>
-                <p>Vehicles will reappear here 7 days after their last inspection.</p>
+                <p>Vehicles will reappear here when they are due again.</p>
+                <p style="margin-top:15px;font-size:14px;color:#888;">Need to enter an old paper record? Use the blue button above.</p>
             </div>
         {% endif %}
     </div>

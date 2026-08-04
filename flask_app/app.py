@@ -2089,13 +2089,23 @@ def inspections_menu():
         # User selected a specific station
         station_id = int(station_param)
 
-    # Get vehicles (filtered by station if specified)
-    vehicles = db_helpers.get_vehicles_needing_inspection(station_id=station_id)
+    show_all = request.args.get('show_all') == '1'
+
+    if show_all:
+        vehicles = db_helpers.get_all_vehicles()
+        # Normalize keys to match what the template expects
+        for v in vehicles:
+            v['code'] = v.get('vehicle_code', '')
+            v['type'] = v.get('vehicle_type', '')
+            v['last_inspection'] = None
+    else:
+        vehicles = db_helpers.get_vehicles_needing_inspection(station_id=station_id)
 
     return render_template('inspections_menu.html',
                          vehicles=vehicles,
                          stations=stations,
-                         selected_station=station_id)
+                         selected_station=station_id,
+                         show_all=show_all)
 
 @app.route('/inspect/<int:vehicle_id>')
 def inspect_vehicle(vehicle_id):
