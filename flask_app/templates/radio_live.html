@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Radio - SVVFD</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 1.5s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        .dot.offline { background: #64748b; animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-left: auto;
+        }
+
+        #feed {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        .entry {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: grid;
+            grid-template-columns: 90px 1fr;
+            gap: 12px;
+            align-items: start;
+            animation: slidein 0.3s ease;
+        }
+
+        .entry.new {
+            border-color: #22c55e;
+            background: #132318;
+        }
+
+        @keyframes slidein {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .time {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-variant-numeric: tabular-nums;
+            padding-top: 2px;
+        }
+
+        .text {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #f1f5f9;
+        }
+
+        .empty {
+            text-align: center;
+            color: #475569;
+            padding: 60px 0;
+            font-size: 0.95rem;
+        }
+
+        .freq-badge {
+            display: inline-block;
+            background: #1e3a5f;
+            color: #60a5fa;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="dot" id="status-dot"></div>
+    <h1>SVVFD Live Radio <span class="freq-badge">154.250 MHz</span></h1>
+    <span class="subtitle" id="last-update">Cherokee County Fire Dispatch</span>
+</header>
+
+<div id="feed">
+    {% if entries %}
+        {% for entry in entries %}
+        <div class="entry {% if loop.first %}new{% endif %}">
+            <span class="time">{{ entry.timestamp[11:16] }}<br>{{ entry.timestamp[:10] }}</span>
+            <span class="text">{{ entry.text }}</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty" id="empty-msg">Waiting for transmissions...</div>
+    {% endif %}
+</div>
+
+<script>
+    let lastCount = {{ entries | length }};
+    let online = false;
+
+    async function poll() {
+        try {
+            const res = await fetch('/api/radio/entries');
+            const entries = await res.json();
+
+            if (entries.length > lastCount) {
+                const feed = document.getElementById('feed');
+                const empty = document.getElementById('empty-msg');
+                if (empty) empty.remove();
+
+                const newEntries = entries.slice(0, entries.length - lastCount);
+                newEntries.forEach(e => {
+                    const div = document.createElement('div');
+                    div.className = 'entry new';
+                    const timeParts = e.timestamp.split(' ');
+                    div.innerHTML = `<span class="time">${timeParts[1]?.slice(0,5) || ''}<br>${timeParts[0] || ''}</span><span class="text">${e.text}</span>`;
+                    feed.prepend(div);
+                    setTimeout(() => div.classList.remove('new'), 4000);
+                });
+
+                // Trim to 50 displayed
+                const all = feed.querySelectorAll('.entry');
+                if (all.length > 50) {
+                    for (let i = 50; i < all.length; i++) all[i].remove();
+                }
+
+                lastCount = entries.length;
+                document.getElementById('last-update').textContent = 'Last update: ' + new Date().toLocaleTimeString();
+            }
+
+            if (!online) {
+                document.getElementById('status-dot').classList.remove('offline');
+                online = true;
+            }
+        } catch {
+            document.getElementById('status-dot').classList.add('offline');
+            online = false;
+        }
+    }
+
+    setInterval(poll, 5000);
+</script>
+</body>
+</html>

@@ -4805,6 +4805,52 @@ def iso_hose_testing_report():
                          year=year,
                          available_years=available_years)
 
+# ---------------------------------------------------------------------------
+# Radio Live Transcription
+# ---------------------------------------------------------------------------
+import json
+import threading
+
+_radio_lock = threading.Lock()
+_radio_log_path = os.path.join(os.path.dirname(__file__), 'radio_log.json')
+
+def _load_radio_log():
+    if os.path.exists(_radio_log_path):
+        with open(_radio_log_path) as f:
+            return json.load(f)
+    return []
+
+def _save_radio_log(entries):
+    with open(_radio_log_path, 'w') as f:
+        json.dump(entries[-200:], f)  # keep last 200 transmissions
+
+@app.route('/radio/live')
+def radio_live():
+    with _radio_lock:
+        entries = _load_radio_log()
+    return render_template('radio_live.html', entries=list(reversed(entries)))
+
+@app.route('/api/radio/transcription', methods=['POST'])
+def radio_transcription():
+    data = request.get_json(silent=True)
+    if not data or 'text' not in data:
+        return jsonify({'error': 'missing text'}), 400
+    entry = {
+        'text': data['text'],
+        'timestamp': data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    }
+    with _radio_lock:
+        entries = _load_radio_log()
+        entries.append(entry)
+        _save_radio_log(entries)
+    return jsonify({'ok': True})
+
+@app.route('/api/radio/entries')
+def radio_entries():
+    with _radio_lock:
+        entries = _load_radio_log()
+    return jsonify(list(reversed(entries[-50:])))
+
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
