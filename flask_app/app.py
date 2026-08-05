@@ -4810,25 +4810,47 @@ def iso_hose_testing_report():
 # ---------------------------------------------------------------------------
 import json
 import threading
+import glob
 
 _radio_lock = threading.Lock()
-_radio_log_path = os.path.join(os.path.dirname(__file__), 'radio_log.json')
+_radio_dir = os.path.join(os.path.dirname(__file__), 'radio_logs')
+os.makedirs(_radio_dir, exist_ok=True)
 
-def _load_radio_log():
-    if os.path.exists(_radio_log_path):
-        with open(_radio_log_path) as f:
+def _today_log_path():
+    return os.path.join(_radio_dir, f"radio_{datetime.now().strftime('%Y-%m-%d')}.json")
+
+def _load_radio_log(path=None):
+    path = path or _today_log_path()
+    if os.path.exists(path):
+        with open(path) as f:
             return json.load(f)
     return []
 
-def _save_radio_log(entries):
-    with open(_radio_log_path, 'w') as f:
-        json.dump(entries[-200:], f)  # keep last 200 transmissions
+def _save_radio_log(entries, path=None):
+    path = path or _today_log_path()
+    with open(path, 'w') as f:
+        json.dump(entries, f)
 
 @app.route('/radio/live')
 def radio_live():
     with _radio_lock:
         entries = _load_radio_log()
-    return render_template('radio_live.html', entries=list(reversed(entries)))
+    dates = sorted([
+        os.path.basename(p).replace('radio_', '').replace('.json', '')
+        for p in glob.glob(os.path.join(_radio_dir, 'radio_*.json'))
+    ], reverse=True)
+    return render_template('radio_live.html', entries=list(reversed(entries)), dates=dates)
+
+@app.route('/radio/archive/<date>')
+def radio_archive(date):
+    path = os.path.join(_radio_dir, f'radio_{date}.json')
+    with _radio_lock:
+        entries = _load_radio_log(path)
+    dates = sorted([
+        os.path.basename(p).replace('radio_', '').replace('.json', '')
+        for p in glob.glob(os.path.join(_radio_dir, 'radio_*.json'))
+    ], reverse=True)
+    return render_template('radio_live.html', entries=list(reversed(entries)), dates=dates, viewing_date=date)
 
 @app.route('/api/radio/transcription', methods=['POST'])
 def radio_transcription():
@@ -4850,6 +4872,14 @@ def radio_entries():
     with _radio_lock:
         entries = _load_radio_log()
     return jsonify(list(reversed(entries[-50:])))
+
+@app.route('/api/radio/clear', methods=['POST'])
+def radio_clear():
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 403
+    with _radio_lock:
+        _save_radio_log([])
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
