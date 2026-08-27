@@ -3834,8 +3834,96 @@ def _next_hydro_from_last(last_hydro_str):
         return None
 
 
+def _ensure_scba_table():
+    """Create scba_bottles table and seed initial inventory if it doesn't exist yet."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS scba_bottles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bottle_type TEXT NOT NULL,
+            dot_spec TEXT NOT NULL,
+            serial_number TEXT UNIQUE NOT NULL,
+            manufacturer TEXT,
+            mfgr_date TEXT,
+            hydro_date TEXT,
+            next_hydro_due DATE,
+            location TEXT,
+            station TEXT DEFAULT 'STN1',
+            status TEXT DEFAULT 'active',
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('SELECT COUNT(*) FROM scba_bottles')
+    if cursor.fetchone()[0] == 0:
+        # Seed initial SVVFD inventory
+        composite = [
+            ('614561538', '10/2022', 'P3/STN2', 'STN2', 'active'),
+            ('614561542', '10/2022', 'P3/STN2', 'STN2', 'active'),
+            ('614561540', '10/2022', 'P2/STN1', 'STN1', 'active'),
+            ('614561528', '10/2022', 'P2/STN1', 'STN1', 'active'),
+            ('614561523', '10/2022', 'P2/STN1', 'STN1', 'active'),
+            ('614561530',  None,     'STN1',    'STN1', 'out_of_service'),
+            ('614561535', '10/2022', 'P2/STN1', 'STN1', 'active'),
+            ('614561533',  None,     'STN1',    'STN1', 'out_of_service'),
+            ('614561537', '06/2026', 'P2/STN1', 'STN1', 'active'),
+            ('614561525', '10/2022', 'R1/STN1', 'STN1', 'active'),
+            ('614561522', '10/2022', 'P2/STN1', 'STN1', 'active'),
+            ('614561544', '10/2022', 'R1/STN1', 'STN1', 'active'),
+            ('614561543', '10/2022', 'P2/STN1', 'STN1', 'active'),
+            ('614561529', '10/2022', 'STN1',    'STN1', 'active'),
+            ('614561539',  None,     'STN1',    'STN1', 'out_of_service'),
+            ('614561532', '10/2022', 'R1/STN1', 'STN1', 'active'),
+            ('614561534', '10/2022', 'R1/STN1', 'STN1', 'active'),
+        ]
+        for serial, hydro, location, station, status in composite:
+            next_due = _next_hydro_from_last(hydro) if (hydro and status == 'active') else None
+            cursor.execute(
+                "INSERT OR IGNORE INTO scba_bottles "
+                "(bottle_type,dot_spec,serial_number,manufacturer,mfgr_date,hydro_date,next_hydro_due,location,station,status) "
+                "VALUES ('composite','SP11194',?,'Carleton','06/2016',?,?,?,?,?)",
+                (serial, hydro, next_due, location, station, status))
+        aluminum = [
+            ('DG49523', '06/2026', 'STN1',    'STN1'),
+            ('DG49547', '06/2026', 'STN1',    'STN1'),
+            ('DG49579', '06/2026', 'STN1',    'STN1'),
+            ('DG18648', '06/2026', 'STN1',    'STN1'),
+            ('DG49559', '06/2026', 'STN1',    'STN1'),
+            ('DG18657', '06/2026', 'STN1',    'STN1'),
+            ('DG49568', '06/2026', 'STN1',    'STN1'),
+            ('DG19266', '06/2026', 'STN1',    'STN1'),
+            ('DG49582', '06/2026', 'STN1',    'STN1'),
+            ('DG49539', '10/2022', 'STN1',    'STN1'),
+            ('DG19276', '06/2026', 'STN1',    'STN1'),
+            ('DG49565', '10/2022', 'STN1',    'STN1'),
+            ('DG19263', '06/2026', 'STN1',    'STN1'),
+            ('DG19268', '10/2022', 'STN1',    'STN1'),
+            ('DG49537', '06/2026', 'P2/STN1', 'STN1'),
+            ('DG18644', '06/2026', 'P3/STN2', 'STN2'),
+            ('DG49558', '06/2026', 'P3/STN2', 'STN2'),
+            ('DG18637', '06/2026', 'P3/STN2', 'STN2'),
+            ('DG18647', '06/2026', 'P3/STN2', 'STN2'),
+            ('DG49863', '06/2026', 'P3/STN2', 'STN2'),
+            ('DG49543', '06/2026', 'P1/STN2', 'STN2'),
+            ('DG49561', '06/2026', 'P1/STN2', 'STN2'),
+            ('DG49551', '06/2026', 'P1/STN2', 'STN2'),
+            ('DG19317', '06/2026', 'P1/STN2', 'STN2'),
+        ]
+        for serial, hydro, location, station in aluminum:
+            next_due = _next_hydro_from_last(hydro)
+            cursor.execute(
+                "INSERT OR IGNORE INTO scba_bottles "
+                "(bottle_type,dot_spec,serial_number,manufacturer,mfgr_date,hydro_date,next_hydro_due,location,station,status) "
+                "VALUES ('aluminum','3AL-2216',?,'Luxfer',NULL,?,?,?,?,'active')",
+                (serial, hydro, next_due, location, station))
+    conn.close()
+
+
 def get_all_scba_bottles():
     """Return all SCBA bottles, ordered by type then serial number."""
+    _ensure_scba_table()
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
