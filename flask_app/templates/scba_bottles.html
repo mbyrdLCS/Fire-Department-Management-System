@@ -210,6 +210,38 @@
       {% endfor %}
     {% endwith %}
 
+    <!-- Notification Contacts -->
+    {% set contact_list = scba_contact_email.split(',') if scba_contact_email else [] %}
+    <div style="background:white;border-radius:10px;padding:18px 20px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size:0.9rem;font-weight:600;color:#1e293b;margin-bottom:12px;">SCBA Alert Recipients</div>
+        <form method="post" action="{{ url_for('scba_set_contact') }}">
+            <div style="display:flex;flex-wrap:wrap;gap:10px 24px;margin-bottom:14px;">
+                {% for u in users %}
+                <label style="display:flex;align-items:center;gap:7px;font-size:0.875rem;cursor:pointer;">
+                    <input type="checkbox" name="contact_emails" value="{{ u.email }}"
+                           {% if u.email in contact_list %}checked{% endif %}
+                           style="width:16px;height:16px;cursor:pointer;">
+                    <span>{{ u.full_name or u.username }}</span>
+                    <span style="color:#94a3b8;font-size:0.8rem;">({{ u.email }})</span>
+                </label>
+                {% else %}
+                <span style="color:#94a3b8;font-size:0.85rem;">No users with email addresses found. Add emails in User Management first.</span>
+                {% endfor %}
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <button type="submit" style="background:#2563eb;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:0.875rem;cursor:pointer;">Save Recipients</button>
+                {% if scba_contact_email %}
+                <span style="font-size:0.8rem;color:#64748b;">
+                    Currently alerting: <strong>{{ contact_list | join(', ') }}</strong>
+                    &bull; Emails sent immediately on overdue, biweekly on the 1st &amp; 15th for upcoming.
+                </span>
+                {% else %}
+                <span style="font-size:0.8rem;color:#f59e0b;">No recipients selected — check at least one user above to enable email alerts.</span>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
     <!-- Summary Cards -->
     {% set total_active = (composite | selectattr('status','eq','active') | list | length) +
                           (aluminum  | selectattr('status','eq','active') | list | length) %}

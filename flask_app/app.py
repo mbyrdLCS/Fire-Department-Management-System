@@ -4891,9 +4891,25 @@ def scba_bottles():
     composite = [b for b in bottles if b['bottle_type'] == 'composite']
     aluminum  = [b for b in bottles if b['bottle_type'] == 'aluminum']
     scba_alerts = db_helpers.get_scba_alerts()
+    users = [u for u in db_helpers.get_all_users() if u.get('email') and u.get('is_active')]
+    scba_contact_email = db_helpers.get_setting('scba_notify_email', '')
     return render_template('scba_bottles.html',
                            composite=composite, aluminum=aluminum,
-                           scba_alerts=scba_alerts)
+                           scba_alerts=scba_alerts,
+                           users=users,
+                           scba_contact_email=scba_contact_email)
+
+
+@app.route('/scba/set-contact', methods=['POST'])
+def scba_set_contact():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    emails = request.form.getlist('contact_emails')
+    combined = ','.join(e.strip() for e in emails if e.strip())
+    db_helpers.set_setting('scba_notify_email', combined)
+    count = len(emails)
+    flash(f'SCBA alert recipients updated ({count} recipient{"s" if count != 1 else ""}).', 'success')
+    return redirect(url_for('scba_bottles'))
 
 
 @app.route('/scba/add', methods=['POST'])

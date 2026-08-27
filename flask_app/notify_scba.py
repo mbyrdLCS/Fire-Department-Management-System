@@ -31,7 +31,20 @@ for env_path in ENV_PATHS:
 
 SMTP_FROM   = os.environ.get('SMTP_FROM_EMAIL', 'springvfd.alerts@gmail.com')
 SMTP_PASS   = os.environ.get('SMTP_APP_PASSWORD', '')
-SCBA_CONTACT = os.environ.get('SCBA_NOTIFY_EMAIL', 'chrisgreen6695@gmail.com')
+
+def get_scba_contacts():
+    """Read SCBA recipient emails (comma-separated) from the database settings table."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT setting_value FROM display_settings WHERE setting_key='scba_notify_email'")
+        row = cursor.fetchone()
+        val = row[0] if row and row[0] else os.environ.get('SCBA_NOTIFY_EMAIL', 'chrisgreen6695@gmail.com')
+        return [e.strip() for e in val.split(',') if e.strip()]
+    except Exception:
+        return [os.environ.get('SCBA_NOTIFY_EMAIL', 'chrisgreen6695@gmail.com')]
+    finally:
+        conn.close()
 
 DB_PATHS = [
     os.path.join(BASE_DIR, 'database', 'fire_dept.db'),
@@ -197,17 +210,25 @@ def main():
     today = date.today()
     print(f"[{datetime.now():%Y-%m-%d %H:%M}] SCBA notification check...")
     overdue, warning = get_alerts()
+    recipients = get_scba_contacts()
+
+    if not recipients:
+        print("  No recipients configured. Skipping.")
+        return
+
+    def send_to_all(subject, plain, html):
+        for addr in recipients:
+            try:
+                send_email(addr, subject, plain, html)
+                print(f"  Sent to {addr}")
+            except Exception as e:
+                print(f"  ERROR sending to {addr}: {e}")
 
     # Always alert on overdue bottles regardless of day
     if overdue:
         subject = f"SVVFD SCBA — {len(overdue)} Bottle(s) OVERDUE for Hydro Test"
         plain, html = build_email(overdue, warning)
-        try:
-            send_email(SCBA_CONTACT, subject, plain, html)
-            print(f"  OVERDUE alert sent to {SCBA_CONTACT} ({len(overdue)} overdue)")
-        except Exception as e:
-            print(f"  ERROR sending email: {e}")
-            sys.exit(1)
+        send_to_all(subject, plain, html)
         return
 
     # Biweekly summary (1st and 15th) — send if anything is in the 90-day window
@@ -215,12 +236,8 @@ def main():
         if warning:
             subject = f"SVVFD SCBA — {len(warning)} Bottle(s) Due for Hydro Test Within 90 Days"
             plain, html = build_email(overdue, warning)
-            try:
-                send_email(SCBA_CONTACT, subject, plain, html)
-                print(f"  Biweekly summary sent to {SCBA_CONTACT} ({len(warning)} upcoming)")
-            except Exception as e:
-                print(f"  ERROR sending email: {e}")
-                sys.exit(1)
+            send_to_all(subject, plain, html)
+            print(f"  Biweekly summary sent ({len(warning)} upcoming)")
         else:
             print("  Biweekly check — nothing due within 90 days. No email sent.")
     else:
