@@ -696,6 +696,44 @@
         </div>
         {% endif %}
 
+        {% if alerts.scba_overdue or alerts.scba_warning %}
+        <div class="alert-section">
+            <div class="section-header">
+                <div class="section-icon">🫁</div>
+                <div class="section-title">SCBA Air Bottle — Hydro Test</div>
+                <div class="section-count">{{ alerts.scba_overdue|length + alerts.scba_warning|length }}</div>
+            </div>
+
+            {% for bottle in alerts.scba_overdue %}
+            <div class="alert-card critical">
+                <div class="alert-title">{{ bottle.bottle_type | capitalize }} #{{ bottle.serial_number }}</div>
+                <div class="alert-details">
+                    📍 Location: {{ bottle.location }}<br>
+                    📅 Next Hydro Due: {{ bottle.next_hydro_due }} &mdash; <strong>OVERDUE</strong>
+                </div>
+                <div class="alert-meta">
+                    <span class="badge badge-critical">OVERDUE</span>
+                    <a href="{{ url_for('scba_bottles') }}" class="badge" style="background:#dbeafe;color:#1d4ed8;text-decoration:none;">View Inventory</a>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for bottle in alerts.scba_warning %}
+            <div class="alert-card warning">
+                <div class="alert-title">{{ bottle.bottle_type | capitalize }} #{{ bottle.serial_number }}</div>
+                <div class="alert-details">
+                    📍 Location: {{ bottle.location }}<br>
+                    📅 Next Hydro Due: {{ bottle.next_hydro_due }} &mdash; {{ bottle.days_until_due }} days remaining
+                </div>
+                <div class="alert-meta">
+                    <span class="badge badge-warning">DUE IN {{ bottle.days_until_due }} DAYS</span>
+                    <a href="{{ url_for('scba_bottles') }}" class="badge" style="background:#dbeafe;color:#1d4ed8;text-decoration:none;">View Inventory</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% endif %}
     </div>
 

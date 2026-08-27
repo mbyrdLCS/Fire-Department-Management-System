@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCBA Air Bottles - SVVFD</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .header h1 { font-size: 1.4rem; font-weight: 700; }
+        .header-sub { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+        .back-btn {
+            margin-left: auto;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+        /* Flash messages */
+        .flash { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
+        .flash.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .flash.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .summary-card .num { font-size: 2rem; font-weight: 800; }
+        .summary-card .label { font-size: 0.78rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: .03em; }
+        .summary-card.alert-card { background: #fef2f2; border: 1px solid #fca5a5; }
+        .summary-card.alert-card .num { color: #dc2626; }
+        .summary-card.warn-card { background: #fffbeb; border: 1px solid #fcd34d; }
+        .summary-card.warn-card .num { color: #d97706; }
+        .summary-card.oos-card { background: #f8fafc; border: 1px solid #cbd5e1; }
+        .summary-card.oos-card .num { color: #64748b; }
+
+        /* Alert banner */
+        .alert-banner {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .alert-banner.danger { background: #fef2f2; border-color: #fca5a5; }
+        .alert-banner strong { display: block; margin-bottom: 6px; }
+        .alert-banner ul { padding-left: 18px; }
+        .alert-banner li { margin-bottom: 4px; }
+
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #1e293b;
+            color: white;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+        }
+        .section-header h2 { font-size: 1rem; font-weight: 600; }
+        .section-header .count-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        .add-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .add-btn:hover { background: #16a34a; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead tr { background: #f8fafc; }
+        th { padding: 10px 12px; text-align: left; color: #64748b; font-weight: 600;
+             font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em;
+             border-bottom: 1px solid #e2e8f0; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+        tr.oos td { opacity: 0.65; }
+
+        /* Status badge */
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-active  { background: #dcfce7; color: #166534; }
+        .badge-oos     { background: #f1f5f9; color: #475569; }
+        .badge-overdue { background: #fee2e2; color: #dc2626; }
+        .badge-warning { background: #fffbeb; color: #d97706; }
+        .badge-ok      { background: #dbeafe; color: #1d4ed8; }
+
+        /* Action buttons */
+        .action-btns { display: flex; gap: 6px; }
+        .btn-edit { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
+                    padding: 4px 10px; border-radius: 5px; font-size: 0.78rem;
+                    cursor: pointer; }
+        .btn-del  { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;
+                    padding: 4px 10px; border-radius: 5px; font-size: 0.78rem;
+                    cursor: pointer; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white; border-radius: 12px; padding: 28px;
+            width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal h3 { font-size: 1.1rem; margin-bottom: 20px; color: #1e293b; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { font-size: 0.8rem; font-weight: 600; color: #374151; }
+        input, select, textarea {
+            border: 1px solid #d1d5db; border-radius: 6px;
+            padding: 8px 10px; font-size: 0.875rem; width: 100%;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-primary { background: #2563eb; color: white; border: none;
+                       padding: 9px 20px; border-radius: 7px; font-size: 0.875rem; cursor: pointer; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-cancel { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+                      padding: 9px 20px; border-radius: 7px; font-size: 0.875rem; cursor: pointer; }
+
+        /* Note text */
+        .note-rule { font-size: 0.78rem; color: #64748b; font-style: italic; padding: 12px 20px;
+                     border-top: 1px solid #f1f5f9; background: #f8fafc; }
+
+        @media (max-width: 700px) {
+            table { display: block; overflow-x: auto; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1>SCBA Air Bottle Inventory</h1>
+        <div class="header-sub">Spring Valley Volunteer Fire Department &mdash; Station 1</div>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="back-btn">← Dashboard</a>
+</div>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Summary Cards -->
+    {% set total_active = (composite | selectattr('status','eq','active') | list | length) +
+                          (aluminum  | selectattr('status','eq','active') | list | length) %}
+    {% set total_oos    = (composite | selectattr('status','eq','out_of_service') | list | length) +
+                          (aluminum  | selectattr('status','eq','out_of_service') | list | length) %}
+    {% set total_all    = composite | length + aluminum | length %}
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="num">{{ total_all }}</div>
+            <div class="label">Total Bottles</div>
+        </div>
+        <div class="summary-card">
+            <div class="num">{{ composite | length }}</div>
+            <div class="label">Composite</div>
+        </div>
+        <div class="summary-card">
+            <div class="num">{{ aluminum | length }}</div>
+            <div class="label">Aluminum</div>
+        </div>
+        <div class="summary-card">
+            <div class="num">{{ total_active }}</div>
+            <div class="label">In Service</div>
+        </div>
+        <div class="summary-card oos-card">
+            <div class="num">{{ total_oos }}</div>
+            <div class="label">Out of Service</div>
+        </div>
+        {% if scba_alerts.overdue | length > 0 %}
+        <div class="summary-card alert-card">
+            <div class="num">{{ scba_alerts.overdue | length }}</div>
+            <div class="label">Hydro Overdue</div>
+        </div>
+        {% endif %}
+        {% if scba_alerts.warning | length > 0 %}
+        <div class="summary-card warn-card">
+            <div class="num">{{ scba_alerts.warning | length }}</div>
+            <div class="label">Due Within 90 Days</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Alert Banners -->
+    {% if scba_alerts.overdue %}
+    <div class="alert-banner danger">
+        <strong>HYDRO TEST OVERDUE — Immediate Action Required</strong>
+        <ul>
+          {% for b in scba_alerts.overdue %}
+          <li>{{ b.bottle_type | capitalize }} #{{ b.serial_number }} ({{ b.location }}) — due {{ b.next_hydro_due }}</li>
+          {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% if scba_alerts.warning %}
+    <div class="alert-banner">
+        <strong>Hydro Test Due Within 90 Days</strong>
+        <ul>
+          {% for b in scba_alerts.warning %}
+          <li>{{ b.bottle_type | capitalize }} #{{ b.serial_number }} ({{ b.location }}) — due {{ b.next_hydro_due }} ({{ b.days_until_due }} days)</li>
+          {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Composite Bottles -->
+    <div class="section">
+        <div class="section-header">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h2>Composite Bottles</h2>
+                <span class="count-badge">{{ composite | length }}</span>
+            </div>
+            <button class="add-btn" onclick="openAdd('composite')">+ Add Bottle</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Serial #</th>
+                    <th>DOT Spec</th>
+                    <th>Manufacturer</th>
+                    <th>Mfgr Date</th>
+                    <th>Last Hydro</th>
+                    <th>Next Hydro Due</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for b in composite %}
+            <tr class="{{ 'oos' if b.status == 'out_of_service' else '' }}">
+                <td><strong>{{ b.serial_number }}</strong></td>
+                <td>{{ b.dot_spec }}</td>
+                <td>{{ b.manufacturer }}</td>
+                <td>{{ b.mfgr_date or '—' }}</td>
+                <td>{{ b.hydro_date or '—' }}</td>
+                <td>
+                    {% if b.status == 'out_of_service' %}
+                        <span class="badge badge-oos">Out of Service</span>
+                    {% elif b.next_hydro_due %}
+                        {% if b.alert_level == 'overdue' %}
+                            <span class="badge badge-overdue">OVERDUE</span>
+                        {% elif b.alert_level == 'warning' %}
+                            <span class="badge badge-warning">{{ b.next_hydro_due }} ({{ b.days_until_due }}d)</span>
+                        {% else %}
+                            <span style="font-size:0.83rem;color:#475569;">{{ b.next_hydro_due }}</span>
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ b.location or '—' }}</td>
+                <td>
+                    {% if b.status == 'out_of_service' %}
+                        <span class="badge badge-oos">Out of Service</span>
+                    {% else %}
+                        <span class="badge badge-active">Active</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick='openEdit({{ b | tojson }})'>Edit</button>
+                        <form method="post" action="{{ url_for('scba_delete', bottle_id=b.id) }}"
+                              onsubmit="return confirm('Remove this bottle from inventory?')">
+                            <button class="btn-del" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;">No composite bottles on record.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="note-rule">Composite cylinders: replace 15 years from manufacturer date &bull; Hydro test every 5 years (DOT SP11194)</div>
+    </div>
+
+    <!-- Aluminum Bottles -->
+    <div class="section">
+        <div class="section-header">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h2>Aluminum Bottles</h2>
+                <span class="count-badge">{{ aluminum | length }}</span>
+            </div>
+            <button class="add-btn" onclick="openAdd('aluminum')">+ Add Bottle</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Serial #</th>
+                    <th>DOT Spec</th>
+                    <th>Manufacturer</th>
+                    <th>Last Hydro</th>
+                    <th>Next Hydro Due</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for b in aluminum %}
+            <tr class="{{ 'oos' if b.status == 'out_of_service' else '' }}">
+                <td><strong>{{ b.serial_number }}</strong></td>
+                <td>{{ b.dot_spec }}</td>
+                <td>{{ b.manufacturer }}</td>
+                <td>{{ b.hydro_date or '—' }}</td>
+                <td>
+                    {% if b.status == 'out_of_service' %}
+                        <span class="badge badge-oos">Out of Service</span>
+                    {% elif b.next_hydro_due %}
+                        {% if b.alert_level == 'overdue' %}
+                            <span class="badge badge-overdue">OVERDUE</span>
+                        {% elif b.alert_level == 'warning' %}
+                            <span class="badge badge-warning">{{ b.next_hydro_due }} ({{ b.days_until_due }}d)</span>
+                        {% else %}
+                            <span style="font-size:0.83rem;color:#475569;">{{ b.next_hydro_due }}</span>
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ b.location or '—' }}</td>
+                <td>
+                    {% if b.status == 'out_of_service' %}
+                        <span class="badge badge-oos">Out of Service</span>
+                    {% else %}
+                        <span class="badge badge-active">Active</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick='openEdit({{ b | tojson }})'>Edit</button>
+                        <form method="post" action="{{ url_for('scba_delete', bottle_id=b.id) }}"
+                              onsubmit="return confirm('Remove this bottle from inventory?')">
+                            <button class="btn-del" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No aluminum bottles on record.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="note-rule">Aluminum cylinders: DOT 3AL-2216 &bull; Hydro test every 5 years &bull; Notifications sent 90 days before due date</div>
+    </div>
+
+</div><!-- /container -->
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <h3>Add Air Bottle</h3>
+        <form method="post" action="{{ url_for('scba_add') }}">
+            <input type="hidden" name="bottle_type" id="add_bottle_type">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Bottle Type</label>
+                    <select name="bottle_type" id="add_bottle_type_sel" required>
+                        <option value="composite">Composite</option>
+                        <option value="aluminum">Aluminum</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>DOT Spec</label>
+                    <input type="text" name="dot_spec" placeholder="e.g. SP11194" required>
+                </div>
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" name="serial_number" required>
+                </div>
+                <div class="form-group">
+                    <label>Manufacturer</label>
+                    <input type="text" name="manufacturer" placeholder="e.g. Carleton">
+                </div>
+                <div class="form-group">
+                    <label>Mfgr Date (MM/YYYY)</label>
+                    <input type="text" name="mfgr_date" placeholder="06/2016">
+                </div>
+                <div class="form-group">
+                    <label>Last Hydro Date (MM/YYYY)</label>
+                    <input type="text" name="hydro_date" placeholder="10/2022">
+                </div>
+                <div class="form-group">
+                    <label>Location / Truck</label>
+                    <input type="text" name="location" placeholder="e.g. P2/STN1">
+                </div>
+                <div class="form-group">
+                    <label>Station</label>
+                    <select name="station">
+                        <option value="STN1">Station 1</option>
+                        <option value="STN2">Station 2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="active">Active</option>
+                        <option value="out_of_service">Out of Service</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea name="notes" rows="2" placeholder="Optional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Add Bottle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <h3>Edit Air Bottle</h3>
+        <form method="post" id="editForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Bottle Type</label>
+                    <select name="bottle_type" id="edit_bottle_type" required>
+                        <option value="composite">Composite</option>
+                        <option value="aluminum">Aluminum</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>DOT Spec</label>
+                    <input type="text" name="dot_spec" id="edit_dot_spec" required>
+                </div>
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" name="serial_number" id="edit_serial_number" required>
+                </div>
+                <div class="form-group">
+                    <label>Manufacturer</label>
+                    <input type="text" name="manufacturer" id="edit_manufacturer">
+                </div>
+                <div class="form-group">
+                    <label>Mfgr Date (MM/YYYY)</label>
+                    <input type="text" name="mfgr_date" id="edit_mfgr_date" placeholder="06/2016">
+                </div>
+                <div class="form-group">
+                    <label>Last Hydro Date (MM/YYYY)</label>
+                    <input type="text" name="hydro_date" id="edit_hydro_date" placeholder="10/2022">
+                </div>
+                <div class="form-group">
+                    <label>Location / Truck</label>
+                    <input type="text" name="location" id="edit_location">
+                </div>
+                <div class="form-group">
+                    <label>Station</label>
+                    <select name="station" id="edit_station">
+                        <option value="STN1">Station 1</option>
+                        <option value="STN2">Station 2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" id="edit_status">
+                        <option value="active">Active</option>
+                        <option value="out_of_service">Out of Service</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea name="notes" id="edit_notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAdd(type) {
+    document.getElementById('add_bottle_type_sel').value = type;
+    document.getElementById('addModal').classList.add('open');
+}
+function openEdit(b) {
+    const f = document.getElementById('editForm');
+    f.action = '/scba/edit/' + b.id;
+    document.getElementById('edit_bottle_type').value   = b.bottle_type;
+    document.getElementById('edit_dot_spec').value      = b.dot_spec || '';
+    document.getElementById('edit_serial_number').value = b.serial_number || '';
+    document.getElementById('edit_manufacturer').value  = b.manufacturer || '';
+    document.getElementById('edit_mfgr_date').value     = b.mfgr_date || '';
+    document.getElementById('edit_hydro_date').value    = b.hydro_date || '';
+    document.getElementById('edit_location').value      = b.location || '';
+    document.getElementById('edit_station').value       = b.station || 'STN1';
+    document.getElementById('edit_status').value        = b.status || 'active';
+    document.getElementById('edit_notes').value         = b.notes || '';
+    document.getElementById('editModal').classList.add('open');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+</script>
+</body>
+</html>

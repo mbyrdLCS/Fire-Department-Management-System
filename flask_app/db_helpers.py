@@ -1916,6 +1916,8 @@ def get_all_alerts(station_id=None):
         'inspections_failed': [],
         'low_inventory_station': [],
         'low_inventory_vehicle': [],
+        'scba_overdue': [],
+        'scba_warning': [],
         'total_count': 0
     }
 
@@ -2064,12 +2066,18 @@ def get_all_alerts(station_id=None):
 
     conn.close()
 
+    # SCBA bottle alerts
+    scba = get_scba_alerts()
+    alerts['scba_overdue'] = scba['overdue']
+    alerts['scba_warning'] = scba['warning']
+
     # Calculate total alerts
     alerts['total_count'] = (
         len(alerts['inspections_overdue']) +
         len(alerts['inspections_failed']) +
         len(alerts['low_inventory_station']) +
-        len(alerts['low_inventory_vehicle'])
+        len(alerts['low_inventory_vehicle']) +
+        scba['total']
     )
 
     return alerts
@@ -2147,8 +2155,14 @@ def get_dashboard_stats():
     ''')
     stats['low_inventory_count'] = cursor.fetchone()[0]
 
+    # SCBA alerts
+    scba = get_scba_alerts()
+    stats['scba_alert_count'] = scba['total']
+
     # Total alerts
-    stats['total_alerts'] = stats['vehicles_needing_inspection'] + stats['low_inventory_count']
+    stats['total_alerts'] = (stats['vehicles_needing_inspection'] +
+                             stats['low_inventory_count'] +
+                             stats['scba_alert_count'])
 
     conn.close()
     return stats
@@ -3791,3 +3805,150 @@ def user_has_permission(user, permission):
     
     user_role = user.get('role', 'viewer')
     return permission in role_permissions.get(user_role, [])
+
+
+# ========== SCBA AIR BOTTLE FUNCTIONS ==========
+
+def _parse_hydro_date(hydro_str):
+    """Convert 'MM/YYYY' or 'MM\\YYYY' to (date_str 'YYYY-MM-01', display 'MM/YYYY')."""
+    if not hydro_str:
+        return None, None
+    cleaned = hydro_str.replace('\\', '/').strip()
+    parts = cleaned.split('/')
+    if len(parts) == 2:
+        month, year = parts[0].zfill(2), parts[1]
+        return f"{year}-{month}-01", f"{month}/{year}"
+    return None, cleaned
+
+
+def _next_hydro_from_last(last_hydro_str):
+    """Given last hydro date string 'MM/YYYY', return next due date 'YYYY-MM-01' (+5 years)."""
+    date_iso, _ = _parse_hydro_date(last_hydro_str)
+    if not date_iso:
+        return None
+    try:
+        d = datetime.strptime(date_iso, '%Y-%m-%d')
+        next_due = d.replace(year=d.year + 5)
+        return next_due.strftime('%Y-%m-%d')
+    except Exception:
+        return None
+
+
+def get_all_scba_bottles():
+    """Return all SCBA bottles, ordered by type then serial number."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, bottle_type, dot_spec, serial_number, manufacturer,
+               mfgr_date, hydro_date, next_hydro_due, location, station,
+               status, notes, created_at, updated_at
+        FROM scba_bottles
+        ORDER BY bottle_type DESC, status, serial_number
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+
+    today = datetime.now().date()
+    alert_window = today + timedelta(days=90)
+    bottles = []
+    for r in rows:
+        next_due = None
+        days_until = None
+        alert_level = None
+        if r[7]:
+            try:
+                next_due = datetime.strptime(r[7], '%Y-%m-%d').date()
+                days_until = (next_due - today).days
+                if days_until < 0:
+                    alert_level = 'overdue'
+                elif days_until <= 90:
+                    alert_level = 'warning'
+            except Exception:
+                pass
+
+        bottles.append({
+            'id': r[0],
+            'bottle_type': r[1],
+            'dot_spec': r[2],
+            'serial_number': str(r[3]),
+            'manufacturer': r[4],
+            'mfgr_date': r[5],
+            'hydro_date': r[6],
+            'next_hydro_due': r[7],
+            'next_hydro_due_date': next_due,
+            'days_until_due': days_until,
+            'alert_level': alert_level,
+            'location': r[8],
+            'station': r[9],
+            'status': r[10],
+            'notes': r[11],
+        })
+    return bottles
+
+
+def get_scba_bottle(bottle_id):
+    """Return a single SCBA bottle by id."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM scba_bottles WHERE id = ?', (bottle_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    keys = ['id','bottle_type','dot_spec','serial_number','manufacturer',
+            'mfgr_date','hydro_date','next_hydro_due','location','station',
+            'status','notes','created_at','updated_at']
+    return dict(zip(keys, row))
+
+
+def add_scba_bottle(bottle_type, dot_spec, serial_number, manufacturer,
+                    mfgr_date, hydro_date, location, station, status='active', notes=''):
+    """Insert a new SCBA bottle. Returns new row id."""
+    next_due = _next_hydro_from_last(hydro_date) if status == 'active' else None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO scba_bottles
+            (bottle_type, dot_spec, serial_number, manufacturer, mfgr_date,
+             hydro_date, next_hydro_due, location, station, status, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (bottle_type, dot_spec, serial_number, manufacturer, mfgr_date,
+          hydro_date, next_due, location, station, status, notes))
+    new_id = cursor.lastrowid
+    conn.close()
+    return new_id
+
+
+def update_scba_bottle(bottle_id, bottle_type, dot_spec, serial_number,
+                       manufacturer, mfgr_date, hydro_date, location,
+                       station, status, notes):
+    """Update an existing SCBA bottle."""
+    next_due = _next_hydro_from_last(hydro_date) if status == 'active' and hydro_date else None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE scba_bottles
+        SET bottle_type=?, dot_spec=?, serial_number=?, manufacturer=?,
+            mfgr_date=?, hydro_date=?, next_hydro_due=?, location=?,
+            station=?, status=?, notes=?, updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+    ''', (bottle_type, dot_spec, serial_number, manufacturer, mfgr_date,
+          hydro_date, next_due, location, station, status, notes, bottle_id))
+    conn.close()
+
+
+def delete_scba_bottle(bottle_id):
+    """Delete a SCBA bottle record."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM scba_bottles WHERE id = ?', (bottle_id,))
+    conn.close()
+
+
+def get_scba_alerts():
+    """Return bottles that are overdue or within 90 days of hydro test due date."""
+    bottles = get_all_scba_bottles()
+    overdue = [b for b in bottles if b['alert_level'] == 'overdue' and b['status'] == 'active']
+    warning = [b for b in bottles if b['alert_level'] == 'warning' and b['status'] == 'active']
+    return {'overdue': overdue, 'warning': warning,
+            'total': len(overdue) + len(warning)}

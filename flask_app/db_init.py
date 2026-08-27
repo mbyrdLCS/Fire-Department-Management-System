@@ -369,6 +369,27 @@ def init_database():
     ''')
     print("✅ Created table: iso_hose_tests")
 
+    # 19. SCBA Air Bottles table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS scba_bottles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bottle_type TEXT NOT NULL,
+        dot_spec TEXT NOT NULL,
+        serial_number TEXT UNIQUE NOT NULL,
+        manufacturer TEXT,
+        mfgr_date TEXT,
+        hydro_date TEXT,
+        next_hydro_due DATE,
+        location TEXT,
+        station TEXT DEFAULT 'STN1',
+        status TEXT DEFAULT 'active',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    print("✅ Created table: scba_bottles")
+
     # Add hose-specific columns to inventory_items
     print("\n🔧 Adding hose-specific columns to inventory_items...")
     hose_columns = [

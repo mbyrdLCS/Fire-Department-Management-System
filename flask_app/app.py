@@ -4881,6 +4881,77 @@ def radio_clear():
         _save_radio_log([])
     return jsonify({'ok': True})
 
+# ========== SCBA AIR BOTTLE ROUTES ==========
+
+@app.route('/scba')
+def scba_bottles():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    bottles = db_helpers.get_all_scba_bottles()
+    composite = [b for b in bottles if b['bottle_type'] == 'composite']
+    aluminum  = [b for b in bottles if b['bottle_type'] == 'aluminum']
+    scba_alerts = db_helpers.get_scba_alerts()
+    return render_template('scba_bottles.html',
+                           composite=composite, aluminum=aluminum,
+                           scba_alerts=scba_alerts)
+
+
+@app.route('/scba/add', methods=['POST'])
+def scba_add():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.add_scba_bottle(
+            bottle_type  = request.form.get('bottle_type', '').strip(),
+            dot_spec     = request.form.get('dot_spec', '').strip(),
+            serial_number= request.form.get('serial_number', '').strip(),
+            manufacturer = request.form.get('manufacturer', '').strip(),
+            mfgr_date    = request.form.get('mfgr_date', '').strip() or None,
+            hydro_date   = request.form.get('hydro_date', '').strip() or None,
+            location     = request.form.get('location', '').strip(),
+            station      = request.form.get('station', 'STN1').strip(),
+            status       = request.form.get('status', 'active'),
+            notes        = request.form.get('notes', '').strip(),
+        )
+        flash('Bottle added successfully.', 'success')
+    except Exception as e:
+        flash(f'Error adding bottle: {e}', 'error')
+    return redirect(url_for('scba_bottles'))
+
+
+@app.route('/scba/edit/<int:bottle_id>', methods=['POST'])
+def scba_edit(bottle_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.update_scba_bottle(
+            bottle_id    = bottle_id,
+            bottle_type  = request.form.get('bottle_type', '').strip(),
+            dot_spec     = request.form.get('dot_spec', '').strip(),
+            serial_number= request.form.get('serial_number', '').strip(),
+            manufacturer = request.form.get('manufacturer', '').strip(),
+            mfgr_date    = request.form.get('mfgr_date', '').strip() or None,
+            hydro_date   = request.form.get('hydro_date', '').strip() or None,
+            location     = request.form.get('location', '').strip(),
+            station      = request.form.get('station', 'STN1').strip(),
+            status       = request.form.get('status', 'active'),
+            notes        = request.form.get('notes', '').strip(),
+        )
+        flash('Bottle updated successfully.', 'success')
+    except Exception as e:
+        flash(f'Error updating bottle: {e}', 'error')
+    return redirect(url_for('scba_bottles'))
+
+
+@app.route('/scba/delete/<int:bottle_id>', methods=['POST'])
+def scba_delete(bottle_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    db_helpers.delete_scba_bottle(bottle_id)
+    flash('Bottle removed from inventory.', 'success')
+    return redirect(url_for('scba_bottles'))
+
+
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
