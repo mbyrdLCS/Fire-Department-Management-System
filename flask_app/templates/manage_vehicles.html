@@ -138,6 +138,12 @@
             color: #333;
         }
 
+        .vehicle-row { cursor: pointer; }
+        .vehicle-name-link { font-weight: 600; color: #1976d2; text-decoration: underline; }
+        .row-actions { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+        .btn-inventory { display: inline-block; padding: 8px 14px; background: #2e7d32; color: white;
+                         border-radius: 6px; text-decoration: none; font-size: 13px; white-space: nowrap; }
+        .btn-inventory:hover { background: #1b5e20; }
         .vehicles-table tr:hover {
             background: #f9f9f9;
         }
@@ -392,16 +398,22 @@
                     </thead>
                     <tbody>
                         {% for vehicle in vehicles %}
-                        <tr>
+                        <tr class="vehicle-row" onclick="toggleEdit('{{ vehicle.id }}')" title="Click to edit this vehicle">
                             <td>
                                 {% if vehicle.image_filename %}
-                                <img src="/static/uploads/vehicles/{{ vehicle.image_filename }}" alt="{{ vehicle.name }}" style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid #ddd;" onclick="showImageModal('/static/uploads/vehicles/{{ vehicle.image_filename }}', '{{ vehicle.name }}')">
+                                <img src="/static/uploads/vehicles/{{ vehicle.image_filename }}" alt="{{ vehicle.name }}" style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid #ddd;" onclick="event.stopPropagation(); showImageModal('/static/uploads/vehicles/{{ vehicle.image_filename }}', '{{ vehicle.name }}')">
                                 {% else %}
                                 <span style="color: #ccc; font-size: 24px;">🚒</span>
                                 {% endif %}
                             </td>
                             <td><strong>{{ vehicle.vehicle_code }}</strong></td>
-                            <td>{{ vehicle.name }}</td>
+                            <td>
+                                <span class="vehicle-name-link">{{ vehicle.name }}</span>
+                                <div class="row-actions">
+                                    <button type="button" class="btn-edit" onclick="event.stopPropagation(); toggleEdit('{{ vehicle.id }}')">✏️ Edit Info</button>
+                                    <a href="{{ url_for('vehicle_inventory', vehicle_id=vehicle.id) }}" class="btn-inventory" onclick="event.stopPropagation()">📦 Inventory</a>
+                                </div>
+                            </td>
                             <td>{{ vehicle.vehicle_type or '--' }}</td>
                             <td>{{ vehicle.year or '' }} {{ vehicle.make or '' }} {{ vehicle.model or '' }}</td>
                             <td><small>{{ vehicle.vin or '--' }}</small></td>
@@ -418,8 +430,7 @@
                                     {{ vehicle.status|title }}
                                 </span>
                             </td>
-                            <td>
-                                <button class="btn-edit" onclick="toggleEdit('{{ vehicle.id }}')">Edit</button>
+                            <td onclick="event.stopPropagation()">
                                 <a href="{{ url_for('manage_vehicle_checklist', vehicle_id=vehicle.id) }}" class="btn-checklist">Checklist</a>
                                 <form method="POST" action="{{ url_for('delete_vehicle', vehicle_id=vehicle.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ vehicle.name }}? This will remove all associated inspections and checklist assignments.');">
                                     <button type="submit" class="btn-delete">Delete</button>
@@ -501,12 +512,12 @@
                                                 <input type="number" name="current_value" value="{{ vehicle.current_value or '' }}" step="0.01">
                                             </div>
                                             <div class="form-group">
-                                                <label>Status:</label>
-                                                <select name="status">
-                                                    <option value="active" {% if vehicle.status == 'active' %}selected{% endif %}>Active</option>
-                                                    <option value="inactive" {% if vehicle.status == 'inactive' %}selected{% endif %}>Inactive</option>
-                                                    <option value="out_of_service" {% if vehicle.status == 'out_of_service' %}selected{% endif %}>Out of Service</option>
-                                                </select>
+                                                <label>Purchase Date:</label>
+                                                <input type="date" name="purchase_date" value="{{ vehicle.purchase_date or '' }}">
+                                            </div>
+                                            <div class="form-group" style="grid-column: 1 / -1;">
+                                                <label>Notes:</label>
+                                                <textarea name="notes" rows="3" placeholder="Pump size, tank capacity, equipment notes...">{{ vehicle.notes or '' }}</textarea>
                                             </div>
 
                                             <!-- Vehicle Image Section -->
@@ -589,6 +600,7 @@
             const editForm = document.getElementById('edit-' + vehicleId);
             if (editForm.style.display === 'none' || editForm.style.display === '') {
                 editForm.style.display = 'block';
+                editForm.scrollIntoView({behavior: 'smooth', block: 'start'});
             } else {
                 editForm.style.display = 'none';
             }

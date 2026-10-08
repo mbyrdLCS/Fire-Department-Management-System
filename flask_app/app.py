@@ -2690,6 +2690,7 @@ def update_vehicle(vehicle_id):
             model=model,
             vin=vin,
             license_plate=license_plate,
+            purchase_date=request.form.get('purchase_date', '').strip() or None,
             purchase_cost=purchase_cost,
             current_value=current_value,
             notes=notes,
@@ -3171,7 +3172,14 @@ def alerts_dashboard():
     alerts = db_helpers.get_all_alerts()
     display_settings = db_helpers.get_all_display_settings()
     stations = db_helpers.get_all_stations()
-    return render_template('alerts_dashboard.html', alerts=alerts, display_settings=display_settings, stations=stations)
+    users = [u for u in db_helpers.get_all_users() if u.get('email') and u.get('is_active')]
+    scba_contact_email = db_helpers.get_setting('scba_notify_email', '')
+    user_emails = {u['email'] for u in users}
+    stored = [e.strip() for e in scba_contact_email.split(',') if e.strip()]
+    extra_emails = ', '.join(e for e in stored if e not in user_emails)
+    return render_template('alerts_dashboard.html', alerts=alerts, display_settings=display_settings,
+                           stations=stations, users=users, scba_contact_email=scba_contact_email,
+                           extra_emails=extra_emails)
 
 @app.route('/api/display-settings/toggle', methods=['POST'])
 def toggle_display_setting():
@@ -4388,19 +4396,12 @@ def annual_hose_test(test_year):
     # If viewing current year, show hoses tested last year OR already tested this year OR new hoses with no history
     # If viewing future year, show only hoses tested in previous year (baseline)
     if test_year == current_year:
-        # Current year: show baseline from last year + anything already tested this year + new hoses
-        previous_year = test_year - 1
+        # Current year: show ALL in-service hoses — every hose needs annual testing
         hoses = []
         for hose in all_hoses:
             tests = db_helpers.get_hose_test_history(hose['id'], years=None)
-            was_tested_last_year = any(t['test_year'] == previous_year for t in tests)
-            was_tested_this_year = any(t['test_year'] == test_year for t in tests)
-            has_no_test_history = len(tests) == 0
-
-            # Show if tested last year, tested this year, OR brand new hose with no history
-            if was_tested_last_year or was_tested_this_year or has_no_test_history:
-                hoses.append(hose)
-                hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
+            hoses.append(hose)
+            hose['test'] = next((t for t in tests if t['test_year'] == test_year), None)
     elif test_year > current_year:
         # Future year: only show hoses tested in previous year (baseline)
         previous_year = test_year - 1
@@ -4893,11 +4894,15 @@ def scba_bottles():
     scba_alerts = db_helpers.get_scba_alerts()
     users = [u for u in db_helpers.get_all_users() if u.get('email') and u.get('is_active')]
     scba_contact_email = db_helpers.get_setting('scba_notify_email', '')
+    user_emails = {u['email'] for u in users}
+    stored = [e.strip() for e in scba_contact_email.split(',') if e.strip()]
+    extra_emails = ', '.join(e for e in stored if e not in user_emails)
     return render_template('scba_bottles.html',
                            composite=composite, aluminum=aluminum,
                            scba_alerts=scba_alerts,
                            users=users,
-                           scba_contact_email=scba_contact_email)
+                           scba_contact_email=scba_contact_email,
+                           extra_emails=extra_emails)
 
 
 @app.route('/scba/set-contact', methods=['POST'])
@@ -4905,10 +4910,121 @@ def scba_set_contact():
     if not session.get('logged_in'):
         return redirect(url_for('admin'))
     emails = request.form.getlist('contact_emails')
-    combined = ','.join(e.strip() for e in emails if e.strip())
+    extra_raw = request.form.get('extra_emails', '')
+    extra = [e.strip() for e in extra_raw.replace(';', ',').split(',') if e.strip()]
+    all_emails = list(dict.fromkeys(emails + extra))  # dedupe, preserve order
+    combined = ','.join(all_emails)
     db_helpers.set_setting('scba_notify_email', combined)
-    count = len(emails)
+    count = len(all_emails)
     flash(f'SCBA alert recipients updated ({count} recipient{"s" if count != 1 else ""}).', 'success')
+    next_page = request.form.get('next', 'scba_bottles')
+    return redirect(url_for(next_page))
+
+
+@app.route('/scba/test-email')
+def scba_test_email():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from datetime import date
+
+    to_addr   = 'mike@signpresenter.com'
+    smtp_from = os.environ.get('SMTP_FROM_EMAIL', 'springvfd.alerts@gmail.com')
+    smtp_pass = os.environ.get('SMTP_APP_PASSWORD', '')
+
+    today = date.today().strftime('%B %d, %Y')
+
+    # Sample bottles — one overdue, one upcoming — so you can see both sections
+    sample_overdue = [{'bottle_type': 'composite', 'serial_number': '614561522',
+                       'dot_spec': 'SP11194', 'location': 'P1/STN1',
+                       'next_hydro_due': '2026-03-01', 'days_until': -178}]
+    sample_warning = [{'bottle_type': 'aluminum',  'serial_number': 'T14782',
+                       'dot_spec': '3AL-2216',   'location': 'E1/STN1',
+                       'next_hydro_due': '2026-10-15', 'days_until': 66}]
+
+    def bottle_rows(bottles, color, label):
+        html = ''
+        for b in bottles:
+            days_str = (f"{abs(b['days_until'])} days overdue" if b['days_until'] < 0
+                        else f"{b['days_until']} days remaining")
+            html += f"""
+            <tr>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                <strong>{b['bottle_type'].capitalize()}</strong><br>
+                <span style="font-size:0.85em;color:#64748b;">#{b['serial_number']} &bull; {b['dot_spec']}</span>
+              </td>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">{b['location']}</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">{b['next_hydro_due']}</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                <span style="background:{color};color:white;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">{label}</span><br>
+                <span style="font-size:0.8em;color:#64748b;">{days_str}</span>
+              </td>
+            </tr>"""
+        return html
+
+    html_body = f"""
+    <!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f1f5f9;margin:0;padding:20px;">
+    <div style="max-width:680px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:24px 28px;color:white;">
+        <div style="font-size:1.3rem;font-weight:700;">SVVFD SCBA Hydro Test Alert</div>
+        <div style="font-size:0.85rem;opacity:0.8;margin-top:4px;">Spring Valley Volunteer Fire Department &bull; {today}</div>
+        <div style="font-size:0.75rem;opacity:0.6;margin-top:6px;">⚠️ THIS IS A TEST EMAIL — sample data only</div>
+      </div>
+      <div style="padding:24px 28px;">
+        <h2 style="color:#dc2626;margin:0 0 8px;">Overdue — Immediate Action Required</h2>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fca5a5;border-radius:8px;overflow:hidden;">
+          <thead><tr style="background:#fee2e2;">
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Bottle</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Location</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Due Date</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Status</th>
+          </tr></thead>
+          <tbody>{bottle_rows(sample_overdue, '#dc2626', 'OVERDUE')}</tbody>
+        </table>
+        <h2 style="color:#d97706;margin:24px 0 8px;">Due Within 90 Days</h2>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fcd34d;border-radius:8px;overflow:hidden;">
+          <thead><tr style="background:#fffbeb;">
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Bottle</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Location</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Due Date</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Status</th>
+          </tr></thead>
+          <tbody>{bottle_rows(sample_warning, '#d97706', 'DUE SOON')}</tbody>
+        </table>
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">
+          <a href="https://michealhelps.pythonanywhere.com/scba"
+             style="background:#2563eb;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">
+            View Full Bottle Inventory
+          </a>
+        </div>
+      </div>
+      <div style="background:#f8fafc;padding:14px 28px;text-align:center;font-size:0.78rem;color:#94a3b8;">
+        Sent by SVVFD Alert System &bull; springvfd.alerts@gmail.com
+      </div>
+    </div>
+    </body></html>"""
+
+    plain = (f"TEST EMAIL — SVVFD SCBA Hydro Test Alert\nGenerated: {today}\n\n"
+             "OVERDUE:\n  • Composite #614561522 | P1/STN1 | Due 2026-03-01 (178 days overdue)\n\n"
+             "DUE SOON:\n  • Aluminum #T14782 | E1/STN1 | Due 2026-10-15 (66 days)\n\n"
+             "View inventory: https://michealhelps.pythonanywhere.com/scba\n"
+             "— SVVFD Alert System")
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '[TEST] SVVFD SCBA — Hydro Test Alert Sample'
+        msg['From']    = f'SVVFD Alerts <{smtp_from}>'
+        msg['To']      = to_addr
+        msg.attach(MIMEText(plain, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(smtp_from, smtp_pass)
+            server.sendmail(smtp_from, to_addr, msg.as_string())
+        flash(f'Test email sent to {to_addr}', 'success')
+    except Exception as e:
+        flash(f'Email failed: {e}', 'danger')
     return redirect(url_for('scba_bottles'))
 
 
@@ -4918,16 +5034,17 @@ def scba_add():
         return redirect(url_for('admin'))
     try:
         db_helpers.add_scba_bottle(
-            bottle_type  = request.form.get('bottle_type', '').strip(),
-            dot_spec     = request.form.get('dot_spec', '').strip(),
-            serial_number= request.form.get('serial_number', '').strip(),
-            manufacturer = request.form.get('manufacturer', '').strip(),
-            mfgr_date    = request.form.get('mfgr_date', '').strip() or None,
-            hydro_date   = request.form.get('hydro_date', '').strip() or None,
-            location     = request.form.get('location', '').strip(),
-            station      = request.form.get('station', 'STN1').strip(),
-            status       = request.form.get('status', 'active'),
-            notes        = request.form.get('notes', '').strip(),
+            bottle_type         = request.form.get('bottle_type', '').strip(),
+            dot_spec            = request.form.get('dot_spec', '').strip(),
+            serial_number       = request.form.get('serial_number', '').strip(),
+            manufacturer        = request.form.get('manufacturer', '').strip(),
+            mfgr_date           = request.form.get('mfgr_date', '').strip() or None,
+            hydro_date          = request.form.get('hydro_date', '').strip() or None,
+            location            = request.form.get('location', '').strip(),
+            station             = request.form.get('station', 'STN1').strip(),
+            status              = request.form.get('status', 'active'),
+            notes               = request.form.get('notes', '').strip(),
+            out_of_service_date = request.form.get('out_of_service_date', '').strip() or None,
         )
         flash('Bottle added successfully.', 'success')
     except Exception as e:
@@ -4941,17 +5058,18 @@ def scba_edit(bottle_id):
         return redirect(url_for('admin'))
     try:
         db_helpers.update_scba_bottle(
-            bottle_id    = bottle_id,
-            bottle_type  = request.form.get('bottle_type', '').strip(),
-            dot_spec     = request.form.get('dot_spec', '').strip(),
-            serial_number= request.form.get('serial_number', '').strip(),
-            manufacturer = request.form.get('manufacturer', '').strip(),
-            mfgr_date    = request.form.get('mfgr_date', '').strip() or None,
-            hydro_date   = request.form.get('hydro_date', '').strip() or None,
-            location     = request.form.get('location', '').strip(),
-            station      = request.form.get('station', 'STN1').strip(),
-            status       = request.form.get('status', 'active'),
-            notes        = request.form.get('notes', '').strip(),
+            bottle_id           = bottle_id,
+            bottle_type         = request.form.get('bottle_type', '').strip(),
+            dot_spec            = request.form.get('dot_spec', '').strip(),
+            serial_number       = request.form.get('serial_number', '').strip(),
+            manufacturer        = request.form.get('manufacturer', '').strip(),
+            mfgr_date           = request.form.get('mfgr_date', '').strip() or None,
+            hydro_date          = request.form.get('hydro_date', '').strip() or None,
+            location            = request.form.get('location', '').strip(),
+            station             = request.form.get('station', 'STN1').strip(),
+            status              = request.form.get('status', 'active'),
+            notes               = request.form.get('notes', '').strip(),
+            out_of_service_date = request.form.get('out_of_service_date', '').strip() or None,
         )
         flash('Bottle updated successfully.', 'success')
     except Exception as e:
@@ -4966,6 +5084,109 @@ def scba_delete(bottle_id):
     db_helpers.delete_scba_bottle(bottle_id)
     flash('Bottle removed from inventory.', 'success')
     return redirect(url_for('scba_bottles'))
+
+
+# ========== FIRE HYDRANT ROUTES ==========
+
+def _float_or_none(value):
+    try:
+        return float(value) if str(value).strip() != '' else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _hydrant_form():
+    number = request.form.get('number', '').strip()
+    return dict(
+        number    = int(number) if number.isdigit() else None,
+        name      = request.form.get('name', '').strip(),
+        latitude  = _float_or_none(request.form.get('latitude')),
+        longitude = _float_or_none(request.form.get('longitude')),
+        main_size = request.form.get('main_size', '').strip(),
+        outlets   = request.form.get('outlets', '').strip(),
+        owner     = request.form.get('owner', '').strip(),
+        status    = request.form.get('status', 'active'),
+        notes     = request.form.get('notes', '').strip(),
+    )
+
+
+@app.route('/hydrants')
+def hydrants():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    all_hydrants = db_helpers.get_all_hydrants()
+    stats = db_helpers.get_hydrant_stats()
+    map_points = [
+        {'id': h['id'], 'number': h['number'], 'name': h['name'],
+         'lat': h['latitude'], 'lng': h['longitude'], 'cls': h['flow_class'],
+         'gpm': h['last_flow']['gpm'] if h['last_flow'] else None}
+        for h in all_hydrants if h['latitude'] is not None
+    ]
+    return render_template('hydrants.html', hydrants=all_hydrants, stats=stats,
+                           map_points=map_points,
+                           today=datetime.now().strftime('%Y-%m-%d'))
+
+
+@app.route('/hydrants/add', methods=['POST'])
+def hydrant_add():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.add_hydrant(**_hydrant_form())
+        flash('Hydrant added.', 'success')
+    except Exception as e:
+        flash(f'Error adding hydrant: {e}', 'error')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/edit/<int:hydrant_id>', methods=['POST'])
+def hydrant_edit(hydrant_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.update_hydrant(hydrant_id, **_hydrant_form())
+        flash('Hydrant updated.', 'success')
+    except Exception as e:
+        flash(f'Error updating hydrant: {e}', 'error')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/delete/<int:hydrant_id>', methods=['POST'])
+def hydrant_delete(hydrant_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    db_helpers.delete_hydrant(hydrant_id)
+    flash('Hydrant deleted.', 'success')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/<int:hydrant_id>/test', methods=['POST'])
+def hydrant_test_add(hydrant_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.add_hydrant_test(
+            hydrant_id  = hydrant_id,
+            test_date   = request.form.get('test_date', '').strip() or datetime.now().strftime('%Y-%m-%d'),
+            gpm         = _float_or_none(request.form.get('gpm')),
+            psi         = _float_or_none(request.form.get('psi')),
+            nozzle_size = request.form.get('nozzle_size', '').strip(),
+            tested_by   = request.form.get('tested_by', '').strip(),
+            notes       = request.form.get('notes', '').strip(),
+        )
+        flash('Test recorded.', 'success')
+    except Exception as e:
+        flash(f'Error recording test: {e}', 'error')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/test/delete/<int:test_id>', methods=['POST'])
+def hydrant_test_delete(test_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    db_helpers.delete_hydrant_test(test_id)
+    flash('Test removed.', 'success')
+    return redirect(url_for('hydrants'))
 
 
 if __name__ == '__main__':

@@ -211,7 +211,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <button class="btn btn-primary btn-sm" onclick="editUser({{ user.id }})">Edit</button>
+                            <button class="btn btn-primary btn-sm" onclick='editUser({{ user.id }}, {{ user.username|tojson }}, {{ user.full_name|tojson }}, {{ (user.email or "")|tojson }})'>Edit</button>
                             {% if user.id != current_user_id %}
                                 <button class="btn btn-danger btn-sm" onclick="deactivateUser({{ user.id }}, '{{ user.username }}')">Deactivate</button>
                             {% endif %}
@@ -220,6 +220,41 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditUserModal()">&times;</span>
+            <h2>Edit User</h2>
+            <form method="POST" action="{{ url_for('edit_user') }}">
+                <input type="hidden" name="user_id" id="editUserId">
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" name="username" id="editUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" name="full_name" id="editFullName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" id="editEmail">
+                </div>
+                <hr style="margin: 20px 0; border-color: #eee;">
+                <p style="font-weight: 600; margin-bottom: 10px; color: #555;">Reset Password <span style="font-weight: normal; font-size: 12px;">(leave blank to keep current)</span></p>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" name="new_password" id="editPassword" minlength="8">
+                    <small>Minimum 8 characters. User will be required to change on next login.</small>
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" name="confirm_password" id="editConfirmPassword">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Changes</button>
+            </form>
         </div>
     </div>
 
@@ -263,9 +298,18 @@
             document.getElementById('addUserModal').classList.remove('active');
         }
 
-        function editUser(userId) {
-            // TODO: Implement edit modal
-            alert('Edit functionality coming soon! For now, deactivate and recreate the user.');
+        function editUser(userId, username, fullName, email) {
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editFullName').value = fullName;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editConfirmPassword').value = '';
+            document.getElementById('editUserModal').classList.add('active');
+        }
+
+        function closeEditUserModal() {
+            document.getElementById('editUserModal').classList.remove('active');
         }
 
         function deactivateUser(userId, username) {
@@ -292,11 +336,13 @@
             });
         }
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('addUserModal');
-            if (event.target == modal) {
+            if (event.target == document.getElementById('addUserModal')) {
                 closeAddUserModal();
+            }
+            if (event.target == document.getElementById('editUserModal')) {
+                closeEditUserModal();
             }
         }
     </script>

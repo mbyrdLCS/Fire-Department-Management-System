@@ -735,6 +735,43 @@
         {% endif %}
 
         {% endif %}
+
+        <!-- SCBA Alert Recipients -->
+        {% set contact_list = scba_contact_email.split(',') if scba_contact_email else [] %}
+        <div style="background:white;border-radius:12px;padding:20px 24px;margin-top:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:4px;">SCBA Email Alert Recipients</div>
+            <div style="font-size:0.8rem;color:#64748b;margin-bottom:14px;">Select who receives hydro test alerts. Overdue bottles alert immediately; upcoming (within 90 days) alert on the 1st &amp; 15th.</div>
+            <form method="post" action="{{ url_for('scba_set_contact') }}">
+                <input type="hidden" name="next" value="alerts_dashboard">
+                <div style="display:flex;flex-wrap:wrap;gap:10px 24px;margin-bottom:14px;">
+                    {% for u in users %}
+                    <label style="display:flex;align-items:center;gap:7px;font-size:0.875rem;cursor:pointer;">
+                        <input type="checkbox" name="contact_emails" value="{{ u.email }}"
+                               {% if u.email in contact_list %}checked{% endif %}
+                               style="width:16px;height:16px;cursor:pointer;">
+                        <span>{{ u.full_name or u.username }}</span>
+                        <span style="color:#94a3b8;font-size:0.8rem;">({{ u.email }})</span>
+                    </label>
+                    {% else %}
+                    <span style="color:#94a3b8;font-size:0.85rem;">No users with email addresses found. Add emails in <a href="{{ url_for('user_management') }}" style="color:#2563eb;">User Management</a> first.</span>
+                    {% endfor %}
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-size:0.8rem;font-weight:600;color:#475569;margin-bottom:5px;">Additional recipients (not in system — separate multiple with commas)</label>
+                    <input type="text" name="extra_emails" value="{{ extra_emails }}"
+                           placeholder="e.g. chief@svvfd.org, assistant@svvfd.org"
+                           style="width:100%;max-width:500px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.875rem;">
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                    <button type="submit" style="background:#2563eb;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:0.875rem;cursor:pointer;font-weight:600;">Save Recipients</button>
+                    {% if scba_contact_email %}
+                    <span style="font-size:0.8rem;color:#64748b;">Currently alerting: <strong>{{ contact_list | join(', ') }}</strong></span>
+                    {% else %}
+                    <span style="font-size:0.8rem;color:#f59e0b;">No recipients selected.</span>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>

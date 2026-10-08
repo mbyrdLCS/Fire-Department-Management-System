@@ -546,6 +546,11 @@
                     <div style="font-weight: 600; font-size: 15px;">SCBA Air Bottles</div>
                     <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Inventory &amp; hydro test tracking{% if stats.scba_alert_count > 0 %} &bull; {{ stats.scba_alert_count }} alert{{ 's' if stats.scba_alert_count != 1 }}{% endif %}</div>
                 </a>
+                <a href="{{ url_for('hydrants') }}" style="display: block; background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 10px; text-decoration: none; text-align: center; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    <div style="font-size: 28px; margin-bottom: 8px;">🚒</div>
+                    <div style="font-weight: 600; font-size: 15px;">Fire Hydrants</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Locations, map &amp; flow tests</div>
+                </a>
             </div>
         </div>
 

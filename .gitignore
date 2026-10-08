@@ -84,3 +84,7 @@ dropbox_config.py
 .AppleDouble
 .LSOverride
 DEPLOYMENT_GUIDE.md
+
+# Local-only
+mcp_config.json
+volfirefighting old/

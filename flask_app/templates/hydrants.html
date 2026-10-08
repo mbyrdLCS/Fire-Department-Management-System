@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Hydrants - SVVFD</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .header h1 { font-size: 1.4rem; font-weight: 700; }
+        .header-sub { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+        .back-btn {
+            margin-left: auto;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+        .flash { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
+        .flash.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .flash.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .summary-card .num { font-size: 2rem; font-weight: 800; }
+        .summary-card .label { font-size: 0.78rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: .03em; }
+        .summary-card.warn-card { background: #fffbeb; border: 1px solid #fcd34d; }
+        .summary-card.warn-card .num { color: #d97706; }
+        .summary-card.ok-card .num { color: #16a34a; }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #1e293b;
+            color: white;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .section-header h2 { font-size: 1rem; font-weight: 600; }
+        .count-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        .add-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+        .add-btn:hover { background: #16a34a; }
+        .search {
+            border: none; border-radius: 6px; padding: 7px 10px; font-size: 0.85rem;
+            width: 220px; max-width: 100%;
+        }
+
+        #map { height: 420px; }
+        .legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 10px 20px; font-size: 0.78rem; color: #475569;
+                  border-top: 1px solid #f1f5f9; background: #f8fafc; }
+        .legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.25); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead tr { background: #f8fafc; }
+        th { padding: 10px 12px; text-align: left; color: #64748b; font-weight: 600;
+             font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em;
+             border-bottom: 1px solid #e2e8f0; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+        tr.hydrant-row { cursor: pointer; }
+        tr.hydrant-row:hover td { background: #f8fafc; }
+        tr.inactive td { opacity: 0.6; }
+        .num-cell { font-weight: 800; color: #b91c1c; }
+        .sub { font-size: 0.76rem; color: #64748b; margin-top: 2px; }
+        .gps a { color: #2563eb; text-decoration: none; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-due     { background: #fffbeb; color: #b45309; }
+        .badge-ok      { background: #dcfce7; color: #166534; }
+        .badge-never   { background: #fee2e2; color: #b91c1c; }
+        .badge-inactive{ background: #f1f5f9; color: #475569; }
+        .flow-AA { background: #dbeafe; color: #1e40af; }
+        .flow-A  { background: #dcfce7; color: #166534; }
+        .flow-B  { background: #ffedd5; color: #c2410c; }
+        .flow-C  { background: #fee2e2; color: #b91c1c; }
+
+        tr.history td { background: #f8fafc; padding: 0 12px 14px 12px; }
+        tr.history { display: none; }
+        tr.history.open { display: table-row; }
+        .history-table { background: white; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 4px; }
+        .history-table th { font-size: 0.72rem; padding: 7px 10px; }
+        .history-table td { padding: 7px 10px; font-size: 0.82rem; }
+        .history-meta { font-size: 0.8rem; color: #475569; padding: 10px 2px; display: flex; gap: 18px; flex-wrap: wrap; }
+
+        .action-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        .btn-test { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0;
+                    padding: 4px 10px; border-radius: 5px; font-size: 0.78rem; cursor: pointer; }
+        .btn-edit { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
+                    padding: 4px 10px; border-radius: 5px; font-size: 0.78rem; cursor: pointer; }
+        .btn-del  { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;
+                    padding: 4px 10px; border-radius: 5px; font-size: 0.78rem; cursor: pointer; }
+        .btn-x    { background: none; border: none; color: #e11d48; cursor: pointer; font-size: 0.8rem; }
+
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 2000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white; border-radius: 12px; padding: 28px;
+            width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal h3 { font-size: 1.1rem; margin-bottom: 20px; color: #1e293b; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { font-size: 0.8rem; font-weight: 600; color: #374151; }
+        input, select, textarea {
+            border: 1px solid #d1d5db; border-radius: 6px;
+            padding: 8px 10px; font-size: 0.875rem; width: 100%;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+        .gps-btn { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px;
+                   font-size: 0.8rem; cursor: pointer; justify-self: start; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-primary { background: #2563eb; color: white; border: none;
+                       padding: 9px 20px; border-radius: 7px; font-size: 0.875rem; cursor: pointer; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-cancel { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+                      padding: 9px 20px; border-radius: 7px; font-size: 0.875rem; cursor: pointer; }
+
+        .note-rule { font-size: 0.78rem; color: #64748b; font-style: italic; padding: 12px 20px;
+                     border-top: 1px solid #f1f5f9; background: #f8fafc; }
+
+        .btn-quick { background: #16a34a; color: white; border: none; border-radius: 6px;
+                     padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; margin-top: 6px; }
+        .btn-quick:hover { background: #15803d; }
+        .near-btn { background: #2563eb; color: white; border: none; padding: 7px 14px;
+                    border-radius: 6px; font-size: 0.82rem; cursor: pointer; }
+        .dist { color: #2563eb; font-weight: 600; }
+        .label-sm { display: none; }
+
+        @media (max-width: 700px) {
+            .container { padding: 16px 10px; }
+            .summary-card { padding: 12px; }
+            .summary-card .num { font-size: 1.6rem; }
+            #map { height: 280px; }
+            .hide-sm { display: none; }
+            .section-header > div { width: 100%; }
+            .search { flex: 1 1 100%; width: auto; font-size: 16px; padding: 10px; }
+            .add-btn, .near-btn { flex: 1; padding: 11px; font-size: 0.9rem; }
+
+            /* Hydrant list as cards */
+            table.main, table.main tbody { display: block; }
+            table.main thead { display: none; }
+            tr.hydrant-row { display: grid; grid-template-columns: 38px 1fr auto; gap: 6px 10px;
+                             padding: 14px 12px; border-bottom: 1px solid #e2e8f0; }
+            tr.hydrant-row td { padding: 0; border: none; }
+            td.num-cell { grid-row: 1 / span 3; font-size: 1.25rem; }
+            td.name-cell { grid-column: 2 / 4; font-weight: 600; }
+            td.size-cell { grid-column: 2; grid-row: 3; font-size: 0.8rem; }
+            td.flow-cell { grid-column: 2; grid-row: 2; }
+            td.status-cell { grid-column: 3; grid-row: 2 / span 2; text-align: right; }
+            .label-sm { display: inline; color: #64748b; }
+            .btn-quick { padding: 10px 14px; font-size: 0.88rem; }
+            tr.history.open { display: block; }
+            tr.history > td { display: block; padding: 0 12px 14px; }
+            .history-table { display: block; overflow-x: auto; }
+            .action-btns button { padding: 9px 12px; font-size: 0.85rem; }
+
+            /* Forms: full-screen sheet, 16px inputs so phones don't zoom */
+            .modal-overlay { align-items: flex-end; }
+            .modal { width: 100%; max-width: none; border-radius: 14px 14px 0 0; padding: 20px 16px 28px; max-height: 94vh; }
+            .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            input, select, textarea { font-size: 16px; padding: 11px 12px; }
+            .modal-actions button { flex: 1; padding: 13px; font-size: 1rem; }
+            .gps-btn { padding: 11px; font-size: 0.9rem; grid-column: 1 / -1; justify-self: stretch; }
+        }
+    </style>
+</head>
+<body>
+{% macro num(v) %}{% if v is none %}—{% elif v == v|int %}{{ v|int }}{% else %}{{ v }}{% endif %}{% endmacro %}
+
+<div class="header">
+    <div>
+        <h1>Fire Hydrants</h1>
+        <div class="header-sub">Spring Valley Volunteer Fire Department &mdash; locations &amp; flow tests</div>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="back-btn">← Dashboard</a>
+</div>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="summary-grid">
+        <div class="summary-card"><div class="num">{{ stats.total }}</div><div class="label">Hydrants</div></div>
+        <div class="summary-card ok-card"><div class="num">{{ stats.tested_recently }}</div><div class="label">Tested in last year</div></div>
+        <div class="summary-card {% if stats.due %}warn-card{% endif %}"><div class="num">{{ stats.due }}</div><div class="label">Need testing</div></div>
+        <div class="summary-card"><div class="num">{{ stats.no_gps }}</div><div class="label">Missing GPS</div></div>
+    </div>
+
+    <!-- Map -->
+    <div class="section">
+        <div class="section-header"><h2>Map</h2><span class="count-badge">{{ map_points|length }} with GPS</span></div>
+        <div id="map"></div>
+        <div class="legend">
+            <span><i class="dot" style="background:#3b82f6"></i>1500+ GPM (AA)</span>
+            <span><i class="dot" style="background:#22c55e"></i>1000–1499 (A)</span>
+            <span><i class="dot" style="background:#f97316"></i>500–999 (B)</span>
+            <span><i class="dot" style="background:#ef4444"></i>Under 500 (C)</span>
+            <span><i class="dot" style="background:#94a3b8"></i>No flow test</span>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div class="section">
+        <div class="section-header">
+            <h2>All Hydrants <span class="count-badge">{{ hydrants|length }}</span></h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="search" class="search" id="search" placeholder="Search name, road, owner…">
+                <button class="near-btn" id="nearBtn" onclick="sortByDistance()">📍 Near me</button>
+                <button class="add-btn" onclick="openHydrant(null)">+ Add Hydrant</button>
+            </div>
+        </div>
+        <table class="main">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name / Location</th>
+                    <th class="hide-sm">GPS</th>
+                    <th>Line Size</th>
+                    <th>Last Flow Test</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for h in hydrants %}
+            <tr class="hydrant-row {% if h.status != 'active' %}inactive{% endif %}" data-id="{{ h.id }}"
+                data-lat="{{ h.latitude if h.latitude is not none else '' }}" data-lng="{{ h.longitude if h.longitude is not none else '' }}"
+                data-search="{{ (h.number ~ ' ' ~ h.name ~ ' ' ~ (h.owner or '') ~ ' ' ~ (h.notes or ''))|lower }}"
+                onclick="toggleHistory({{ h.id }})">
+                <td class="num-cell">{{ h.number or '—' }}</td>
+                <td class="name-cell">
+                    {{ h.name }}
+                    <span class="dist"></span>
+                    {% if h.owner %}<div class="sub">Owner: {{ h.owner }}</div>{% endif %}
+                </td>
+                <td class="gps hide-sm">
+                    {% if h.latitude is not none %}
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ h.latitude }},{{ h.longitude }}"
+                       target="_blank" rel="noopener" onclick="event.stopPropagation()">
+                        {{ '%.6f'|format(h.latitude) }},<br>{{ '%.6f'|format(h.longitude) }}
+                    </a>
+                    {% else %}<span class="sub">No GPS</span>{% endif %}
+                </td>
+                <td class="size-cell">
+                    <span class="label-sm">Line size:</span> {{ h.main_size or '—' }}
+                    {% if h.outlets %}<div class="sub">{{ h.outlets }}</div>{% endif %}
+                </td>
+                <td class="flow-cell">
+                    {% if h.last_flow %}
+                        <span class="badge flow-{{ h.flow_class }}">{{ h.last_flow.gpm|int }} GPM</span>
+                        <div class="sub">@ {{ num(h.last_flow.psi) }} PSI{% if h.last_flow.nozzle_size %} · {{ h.last_flow.nozzle_size }} nozzle{% endif %}</div>
+                        <div class="sub">{{ h.last_flow.test_date }}</div>
+                    {% else %}<span class="sub">No flow test</span>{% endif %}
+                </td>
+                <td class="status-cell">
+                    {% if h.status != 'active' %}
+                        <span class="badge badge-inactive">{{ h.status|replace('_',' ')|title }}</span>
+                    {% elif not h.last_test %}
+                        <span class="badge badge-never">Never tested</span>
+                    {% elif h.test_due %}
+                        <span class="badge badge-due">Due</span>
+                        <div class="sub">last {{ h.last_test.test_date }}</div>
+                    {% else %}
+                        <span class="badge badge-ok">Tested</span>
+                        <div class="sub">{{ h.last_test.test_date }}</div>
+                    {% endif %}
+                    <div><button class="btn-quick" onclick='event.stopPropagation(); openTest({{ h.id }}, {{ h.name|tojson }})'>+ Test</button></div>
+                </td>
+            </tr>
+            <tr class="history" id="history-{{ h.id }}">
+                <td colspan="6">
+                    <div class="history-meta">
+                        {% if h.latitude is not none %}<span class="gps"><a href="https://www.google.com/maps/dir/?api=1&destination={{ h.latitude }},{{ h.longitude }}" target="_blank" rel="noopener">Directions ↗</a></span>{% endif %}
+                        {% if h.notes %}<span><strong>Notes:</strong> {{ h.notes }}</span>{% endif %}
+                    </div>
+                    {% if h.tests %}
+                    <table class="history-table">
+                        <thead><tr><th>Date</th><th>GPM</th><th>PSI</th><th>Nozzle</th><th>Tested by</th><th>Notes</th><th></th></tr></thead>
+                        <tbody>
+                        {% for t in h.tests %}
+                        <tr>
+                            <td>{{ t.test_date }}</td>
+                            <td>{{ num(t.gpm) }}</td>
+                            <td>{{ num(t.psi) }}</td>
+                            <td>{{ t.nozzle_size or '—' }}</td>
+                            <td>{{ t.tested_by or '—' }}</td>
+                            <td>{{ t.notes or '' }}</td>
+                            <td>
+                                <form method="post" action="{{ url_for('hydrant_test_delete', test_id=t.id) }}"
+                                      onsubmit="return confirm('Delete this test record?')">
+                                    <button class="btn-x" type="submit" title="Delete test">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="sub">No tests recorded.</div>
+                    {% endif %}
+                    <div class="action-btns">
+                        <button class="btn-test" onclick='openTest({{ h.id }}, {{ h.name|tojson }})'>+ Record Test</button>
+                        <button class="btn-edit" onclick='openHydrant({{ {"id": h.id, "number": h.number, "name": h.name, "latitude": h.latitude, "longitude": h.longitude, "main_size": h.main_size, "outlets": h.outlets, "owner": h.owner, "status": h.status, "notes": h.notes}|tojson }})'>Edit Hydrant</button>
+                        <form method="post" action="{{ url_for('hydrant_delete', hydrant_id=h.id) }}"
+                              onsubmit="return confirm('Delete this hydrant and all its test records?')">
+                            <button class="btn-del" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">No hydrants on record.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="note-rule">Tap a hydrant to see its test history. Flow is GPM at the pitot PSI through the listed nozzle size.
+            Color classes follow NFPA 291. Hydrants are flagged "Due" when the last test is over a year old.</div>
+    </div>
+</div>
+
+<!-- Hydrant Modal (add / edit) -->
+<div class="modal-overlay" id="hydrantModal">
+    <div class="modal">
+        <h3 id="hydrantTitle">Add Hydrant</h3>
+        <form method="post" id="hydrantForm" action="{{ url_for('hydrant_add') }}">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Hydrant #</label>
+                    <input type="number" name="number" id="h_number" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" id="h_status">
+                        <option value="active">Active</option>
+                        <option value="out_of_service">Out of Service</option>
+                        <option value="removed">Removed</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Name / Location</label>
+                    <input type="text" name="name" id="h_name" required placeholder="e.g. W 720 Rd, top of the hill">
+                </div>
+                <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="text" name="latitude" id="h_latitude" inputmode="decimal" placeholder="35.9733611">
+                </div>
+                <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="text" name="longitude" id="h_longitude" inputmode="decimal" placeholder="-95.1116862">
+                </div>
+                <button type="button" class="gps-btn" onclick="useMyLocation()">📍 Use my current location</button>
+                <div class="form-group full"></div>
+                <div class="form-group">
+                    <label>Line Size (main)</label>
+                    <input type="text" name="main_size" id="h_main_size" placeholder='e.g. 6"'>
+                </div>
+                <div class="form-group">
+                    <label>Owner</label>
+                    <input type="text" name="owner" id="h_owner" placeholder="e.g. RWD#9">
+                </div>
+                <div class="form-group full">
+                    <label>Outlets</label>
+                    <input type="text" name="outlets" id="h_outlets" placeholder='e.g. 5.25" with 1-4.5" and 2-2.5"'>
+                </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea name="notes" id="h_notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('hydrantModal')">Cancel</button>
+                <button type="submit" class="btn-primary" id="hydrantSubmit">Add Hydrant</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Test Modal -->
+<div class="modal-overlay" id="testModal">
+    <div class="modal">
+        <h3>Record Test — <span id="testHydrantName"></span></h3>
+        <form method="post" id="testForm" onsubmit="rememberTester()">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Test Date</label>
+                    <input type="date" name="test_date" value="{{ today }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Tested By</label>
+                    <input type="text" name="tested_by" id="t_tested_by" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label>Gallons per Minute</label>
+                    <input type="number" name="gpm" step="any" min="0" inputmode="decimal">
+                </div>
+                <div class="form-group">
+                    <label>PSI</label>
+                    <input type="number" name="psi" step="any" min="0" inputmode="decimal">
+                </div>
+                <div class="form-group">
+                    <label>Nozzle Size</label>
+                    <select name="nozzle_size">
+                        <option value="">—</option>
+                        <option>1.5"</option>
+                        <option>1.75"</option>
+                        <option>2"</option>
+                        <option selected>2.25"</option>
+                        <option>2.5"</option>
+                        <option>4.5"</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea name="notes" rows="2" placeholder="Leaks, needs valve wrench, etc."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('testModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Test</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const POINTS = {{ map_points|tojson }};
+const COLORS = {AA: '#3b82f6', A: '#22c55e', B: '#f97316', C: '#ef4444'};
+
+if (window.L && POINTS.length) {
+    const map = L.map('map');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    const bounds = [];
+    POINTS.forEach(p => {
+        const m = L.circleMarker([p.lat, p.lng], {
+            radius: 8, weight: 1.5, color: '#1e293b',
+            fillColor: COLORS[p.cls] || '#94a3b8', fillOpacity: 0.95
+        }).addTo(map);
+        m.bindTooltip(String(p.number || ''), {permanent: true, direction: 'top', offset: [0, -6], className: ''});
+        m.bindPopup(`<strong>#${p.number || ''} ${p.name}</strong><br>` +
+                    (p.gpm ? `${Math.round(p.gpm)} GPM` : 'No flow test') +
+                    `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank">Directions</a>`);
+        m.on('click', () => showRow(p.id));
+        bounds.push([p.lat, p.lng]);
+    });
+    map.fitBounds(bounds, {padding: [20, 20]});
+} else {
+    document.getElementById('map').style.display = 'none';
+}
+
+function toggleHistory(id) {
+    document.getElementById('history-' + id).classList.toggle('open');
+}
+function showRow(id) {
+    const row = document.querySelector(`tr.hydrant-row[data-id="${id}"]`);
+    document.getElementById('history-' + id).classList.add('open');
+    row.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+document.getElementById('search').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('tr.hydrant-row').forEach(row => {
+        const hit = !q || row.dataset.search.includes(q);
+        row.style.display = hit ? '' : 'none';
+        if (!hit) document.getElementById('history-' + row.dataset.id).classList.remove('open');
+    });
+});
+
+function openHydrant(h) {
+    const f = document.getElementById('hydrantForm');
+    const editing = !!h;
+    h = h || {};
+    f.action = editing ? '/hydrants/edit/' + h.id : '{{ url_for("hydrant_add") }}';
+    document.getElementById('hydrantTitle').textContent = editing ? 'Edit Hydrant' : 'Add Hydrant';
+    document.getElementById('hydrantSubmit').textContent = editing ? 'Save Changes' : 'Add Hydrant';
+    ['number', 'name', 'latitude', 'longitude', 'main_size', 'outlets', 'owner', 'notes'].forEach(k => {
+        document.getElementById('h_' + k).value = (h[k] === null || h[k] === undefined) ? '' : h[k];
+    });
+    document.getElementById('h_status').value = h.status || 'active';
+    document.getElementById('hydrantModal').classList.add('open');
+}
+function openTest(id, name) {
+    document.getElementById('testForm').action = '/hydrants/' + id + '/test';
+    document.getElementById('testHydrantName').textContent = name;
+    const who = document.getElementById('t_tested_by');
+    if (!who.value) { try { who.value = localStorage.getItem('hydrantTester') || ''; } catch (e) {} }
+    document.getElementById('testModal').classList.add('open');
+}
+function rememberTester() {
+    try { localStorage.setItem('hydrantTester', document.getElementById('t_tested_by').value.trim()); } catch (e) {}
+}
+
+function distanceMiles(lat1, lng1, lat2, lng2) {
+    const r = Math.PI / 180, R = 3958.8;
+    const a = Math.sin((lat2 - lat1) * r / 2) ** 2 +
+              Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin((lng2 - lng1) * r / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+}
+function sortByDistance() {
+    const btn = document.getElementById('nearBtn');
+    if (!navigator.geolocation) { alert('Location is not available on this device.'); return; }
+    btn.textContent = 'Locating…';
+    navigator.geolocation.getCurrentPosition(pos => {
+        const {latitude, longitude} = pos.coords;
+        const tbody = document.querySelector('table.main tbody');
+        const rows = [...tbody.querySelectorAll('tr.hydrant-row')].map(row => {
+            const lat = parseFloat(row.dataset.lat), lng = parseFloat(row.dataset.lng);
+            const d = isNaN(lat) ? Infinity : distanceMiles(latitude, longitude, lat, lng);
+            row.querySelector('.dist').textContent = isFinite(d) ? `· ${d < 0.1 ? Math.round(d * 5280) + ' ft' : d.toFixed(1) + ' mi'}` : '';
+            return {row, history: document.getElementById('history-' + row.dataset.id), d};
+        });
+        rows.sort((a, b) => a.d - b.d).forEach(({row, history}) => { tbody.appendChild(row); tbody.appendChild(history); });
+        btn.textContent = '📍 Sorted by distance';
+        tbody.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, err => { btn.textContent = '📍 Near me'; alert('Could not get location: ' + err.message); },
+       {enableHighAccuracy: true, timeout: 15000});
+}
+function useMyLocation() {
+    if (!navigator.geolocation) { alert('Location is not available on this device.'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+        document.getElementById('h_latitude').value = pos.coords.latitude.toFixed(7);
+        document.getElementById('h_longitude').value = pos.coords.longitude.toFixed(7);
+    }, err => alert('Could not get location: ' + err.message), {enableHighAccuracy: true});
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+</script>
+</body>
+</html>
