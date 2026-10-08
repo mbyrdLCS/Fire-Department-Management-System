@@ -88,28 +88,65 @@ def get_alerts():
             warning.append(entry)
     return overdue, warning
 
-def build_email(overdue, warning):
+
+def get_oos_alerts():
+    """Return composite bottles within 365 days of their out-of-service (retirement) date."""
+    today = date.today()
+    window = today + timedelta(days=365)
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT bottle_type, serial_number, dot_spec, manufacturer,
+               mfgr_date, out_of_service_date, location, station
+        FROM scba_bottles
+        WHERE status = 'active'
+          AND bottle_type = 'composite'
+          AND out_of_service_date IS NOT NULL
+          AND out_of_service_date <= ?
+        ORDER BY out_of_service_date
+    ''', (window.strftime('%Y-%m-%d'),))
+    rows = cursor.fetchall()
+    conn.close()
+
+    results = []
+    for r in rows:
+        oos = datetime.strptime(r['out_of_service_date'], '%Y-%m-%d').date()
+        days = (oos - today).days
+        entry = dict(r)
+        entry['days_until'] = days
+        results.append(entry)
+    return results
+
+def build_email(overdue, warning, oos_warning=None):
+    oos_warning = oos_warning or []
     today = date.today().strftime('%B %d, %Y')
 
     # ── Plain text ──────────────────────────────────────────────────────────
     lines = [
-        f"SVVFD SCBA Air Bottle - Hydro Test Report",
+        f"SVVFD SCBA Air Bottle Report",
         f"Generated: {today}",
         f"",
     ]
     if overdue:
-        lines.append("OVERDUE — Immediate Action Required:")
+        lines.append("HYDRO TEST OVERDUE — Immediate Action Required:")
         for b in overdue:
             lines.append(f"  • {b['bottle_type'].capitalize()} #{b['serial_number']} "
                          f"| Location: {b['location']} "
                          f"| Due: {b['next_hydro_due']} ({abs(b['days_until'])} days overdue)")
         lines.append("")
     if warning:
-        lines.append("Due Within 90 Days:")
+        lines.append("Hydro Test Due Within 90 Days:")
         for b in warning:
             lines.append(f"  • {b['bottle_type'].capitalize()} #{b['serial_number']} "
                          f"| Location: {b['location']} "
                          f"| Due: {b['next_hydro_due']} ({b['days_until']} days)")
+        lines.append("")
+    if oos_warning:
+        lines.append("Composite Bottle Retirement Within 1 Year (replace after 15 yrs from mfgr date):")
+        for b in oos_warning:
+            days_str = f"{abs(b['days_until'])} days PAST retirement" if b['days_until'] < 0 else f"{b['days_until']} days"
+            lines.append(f"  • Composite #{b['serial_number']} | Location: {b['location']} "
+                         f"| Retire: {b['out_of_service_date']} ({days_str})")
         lines.append("")
     lines += [
         "View full inventory: https://michealhelps.pythonanywhere.com/scba",
@@ -119,7 +156,7 @@ def build_email(overdue, warning):
     plain = "\n".join(lines)
 
     # ── HTML ────────────────────────────────────────────────────────────────
-    def bottle_rows(bottles, color, label):
+    def hydro_rows(bottles, color, label):
         html = ""
         for b in bottles:
             days_str = (f"{abs(b['days_until'])} days overdue" if b['days_until'] < 0
@@ -139,10 +176,30 @@ def build_email(overdue, warning):
             </tr>"""
         return html
 
+    def oos_rows(bottles):
+        html = ""
+        for b in bottles:
+            days_str = (f"{abs(b['days_until'])} days PAST retirement" if b['days_until'] < 0
+                        else f"{b['days_until']} days remaining")
+            html += f"""
+            <tr>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                <strong>Composite</strong><br>
+                <span style="font-size:0.85em;color:#64748b;">#{b['serial_number']} &bull; {b['dot_spec']}</span>
+              </td>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">{b['location']}</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">{b['out_of_service_date']}</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                <span style="background:#f59e0b;color:white;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">REPLACE SOON</span><br>
+                <span style="font-size:0.8em;color:#64748b;">{days_str}</span>
+              </td>
+            </tr>"""
+        return html
+
     sections = ""
     if overdue:
         sections += f"""
-        <h2 style="color:#dc2626;margin:24px 0 8px;">Overdue — Immediate Action Required</h2>
+        <h2 style="color:#dc2626;margin:24px 0 8px;">Hydro Test Overdue — Immediate Action Required</h2>
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fca5a5;border-radius:8px;overflow:hidden;">
           <thead><tr style="background:#fee2e2;">
             <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Bottle</th>
@@ -150,12 +207,12 @@ def build_email(overdue, warning):
             <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Due Date</th>
             <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#991b1b;">Status</th>
           </tr></thead>
-          <tbody>{bottle_rows(overdue, '#dc2626', 'OVERDUE')}</tbody>
+          <tbody>{hydro_rows(overdue, '#dc2626', 'OVERDUE')}</tbody>
         </table>"""
 
     if warning:
         sections += f"""
-        <h2 style="color:#d97706;margin:24px 0 8px;">Due Within 90 Days</h2>
+        <h2 style="color:#d97706;margin:24px 0 8px;">Hydro Test Due Within 90 Days</h2>
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fcd34d;border-radius:8px;overflow:hidden;">
           <thead><tr style="background:#fffbeb;">
             <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Bottle</th>
@@ -163,7 +220,21 @@ def build_email(overdue, warning):
             <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Due Date</th>
             <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Status</th>
           </tr></thead>
-          <tbody>{bottle_rows(warning, '#d97706', 'DUE SOON')}</tbody>
+          <tbody>{hydro_rows(warning, '#d97706', 'DUE SOON')}</tbody>
+        </table>"""
+
+    if oos_warning:
+        sections += f"""
+        <h2 style="color:#b45309;margin:24px 0 8px;">Composite Bottle Retirement Within 1 Year</h2>
+        <p style="font-size:0.85em;color:#64748b;margin:0 0 8px;">Composite cylinders must be replaced 15 years from manufacturer date (DOT SP11194).</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fde68a;border-radius:8px;overflow:hidden;">
+          <thead><tr style="background:#fef3c7;">
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Bottle</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Location</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Retire Date</th>
+            <th style="padding:10px 12px;text-align:left;font-size:0.8em;color:#92400e;">Status</th>
+          </tr></thead>
+          <tbody>{oos_rows(oos_warning)}</tbody>
         </table>"""
 
     html = f"""
@@ -210,6 +281,7 @@ def main():
     today = date.today()
     print(f"[{datetime.now():%Y-%m-%d %H:%M}] SCBA notification check...")
     overdue, warning = get_alerts()
+    oos_warning = get_oos_alerts()
     recipients = get_scba_contacts()
 
     if not recipients:
@@ -224,22 +296,30 @@ def main():
             except Exception as e:
                 print(f"  ERROR sending to {addr}: {e}")
 
-    # Always alert on overdue bottles regardless of day
+    # Always alert on overdue hydro bottles regardless of day
     if overdue:
-        subject = f"SVVFD SCBA — {len(overdue)} Bottle(s) OVERDUE for Hydro Test"
-        plain, html = build_email(overdue, warning)
+        parts = [f"{len(overdue)} Bottle(s) OVERDUE for Hydro Test"]
+        if oos_warning:
+            parts.append(f"{len(oos_warning)} Composite Bottle(s) Due for Retirement")
+        subject = "SVVFD SCBA — " + " | ".join(parts)
+        plain, html = build_email(overdue, warning, oos_warning)
         send_to_all(subject, plain, html)
         return
 
-    # Biweekly summary (1st and 15th) — send if anything is in the 90-day window
+    # Biweekly summary (1st and 15th) — send if anything is due within windows
     if is_biweekly_day():
-        if warning:
-            subject = f"SVVFD SCBA — {len(warning)} Bottle(s) Due for Hydro Test Within 90 Days"
-            plain, html = build_email(overdue, warning)
+        if warning or oos_warning:
+            parts = []
+            if warning:
+                parts.append(f"{len(warning)} Hydro Test(s) Due Within 90 Days")
+            if oos_warning:
+                parts.append(f"{len(oos_warning)} Composite Bottle(s) Due for Retirement Within 1 Year")
+            subject = "SVVFD SCBA — " + " | ".join(parts)
+            plain, html = build_email(overdue, warning, oos_warning)
             send_to_all(subject, plain, html)
-            print(f"  Biweekly summary sent ({len(warning)} upcoming)")
+            print(f"  Biweekly summary sent ({len(warning)} hydro upcoming, {len(oos_warning)} retirement upcoming)")
         else:
-            print("  Biweekly check — nothing due within 90 days. No email sent.")
+            print("  Biweekly check — nothing due. No email sent.")
     else:
         print(f"  Not a biweekly day ({today.day}) and no overdue bottles. No email sent.")
 

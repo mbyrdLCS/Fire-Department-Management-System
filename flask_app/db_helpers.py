@@ -3834,6 +3834,18 @@ def _next_hydro_from_last(last_hydro_str):
         return None
 
 
+def _oos_date_from_mfgr(mfgr_str):
+    """Given mfgr date string 'MM/YYYY', return out-of-service date 'YYYY-MM-01' (+15 years)."""
+    date_iso, _ = _parse_hydro_date(mfgr_str)
+    if not date_iso:
+        return None
+    try:
+        d = datetime.strptime(date_iso, '%Y-%m-%d')
+        return d.replace(year=d.year + 15).strftime('%Y-%m-%d')
+    except Exception:
+        return None
+
+
 def _ensure_scba_table():
     """Create scba_bottles table and seed initial inventory if it doesn't exist yet."""
     conn = get_db_connection()
@@ -3856,6 +3868,19 @@ def _ensure_scba_table():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    # Migration: add out_of_service_date column if this is an existing deployment
+    existing_cols = [row[1] for row in cursor.execute("PRAGMA table_info(scba_bottles)").fetchall()]
+    if 'out_of_service_date' not in existing_cols:
+        cursor.execute("ALTER TABLE scba_bottles ADD COLUMN out_of_service_date DATE")
+        rows = cursor.execute(
+            "SELECT id, mfgr_date FROM scba_bottles WHERE bottle_type='composite' AND mfgr_date IS NOT NULL AND status='active'"
+        ).fetchall()
+        for row_id, mfgr_str in rows:
+            oos = _oos_date_from_mfgr(mfgr_str)
+            if oos:
+                cursor.execute("UPDATE scba_bottles SET out_of_service_date=? WHERE id=?", (oos, row_id))
+        conn.commit()
+
     cursor.execute('SELECT COUNT(*) FROM scba_bottles')
     if cursor.fetchone()[0] == 0:
         # Seed initial SVVFD inventory
@@ -3880,11 +3905,12 @@ def _ensure_scba_table():
         ]
         for serial, hydro, location, station, status in composite:
             next_due = _next_hydro_from_last(hydro) if (hydro and status == 'active') else None
+            oos_date = _oos_date_from_mfgr('06/2016') if status == 'active' else None
             cursor.execute(
                 "INSERT OR IGNORE INTO scba_bottles "
-                "(bottle_type,dot_spec,serial_number,manufacturer,mfgr_date,hydro_date,next_hydro_due,location,station,status) "
-                "VALUES ('composite','SP11194',?,'Carleton','06/2016',?,?,?,?,?)",
-                (serial, hydro, next_due, location, station, status))
+                "(bottle_type,dot_spec,serial_number,manufacturer,mfgr_date,hydro_date,next_hydro_due,location,station,status,out_of_service_date) "
+                "VALUES ('composite','SP11194',?,'Carleton','06/2016',?,?,?,?,?,?)",
+                (serial, hydro, next_due, location, station, status, oos_date))
         aluminum = [
             ('DG49523', '06/2026', 'STN1',    'STN1'),
             ('DG49547', '06/2026', 'STN1',    'STN1'),
@@ -3929,7 +3955,7 @@ def get_all_scba_bottles():
     cursor.execute('''
         SELECT id, bottle_type, dot_spec, serial_number, manufacturer,
                mfgr_date, hydro_date, next_hydro_due, location, station,
-               status, notes, created_at, updated_at
+               status, notes, created_at, updated_at, out_of_service_date
         FROM scba_bottles
         ORDER BY bottle_type DESC, status, serial_number
     ''')
@@ -3937,7 +3963,6 @@ def get_all_scba_bottles():
     conn.close()
 
     today = datetime.now().date()
-    alert_window = today + timedelta(days=90)
     bottles = []
     for r in rows:
         next_due = None
@@ -3951,6 +3976,20 @@ def get_all_scba_bottles():
                     alert_level = 'overdue'
                 elif days_until <= 90:
                     alert_level = 'warning'
+            except Exception:
+                pass
+
+        oos_date = None
+        oos_days_until = None
+        oos_alert_level = None
+        if r[14]:
+            try:
+                oos_date = datetime.strptime(r[14], '%Y-%m-%d').date()
+                oos_days_until = (oos_date - today).days
+                if oos_days_until < 0:
+                    oos_alert_level = 'overdue'
+                elif oos_days_until <= 365:
+                    oos_alert_level = 'warning'
             except Exception:
                 pass
 
@@ -3970,6 +4009,9 @@ def get_all_scba_bottles():
             'station': r[9],
             'status': r[10],
             'notes': r[11],
+            'out_of_service_date': r[14],
+            'oos_days_until': oos_days_until,
+            'oos_alert_level': oos_alert_level,
         })
     return bottles
 
@@ -3985,23 +4027,26 @@ def get_scba_bottle(bottle_id):
         return None
     keys = ['id','bottle_type','dot_spec','serial_number','manufacturer',
             'mfgr_date','hydro_date','next_hydro_due','location','station',
-            'status','notes','created_at','updated_at']
+            'status','notes','created_at','updated_at','out_of_service_date']
     return dict(zip(keys, row))
 
 
 def add_scba_bottle(bottle_type, dot_spec, serial_number, manufacturer,
-                    mfgr_date, hydro_date, location, station, status='active', notes=''):
+                    mfgr_date, hydro_date, location, station, status='active', notes='',
+                    out_of_service_date=None):
     """Insert a new SCBA bottle. Returns new row id."""
     next_due = _next_hydro_from_last(hydro_date) if status == 'active' else None
+    if bottle_type == 'composite' and not out_of_service_date and mfgr_date and status == 'active':
+        out_of_service_date = _oos_date_from_mfgr(mfgr_date)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO scba_bottles
             (bottle_type, dot_spec, serial_number, manufacturer, mfgr_date,
-             hydro_date, next_hydro_due, location, station, status, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             hydro_date, next_hydro_due, location, station, status, notes, out_of_service_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (bottle_type, dot_spec, serial_number, manufacturer, mfgr_date,
-          hydro_date, next_due, location, station, status, notes))
+          hydro_date, next_due, location, station, status, notes, out_of_service_date))
     new_id = cursor.lastrowid
     conn.close()
     return new_id
@@ -4009,19 +4054,21 @@ def add_scba_bottle(bottle_type, dot_spec, serial_number, manufacturer,
 
 def update_scba_bottle(bottle_id, bottle_type, dot_spec, serial_number,
                        manufacturer, mfgr_date, hydro_date, location,
-                       station, status, notes):
+                       station, status, notes, out_of_service_date=None):
     """Update an existing SCBA bottle."""
     next_due = _next_hydro_from_last(hydro_date) if status == 'active' and hydro_date else None
+    if bottle_type == 'composite' and not out_of_service_date and mfgr_date and status == 'active':
+        out_of_service_date = _oos_date_from_mfgr(mfgr_date)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE scba_bottles
         SET bottle_type=?, dot_spec=?, serial_number=?, manufacturer=?,
             mfgr_date=?, hydro_date=?, next_hydro_due=?, location=?,
-            station=?, status=?, notes=?, updated_at=CURRENT_TIMESTAMP
+            station=?, status=?, notes=?, out_of_service_date=?, updated_at=CURRENT_TIMESTAMP
         WHERE id=?
     ''', (bottle_type, dot_spec, serial_number, manufacturer, mfgr_date,
-          hydro_date, next_due, location, station, status, notes, bottle_id))
+          hydro_date, next_due, location, station, status, notes, out_of_service_date, bottle_id))
     conn.close()
 
 
@@ -4034,9 +4081,10 @@ def delete_scba_bottle(bottle_id):
 
 
 def get_scba_alerts():
-    """Return bottles that are overdue or within 90 days of hydro test due date."""
+    """Return bottles that are overdue or within 90 days of hydro test due date, plus OOS warnings."""
     bottles = get_all_scba_bottles()
     overdue = [b for b in bottles if b['alert_level'] == 'overdue' and b['status'] == 'active']
     warning = [b for b in bottles if b['alert_level'] == 'warning' and b['status'] == 'active']
-    return {'overdue': overdue, 'warning': warning,
-            'total': len(overdue) + len(warning)}
+    oos_warning = [b for b in bottles if b.get('oos_alert_level') in ('overdue', 'warning') and b['status'] == 'active']
+    return {'overdue': overdue, 'warning': warning, 'oos_warning': oos_warning,
+            'total': len(overdue) + len(warning) + len(oos_warning)}

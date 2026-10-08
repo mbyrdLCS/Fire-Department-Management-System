@@ -228,6 +228,12 @@
                 <span style="color:#94a3b8;font-size:0.85rem;">No users with email addresses found. Add emails in User Management first.</span>
                 {% endfor %}
             </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:0.8rem;font-weight:600;color:#475569;margin-bottom:5px;">Additional recipients (not in system — separate multiple with commas)</label>
+                <input type="text" name="extra_emails" value="{{ extra_emails }}"
+                       placeholder="e.g. chief@svvfd.org, assistant@svvfd.org"
+                       style="width:100%;max-width:500px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.875rem;">
+            </div>
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
                 <button type="submit" style="background:#2563eb;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:0.875rem;cursor:pointer;">Save Recipients</button>
                 {% if scba_contact_email %}
@@ -281,6 +287,12 @@
             <div class="label">Due Within 90 Days</div>
         </div>
         {% endif %}
+        {% if scba_alerts.oos_warning | length > 0 %}
+        <div class="summary-card warn-card">
+            <div class="num">{{ scba_alerts.oos_warning | length }}</div>
+            <div class="label">Retirement Within 1 Year</div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Alert Banners -->
@@ -304,6 +316,16 @@
         </ul>
     </div>
     {% endif %}
+    {% if scba_alerts.oos_warning %}
+    <div class="alert-banner" style="background:#fef3c7;border-color:#f59e0b;">
+        <strong style="color:#92400e;">Composite Bottle Retirement Within 1 Year</strong>
+        <ul>
+          {% for b in scba_alerts.oos_warning %}
+          <li>Composite #{{ b.serial_number }} ({{ b.location }}) — retires {{ b.out_of_service_date }} ({{ b.oos_days_until }} days)</li>
+          {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
     <!-- Composite Bottles -->
     <div class="section">
@@ -323,6 +345,7 @@
                     <th>Mfgr Date</th>
                     <th>Last Hydro</th>
                     <th>Next Hydro Due</th>
+                    <th>Retire Date</th>
                     <th>Location</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -349,6 +372,19 @@
                         {% endif %}
                     {% else %}—{% endif %}
                 </td>
+                <td>
+                    {% if b.status == 'out_of_service' %}
+                        <span class="badge badge-oos">—</span>
+                    {% elif b.out_of_service_date %}
+                        {% if b.oos_alert_level == 'overdue' %}
+                            <span class="badge badge-overdue">RETIRED</span>
+                        {% elif b.oos_alert_level == 'warning' %}
+                            <span class="badge badge-warning">{{ b.out_of_service_date }} ({{ b.oos_days_until }}d)</span>
+                        {% else %}
+                            <span style="font-size:0.83rem;color:#475569;">{{ b.out_of_service_date }}</span>
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </td>
                 <td>{{ b.location or '—' }}</td>
                 <td>
                     {% if b.status == 'out_of_service' %}
@@ -368,7 +404,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;">No composite bottles on record.</td></tr>
+            <tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:24px;">No composite bottles on record.</td></tr>
             {% endfor %}
             </tbody>
         </table>
@@ -473,11 +509,15 @@
                 </div>
                 <div class="form-group">
                     <label>Mfgr Date (MM/YYYY)</label>
-                    <input type="text" name="mfgr_date" placeholder="06/2016">
+                    <input type="text" name="mfgr_date" id="add_mfgr_date" placeholder="06/2016">
                 </div>
                 <div class="form-group">
                     <label>Last Hydro Date (MM/YYYY)</label>
                     <input type="text" name="hydro_date" placeholder="10/2022">
+                </div>
+                <div class="form-group" id="add_oos_group" style="display:none;">
+                    <label>Retire Date (MM/YYYY) <span style="font-weight:400;color:#94a3b8;">auto-computed</span></label>
+                    <input type="text" name="out_of_service_date" id="add_oos_date" placeholder="06/2031">
                 </div>
                 <div class="form-group">
                     <label>Location / Truck</label>
@@ -543,6 +583,10 @@
                     <label>Last Hydro Date (MM/YYYY)</label>
                     <input type="text" name="hydro_date" id="edit_hydro_date" placeholder="10/2022">
                 </div>
+                <div class="form-group" id="edit_oos_group" style="display:none;">
+                    <label>Retire Date (MM/YYYY) <span style="font-weight:400;color:#94a3b8;">auto-computed</span></label>
+                    <input type="text" name="out_of_service_date" id="edit_oos_date" placeholder="06/2031">
+                </div>
                 <div class="form-group">
                     <label>Location / Truck</label>
                     <input type="text" name="location" id="edit_location">
@@ -575,10 +619,18 @@
 </div>
 
 <script>
+function toggleOosField(type, prefix) {
+    const grp = document.getElementById(prefix + '_oos_group');
+    if (grp) grp.style.display = (type === 'composite') ? '' : 'none';
+}
 function openAdd(type) {
     document.getElementById('add_bottle_type_sel').value = type;
+    toggleOosField(type, 'add');
     document.getElementById('addModal').classList.add('open');
 }
+document.getElementById('add_bottle_type_sel').addEventListener('change', function() {
+    toggleOosField(this.value, 'add');
+});
 function openEdit(b) {
     const f = document.getElementById('editForm');
     f.action = '/scba/edit/' + b.id;
@@ -592,12 +644,23 @@ function openEdit(b) {
     document.getElementById('edit_station').value       = b.station || 'STN1';
     document.getElementById('edit_status').value        = b.status || 'active';
     document.getElementById('edit_notes').value         = b.notes || '';
+    toggleOosField(b.bottle_type, 'edit');
+    // Convert YYYY-MM-DD stored value to MM/YYYY for display
+    const oosRaw = b.out_of_service_date || '';
+    let oosDisplay = '';
+    if (oosRaw.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const parts = oosRaw.split('-');
+        oosDisplay = parts[1] + '/' + parts[0];
+    }
+    document.getElementById('edit_oos_date').value = oosDisplay;
     document.getElementById('editModal').classList.add('open');
 }
+document.getElementById('edit_bottle_type').addEventListener('change', function() {
+    toggleOosField(this.value, 'edit');
+});
 function closeModal(id) {
     document.getElementById(id).classList.remove('open');
 }
-// Close on overlay click
 document.querySelectorAll('.modal-overlay').forEach(el => {
     el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
 });
