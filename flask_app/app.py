@@ -5085,6 +5085,109 @@ def scba_delete(bottle_id):
     return redirect(url_for('scba_bottles'))
 
 
+# ========== FIRE HYDRANT ROUTES ==========
+
+def _float_or_none(value):
+    try:
+        return float(value) if str(value).strip() != '' else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _hydrant_form():
+    number = request.form.get('number', '').strip()
+    return dict(
+        number    = int(number) if number.isdigit() else None,
+        name      = request.form.get('name', '').strip(),
+        latitude  = _float_or_none(request.form.get('latitude')),
+        longitude = _float_or_none(request.form.get('longitude')),
+        main_size = request.form.get('main_size', '').strip(),
+        outlets   = request.form.get('outlets', '').strip(),
+        owner     = request.form.get('owner', '').strip(),
+        status    = request.form.get('status', 'active'),
+        notes     = request.form.get('notes', '').strip(),
+    )
+
+
+@app.route('/hydrants')
+def hydrants():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    all_hydrants = db_helpers.get_all_hydrants()
+    stats = db_helpers.get_hydrant_stats()
+    map_points = [
+        {'id': h['id'], 'number': h['number'], 'name': h['name'],
+         'lat': h['latitude'], 'lng': h['longitude'], 'cls': h['flow_class'],
+         'gpm': h['last_flow']['gpm'] if h['last_flow'] else None}
+        for h in all_hydrants if h['latitude'] is not None
+    ]
+    return render_template('hydrants.html', hydrants=all_hydrants, stats=stats,
+                           map_points=map_points,
+                           today=datetime.now().strftime('%Y-%m-%d'))
+
+
+@app.route('/hydrants/add', methods=['POST'])
+def hydrant_add():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.add_hydrant(**_hydrant_form())
+        flash('Hydrant added.', 'success')
+    except Exception as e:
+        flash(f'Error adding hydrant: {e}', 'error')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/edit/<int:hydrant_id>', methods=['POST'])
+def hydrant_edit(hydrant_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.update_hydrant(hydrant_id, **_hydrant_form())
+        flash('Hydrant updated.', 'success')
+    except Exception as e:
+        flash(f'Error updating hydrant: {e}', 'error')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/delete/<int:hydrant_id>', methods=['POST'])
+def hydrant_delete(hydrant_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    db_helpers.delete_hydrant(hydrant_id)
+    flash('Hydrant deleted.', 'success')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/<int:hydrant_id>/test', methods=['POST'])
+def hydrant_test_add(hydrant_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    try:
+        db_helpers.add_hydrant_test(
+            hydrant_id  = hydrant_id,
+            test_date   = request.form.get('test_date', '').strip() or datetime.now().strftime('%Y-%m-%d'),
+            gpm         = _float_or_none(request.form.get('gpm')),
+            psi         = _float_or_none(request.form.get('psi')),
+            nozzle_size = request.form.get('nozzle_size', '').strip(),
+            tested_by   = request.form.get('tested_by', '').strip(),
+            notes       = request.form.get('notes', '').strip(),
+        )
+        flash('Test recorded.', 'success')
+    except Exception as e:
+        flash(f'Error recording test: {e}', 'error')
+    return redirect(url_for('hydrants'))
+
+
+@app.route('/hydrants/test/delete/<int:test_id>', methods=['POST'])
+def hydrant_test_delete(test_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin'))
+    db_helpers.delete_hydrant_test(test_id)
+    flash('Test removed.', 'success')
+    return redirect(url_for('hydrants'))
+
+
 if __name__ == '__main__':
     # Get debug mode from environment variable (defaults to False for production)
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
