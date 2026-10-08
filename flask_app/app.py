@@ -2690,6 +2690,7 @@ def update_vehicle(vehicle_id):
             model=model,
             vin=vin,
             license_plate=license_plate,
+            purchase_date=request.form.get('purchase_date', '').strip() or None,
             purchase_cost=purchase_cost,
             current_value=current_value,
             notes=notes,
