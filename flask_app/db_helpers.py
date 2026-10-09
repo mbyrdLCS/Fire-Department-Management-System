@@ -631,8 +631,12 @@ def get_recent_activity(limit=10):
 
 # ========== VEHICLE FUNCTIONS ==========
 
-def get_all_vehicles():
-    """Get all vehicles with all fields including fluid specifications"""
+def get_all_vehicles(include_inactive=False):
+    """Get vehicles with all fields including fluid specifications.
+
+    By default only active vehicles (inspections, reports). Pass include_inactive=True
+    for management/inventory pages so trucks in maintenance or out of service still show.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -643,9 +647,9 @@ def get_all_vehicles():
                oil_type, antifreeze_type, brake_fluid_type,
                power_steering_fluid_type, transmission_fluid_type, image_filename
         FROM vehicles
-        WHERE status = 'active'
+        WHERE status = 'active' OR ?
         ORDER BY vehicle_code
-    ''')
+    ''', (1 if include_inactive else 0,))
 
     vehicles = []
     for row in cursor.fetchall():
@@ -1437,6 +1441,38 @@ def create_inventory_item(name, category, item_code='', subcategory='', descript
         return True, item_id
     except Exception as e:
         conn.rollback()
+        conn.close()
+        return False, str(e)
+
+def get_inventory_item(item_id):
+    """Get one catalog item by id (for the edit form)."""
+    conn = get_db_connection()
+    row = conn.execute('''
+        SELECT id, name, item_code, serial_number, category, description, manufacturer,
+               model_number, unit_of_measure, cost_per_unit
+        FROM inventory_items WHERE id = ?
+    ''', (item_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def update_inventory_item(item_id, name, category, item_code='', serial_number='',
+                          description='', manufacturer='', model_number='',
+                          unit_of_measure='each', cost_per_unit=None):
+    """Update a catalog item. The cost applies everywhere the item is assigned."""
+    conn = get_db_connection()
+    try:
+        item_code = item_code.strip() if item_code and item_code.strip() else None
+        serial_number = serial_number.strip() if serial_number and serial_number.strip() else None
+        conn.execute('''
+            UPDATE inventory_items
+            SET name = ?, category = ?, item_code = ?, serial_number = ?, description = ?,
+                manufacturer = ?, model_number = ?, unit_of_measure = ?, cost_per_unit = ?
+            WHERE id = ?
+        ''', (name, category, item_code, serial_number, description, manufacturer,
+              model_number, unit_of_measure, cost_per_unit, item_id))
+        conn.close()
+        return True, None
+    except Exception as e:
         conn.close()
         return False, str(e)
 

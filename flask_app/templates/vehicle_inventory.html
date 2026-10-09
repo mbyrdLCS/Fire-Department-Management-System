@@ -452,8 +452,8 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="new_cost">Unit Cost/Price: *</label>
-                        <input type="number" name="cost_per_unit" id="new_cost" step="0.01" min="0" placeholder="0.00" required style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-weight: 600;">
+                        <label for="new_cost">Unit Cost/Price (optional):</label>
+                        <input type="number" name="cost_per_unit" id="new_cost" step="0.01" min="0" placeholder="Leave blank if unknown" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-weight: 600;">
                     </div>
                     <div class="form-group">
                         <label for="new_uom">Unit of Measure:</label>
@@ -513,11 +513,12 @@
                                     ${{ "%.2f"|format(item_value) }}
                                     {% set total_value.value = total_value.value + item_value %}
                                 {% else %}
-                                    --
+                                    <span class="add-value-link" onclick="openEditItem({{ item.item_id }})">+ Add value</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="action-buttons">
+                                    <button type="button" class="btn-small btn-edit-item" onclick="openEditItem({{ item.item_id }})">Edit</button>
                                     <form method="POST" action="{{ url_for('update_vehicle_quantity') }}" style="display: flex; gap: 8px; align-items: center;">
                                         <input type="hidden" name="vehicle_inventory_id" value="{{ item.id }}">
                                         <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
@@ -549,5 +550,6 @@
             {% endif %}
         </div>
     </div>
+{% include '_edit_item_modal.html' %}
 </body>
 </html>
