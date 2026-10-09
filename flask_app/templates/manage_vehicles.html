@@ -165,6 +165,21 @@
             color: white;
         }
 
+        .status-maintenance {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status-out_of_service {
+            background: #e53935;
+            color: white;
+        }
+
+        .status-retired {
+            background: #607d8b;
+            color: white;
+        }
+
         .btn-edit, .btn-checklist, .btn-delete {
             padding: 6px 14px;
             color: white;
@@ -427,7 +442,7 @@
                             </td>
                             <td>
                                 <span class="status-badge status-{{ vehicle.status }}">
-                                    {{ vehicle.status|title }}
+                                    {{ {'maintenance': 'In Maintenance', 'out_of_service': 'Out of Service'}.get(vehicle.status, vehicle.status|replace('_', ' ')|title) }}
                                 </span>
                             </td>
                             <td onclick="event.stopPropagation()">

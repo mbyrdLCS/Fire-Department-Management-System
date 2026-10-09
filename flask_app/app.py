@@ -1491,7 +1491,7 @@ def export_vehicles():
         cw.writerow([])
         cw.writerow(['Code', 'Name', 'Type', 'Year', 'Make', 'Model', 'VIN', 'License Plate', 'Status', 'Notes'])
 
-        vehicles = db_helpers.get_all_vehicles()
+        vehicles = db_helpers.get_all_vehicles(include_inactive=True)
         for vehicle in vehicles:
             cw.writerow([
                 vehicle['vehicle_code'],
@@ -1541,7 +1541,7 @@ def export_vehicles_pdf():
 
         data = [['Code', 'Name', 'Type', 'Year', 'Make', 'Model', 'VIN', 'Plate', 'Status']]
 
-        vehicles = db_helpers.get_all_vehicles()
+        vehicles = db_helpers.get_all_vehicles(include_inactive=True)
         for vehicle in vehicles:
             data.append([
                 vehicle['vehicle_code'],
@@ -2217,7 +2217,7 @@ def inspection_history(vehicle_id):
 @app.route('/maintenance')
 def maintenance_menu():
     """Maintenance menu - select a vehicle"""
-    vehicles = db_helpers.get_all_vehicles()
+    vehicles = db_helpers.get_all_vehicles(include_inactive=True)
     alerts = db_helpers.get_all_alerts()
 
     # Create a set of vehicle IDs that have failed inspections
@@ -2326,7 +2326,7 @@ def maintenance_history(vehicle_id):
 def inventory_menu():
     """Inventory management menu - select station or vehicle"""
     stations = db_helpers.get_all_stations()
-    vehicles = db_helpers.get_all_vehicles()
+    vehicles = db_helpers.get_all_vehicles(include_inactive=True)
 
     return render_template('inventory_menu.html',
                          stations=stations,
@@ -2487,6 +2487,42 @@ def remove_from_vehicle(vehicle_inventory_id, vehicle_id):
 
     return redirect(url_for('vehicle_inventory', vehicle_id=vehicle_id))
 
+@app.route('/inventory/item/<int:item_id>')
+def get_inventory_item_json(item_id):
+    """Item details for the edit form"""
+    item = db_helpers.get_inventory_item(item_id)
+    if not item:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(item)
+
+@app.route('/inventory/update_item/<int:item_id>', methods=['POST'])
+def update_inventory_item(item_id):
+    """Edit a catalog item (name, value, serial, etc.) after it was created"""
+    cost_raw = request.form.get('cost_per_unit', '').strip()
+    try:
+        cost_value = float(cost_raw) if cost_raw else None
+    except ValueError:
+        flash('Invalid cost value')
+        return redirect(request.referrer or url_for('inventory_menu'))
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Item name is required')
+        return redirect(request.referrer or url_for('inventory_menu'))
+    success, error = db_helpers.update_inventory_item(
+        item_id=item_id,
+        name=name,
+        category=request.form.get('category', '').strip(),
+        item_code=request.form.get('item_code', ''),
+        serial_number=request.form.get('serial_number', ''),
+        description=request.form.get('description', '').strip(),
+        manufacturer=request.form.get('manufacturer', '').strip(),
+        model_number=request.form.get('model_number', '').strip(),
+        unit_of_measure=request.form.get('unit_of_measure', 'each'),
+        cost_per_unit=cost_value,
+    )
+    flash(f'Item "{name}" updated.' if success else f'Error updating item: {error}')
+    return redirect(request.referrer or url_for('inventory_menu'))
+
 @app.route('/inventory/create_item', methods=['POST'])
 def create_inventory_item():
     """Create a new inventory item in the master catalog"""
@@ -2510,7 +2546,8 @@ def create_inventory_item():
             category=category,
             item_code=item_code,
             unit_of_measure=unit_of_measure,
-            cost_per_unit=cost_value
+            cost_per_unit=cost_value,
+            serial_number=request.form.get('serial_number', '')
         )
 
         if success:
@@ -2530,7 +2567,7 @@ def create_inventory_item():
 @app.route('/admin/vehicles')
 def manage_vehicles():
     """Manage vehicles - view, add, edit"""
-    vehicles = db_helpers.get_all_vehicles()
+    vehicles = db_helpers.get_all_vehicles(include_inactive=True)
     stations = db_helpers.get_all_stations()
     return render_template('manage_vehicles.html', vehicles=vehicles, stations=stations)
 

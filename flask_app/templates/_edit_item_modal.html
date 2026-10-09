@@ -1,0 +1,123 @@
+<!-- Edit catalog item (shared by vehicle_inventory.html and station_inventory.html) -->
+<style>
+    .edit-item-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+                         z-index: 1000; align-items: center; justify-content: center; }
+    .edit-item-overlay.open { display: flex; }
+    .edit-item-modal { background: white; border-radius: 12px; padding: 24px; width: 92%; max-width: 560px;
+                       max-height: 90vh; overflow-y: auto; }
+    .edit-item-modal h3 { margin: 0 0 6px 0; color: #1a237e; }
+    .edit-item-modal .hint { color: #666; font-size: 13px; margin-bottom: 16px; }
+    .edit-item-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .edit-item-grid .full { grid-column: 1 / -1; }
+    .edit-item-grid label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #333; }
+    .edit-item-grid input, .edit-item-grid select, .edit-item-grid textarea {
+        width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+    .edit-item-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+    .edit-item-actions button { padding: 11px 20px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; }
+    .edit-item-save { background: #1976d2; color: white; font-weight: 600; }
+    .edit-item-cancel { background: #eee; color: #333; }
+    .btn-edit-item { background: #1976d2; color: white; border: none; }
+    .add-value-link { color: #1976d2; cursor: pointer; text-decoration: underline; font-size: 13px; }
+    @media (max-width: 600px) { .edit-item-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="edit-item-overlay" id="editItemOverlay" onclick="if (event.target === this) closeEditItem()">
+    <div class="edit-item-modal">
+        <h3>Edit Item</h3>
+        <div class="hint">Changes apply everywhere this item is used, on every truck and station.</div>
+        <form method="POST" id="editItemForm">
+            <div class="edit-item-grid">
+                <div class="full">
+                    <label>Item Name *</label>
+                    <input type="text" name="name" id="ei_name" required>
+                </div>
+                <div>
+                    <label>Category</label>
+                    <select name="category" id="ei_category">
+                        <option value="PPE">PPE (Personal Protective Equipment)</option>
+                        <option value="Medical">Medical Supplies</option>
+                        <option value="Tools">Tools & Equipment</option>
+                        <option value="Hose">Hose & Nozzles</option>
+                        <option value="SCBA">SCBA & Breathing Equipment</option>
+                        <option value="Communication">Communication Equipment</option>
+                        <option value="Vehicle Parts">Vehicle Parts</option>
+                        <option value="Safety">Safety Equipment</option>
+                        <option value="Supplies">General Supplies</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Unit Cost/Value ($)</label>
+                    <input type="number" name="cost_per_unit" id="ei_cost" step="0.01" min="0" inputmode="decimal" placeholder="Leave blank if unknown">
+                </div>
+                <div>
+                    <label>Unit of Measure</label>
+                    <select name="unit_of_measure" id="ei_uom">
+                        <option value="each">Each</option>
+                        <option value="pair">Pair</option>
+                        <option value="set">Set</option>
+                        <option value="box">Box</option>
+                        <option value="case">Case</option>
+                        <option value="roll">Roll</option>
+                        <option value="gallon">Gallon</option>
+                        <option value="foot">Foot</option>
+                        <option value="pound">Pound</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Serial Number</label>
+                    <input type="text" name="serial_number" id="ei_serial">
+                </div>
+                <div>
+                    <label>Manufacturer</label>
+                    <input type="text" name="manufacturer" id="ei_manufacturer">
+                </div>
+                <div>
+                    <label>Model Number</label>
+                    <input type="text" name="model_number" id="ei_model">
+                </div>
+                <div class="full">
+                    <label>Item Code</label>
+                    <input type="text" name="item_code" id="ei_code">
+                </div>
+                <div class="full">
+                    <label>Description / Notes</label>
+                    <textarea name="description" id="ei_description" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="edit-item-actions">
+                <button type="button" class="edit-item-cancel" onclick="closeEditItem()">Cancel</button>
+                <button type="submit" class="edit-item-save">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditItem(itemId) {
+    fetch('/inventory/item/' + itemId)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(item => {
+            document.getElementById('editItemForm').action = '/inventory/update_item/' + itemId;
+            const set = (id, v) => { document.getElementById(id).value = (v === null || v === undefined) ? '' : v; };
+            set('ei_name', item.name);
+            set('ei_cost', item.cost_per_unit);
+            set('ei_serial', item.serial_number);
+            set('ei_manufacturer', item.manufacturer);
+            set('ei_model', item.model_number);
+            set('ei_code', item.item_code);
+            set('ei_description', item.description);
+            const cat = document.getElementById('ei_category');
+            if (item.category && ![...cat.options].some(o => o.value === item.category)) {
+                cat.add(new Option(item.category, item.category));
+            }
+            cat.value = item.category || 'Other';
+            document.getElementById('ei_uom').value = item.unit_of_measure || 'each';
+            document.getElementById('editItemOverlay').classList.add('open');
+        })
+        .catch(() => alert('Could not load that item. Please refresh and try again.'));
+}
+function closeEditItem() {
+    document.getElementById('editItemOverlay').classList.remove('open');
+}
+</script>
