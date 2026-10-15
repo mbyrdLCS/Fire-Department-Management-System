@@ -4841,6 +4841,8 @@ def iso_hose_testing_report():
 
     # Get available years
     available_years = db_helpers.get_available_test_years()
+    if year not in available_years:
+        available_years = sorted(set(available_years) | {year}, reverse=True)
 
     return render_template('reports/iso_hose_testing_report.html',
                          hoses=hoses,
