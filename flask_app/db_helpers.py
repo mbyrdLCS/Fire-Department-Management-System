@@ -1618,11 +1618,11 @@ def get_vehicle_inventory(vehicle_id):
 
     cursor.execute('''
         SELECT vi.id, vi.item_id, ii.name, ii.item_code, ii.category, ii.unit_of_measure,
-               vi.quantity, ii.cost_per_unit, vi.last_checked, vi.notes
+               vi.quantity, ii.cost_per_unit, vi.last_checked, vi.notes, ii.diameter
         FROM vehicle_inventory vi
         JOIN inventory_items ii ON vi.item_id = ii.id
         WHERE vi.vehicle_id = ?
-        ORDER BY ii.category, ii.name
+        ORDER BY ii.category, ii.diameter, ii.name
     ''', (vehicle_id,))
 
     items = []
@@ -1637,11 +1637,22 @@ def get_vehicle_inventory(vehicle_id):
             'quantity': row[6],
             'cost_per_unit': row[7],
             'last_checked': row[8],
-            'notes': row[9]
+            'notes': row[9],
+            'diameter': row[10],
+            'size': format_hose_size(row[10])
         })
 
     conn.close()
     return items
+
+def format_hose_size(diameter):
+    """Format a hose diameter for display, e.g. 1.5 -> '1.5"', 3.0 -> '3"'"""
+    if diameter is None or diameter == '':
+        return ''
+    try:
+        return f'{float(diameter):g}"'
+    except (TypeError, ValueError):
+        return str(diameter)
 
 def add_item_to_vehicle(vehicle_id, item_id, quantity, notes=''):
     """Add or update an item in vehicle inventory"""

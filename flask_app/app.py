@@ -1636,7 +1636,7 @@ def export_station_inventory(station_id):
         vehicles = db_helpers.get_vehicles_by_station(station_id)
         for vehicle in vehicles:
             cw.writerow([f'=== {vehicle["name"]} ({vehicle["vehicle_code"]}) ==='])
-            cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Location', 'Last Checked'])
+            cw.writerow(['Item Name', 'Category', 'Size', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Location', 'Last Checked'])
 
             vehicle_inventory = db_helpers.get_vehicle_inventory(vehicle['id'])
             vehicle_total = 0
@@ -1649,6 +1649,7 @@ def export_station_inventory(station_id):
                 cw.writerow([
                     item.get('name', ''),
                     item.get('category', ''),
+                    item.get('size', ''),
                     quantity,
                     item.get('unit_of_measure', ''),
                     f"${cost_per_unit:.2f}",
@@ -1657,7 +1658,7 @@ def export_station_inventory(station_id):
                     item.get('last_checked', '')
                 ])
 
-            cw.writerow(['', '', '', '', f'{vehicle["name"]} SUBTOTAL:', f"${vehicle_total:.2f}", '', ''])
+            cw.writerow(['', '', '', '', '', f'{vehicle["name"]} SUBTOTAL:', f"${vehicle_total:.2f}", '', ''])
             cw.writerow([])
             grand_total += vehicle_total
 
@@ -1726,10 +1727,10 @@ def export_station_inventory_pdf(station_id):
             station_total += item_value
 
             data.append([
-                item.get('name', '')[:30],
-                item.get('category', '')[:15],
+                (item.get('name') or '')[:30],
+                (item.get('category') or '')[:15],
                 str(quantity),
-                item.get('unit_of_measure', '')[:8],
+                (item.get('unit_of_measure') or '')[:8],
                 f"${cost_per_unit:.2f}",
                 f"${item_value:.2f}"
             ])
@@ -1761,7 +1762,7 @@ def export_station_inventory_pdf(station_id):
             elements.append(vehicle_header)
             elements.append(Spacer(1, 0.1*inch))
 
-            data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value']]
+            data = [['Item Name', 'Category', 'Size', 'Qty', 'Unit', 'Cost', 'Value']]
             vehicle_inventory = db_helpers.get_vehicle_inventory(vehicle['id'])
             vehicle_total = 0
             for item in vehicle_inventory:
@@ -1771,17 +1772,18 @@ def export_station_inventory_pdf(station_id):
                 vehicle_total += item_value
 
                 data.append([
-                    item.get('name', '')[:30],
-                    item.get('category', '')[:15],
+                    (item.get('name') or '')[:30],
+                    (item.get('category') or '')[:15],
+                    item.get('size', ''),
                     str(quantity),
-                    item.get('unit_of_measure', '')[:8],
+                    (item.get('unit_of_measure') or '')[:8],
                     f"${cost_per_unit:.2f}",
                     f"${item_value:.2f}"
                 ])
 
             if len(data) > 1:
-                data.append(['', '', '', '', 'SUBTOTAL:', f"${vehicle_total:.2f}"])
-                table = Table(data, colWidths=[2.5*inch, 1.5*inch, 0.7*inch, 0.8*inch, 1*inch, 1.2*inch])
+                data.append(['', '', '', '', '', 'SUBTOTAL:', f"${vehicle_total:.2f}"])
+                table = Table(data, colWidths=[2.5*inch, 1.3*inch, 0.8*inch, 0.6*inch, 0.8*inch, 1*inch, 1.2*inch])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1834,7 +1836,7 @@ def export_vehicle_inventory(vehicle_id):
 
         cw.writerow([f'VEHICLE INVENTORY - {vehicle["name"]} ({vehicle["code"]})'])
         cw.writerow([])
-        cw.writerow(['Item Name', 'Category', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Last Checked'])
+        cw.writerow(['Item Name', 'Category', 'Size', 'Quantity', 'Unit', 'Cost Per Unit', 'Total Value', 'Last Checked'])
 
         inventory = db_helpers.get_vehicle_inventory(vehicle_id)
         total_value = 0
@@ -1847,6 +1849,7 @@ def export_vehicle_inventory(vehicle_id):
             cw.writerow([
                 item.get('name', ''),
                 item.get('category', ''),
+                item.get('size', ''),
                 quantity,
                 item.get('unit_of_measure', ''),
                 f"${cost_per_unit:.2f}",
@@ -1856,7 +1859,7 @@ def export_vehicle_inventory(vehicle_id):
 
         # Add total row
         cw.writerow([])
-        cw.writerow(['', '', '', '', 'TOTAL VALUE:', f"${total_value:.2f}", ''])
+        cw.writerow(['', '', '', '', '', 'TOTAL VALUE:', f"${total_value:.2f}", ''])
 
         output.seek(0)
         filename = f'vehicle_{vehicle_id}_inventory_{datetime.now().strftime("%Y%m%d")}.csv'
@@ -1896,7 +1899,7 @@ def export_vehicle_inventory_pdf(vehicle_id):
         elements.append(title)
         elements.append(Spacer(1, 0.25*inch))
 
-        data = [['Item Name', 'Category', 'Qty', 'Unit', 'Cost', 'Value']]
+        data = [['Item Name', 'Category', 'Size', 'Qty', 'Unit', 'Cost', 'Value']]
 
         inventory = db_helpers.get_vehicle_inventory(vehicle_id)
         total_value = 0
@@ -1907,20 +1910,21 @@ def export_vehicle_inventory_pdf(vehicle_id):
             total_value += item_value
 
             data.append([
-                item.get('name', '')[:30],
-                item.get('category', '')[:15],
+                (item.get('name') or '')[:30],
+                (item.get('category') or '')[:15],
+                item.get('size', ''),
                 str(quantity),
-                item.get('unit_of_measure', '')[:8],
+                (item.get('unit_of_measure') or '')[:8],
                 f"${cost_per_unit:.2f}",
                 f"${item_value:.2f}"
             ])
 
         # Add total row
         if len(data) > 1:
-            data.append(['', '', '', '', 'TOTAL:', f"${total_value:.2f}"])
+            data.append(['', '', '', '', '', 'TOTAL:', f"${total_value:.2f}"])
 
         if len(data) > 1:
-            table = Table(data, colWidths=[2.5*inch, 1.5*inch, 0.7*inch, 0.8*inch, 1*inch, 1.2*inch])
+            table = Table(data, colWidths=[2.5*inch, 1.3*inch, 0.8*inch, 0.6*inch, 0.8*inch, 1*inch, 1.2*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
