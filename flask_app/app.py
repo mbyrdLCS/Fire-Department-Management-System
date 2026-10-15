@@ -4688,7 +4688,7 @@ def close_testing_year():
 def iso_hose_testing_report():
     """ISO Hose Testing Report"""
     if not session.get('logged_in'):
-        return redirect(url_for('login'))
+        return redirect(url_for('admin'))
 
     # Get year parameter or default to current year
     year = request.args.get('year', type=int)
