@@ -324,8 +324,8 @@
 
             /* Hide less important columns on very small screens */
             @media (max-width: 480px) {
-                .inventory-table th:nth-child(4),
-                .inventory-table td:nth-child(4) {
+                .inventory-table th:nth-child(5),
+                .inventory-table td:nth-child(5) {
                     display: none;
                 }
             }
@@ -489,6 +489,7 @@
                         <tr>
                             <th>Equipment Name</th>
                             <th>Category</th>
+                            <th>Size</th>
                             <th>Quantity</th>
                             <th>Unit</th>
                             <th>Value</th>
@@ -503,6 +504,7 @@
                                 <strong>{{ item.name }}</strong>
                             </td>
                             <td><span class="category-badge">{{ item.category }}</span></td>
+                            <td>{% if item.size %}<strong>{{ item.size }}</strong>{% endif %}</td>
                             <td>
                                 <span class="quantity-badge">{{ item.quantity }}</span>
                             </td>
